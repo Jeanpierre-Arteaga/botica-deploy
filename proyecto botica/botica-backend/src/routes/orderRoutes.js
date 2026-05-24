@@ -11,5 +11,7 @@ router.get('/:id', verifyToken, orderController.getById);
 router.post('/', verifyToken, verifyRole('cust'), orderController.create);
 router.post('/walk-in', verifyToken, verifyRole('emp', 'admin'), orderController.createWalkIn);
 router.patch('/:id/status', verifyToken, orderController.updateStatus);
+router.patch('/:id/cancel', verifyToken, verifyRole('cust'), orderController.cancel);
+router.post('/:id/cancel-with-refund', verifyToken, verifyRole('emp', 'admin'), orderController.cancelWithRefund);
 
 module.exports = router;

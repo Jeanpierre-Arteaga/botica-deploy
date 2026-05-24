@@ -38,6 +38,94 @@ import type {
 } from './types';
 
 // ============================================================
+// HELPERS DE NORMALIZACIÓN
+// ============================================================
+// PostgreSQL devuelve DECIMAL como string (precisión). Convertimos
+// a number en la frontera del sistema (Anti-Corruption Layer).
+// ============================================================
+
+/** Convierte string|number|null|undefined a number. Devuelve 0 si no se puede. */
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+/** Convierte string|number|null|undefined a integer. Devuelve 0 si no se puede. */
+function toInt(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return Math.trunc(value);
+  if (typeof value === 'string') {
+    const n = parseInt(value, 10);
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+// Normalizadores por entidad. Cada uno convierte los campos DECIMAL/INT
+// que el backend devuelve como string a number.
+
+function normalizeProduct<T extends Record<string, any>>(p: T): T {
+  if (!p) return p;
+  return {
+    ...p,
+    product_price: toNumber(p.product_price),
+    current_stock: p.current_stock !== undefined ? toInt(p.current_stock) : undefined,
+    min_stock: p.min_stock !== undefined ? toInt(p.min_stock) : undefined,
+  };
+}
+
+function normalizeOrderDetail<T extends Record<string, any>>(d: T): T {
+  if (!d) return d;
+  return {
+    ...d,
+    amount: toInt(d.amount),
+    unit_price: toNumber(d.unit_price),
+    sub_total_price: toNumber(d.sub_total_price),
+  };
+}
+
+function normalizePayment<T extends Record<string, any>>(p: T): T {
+  if (!p) return p;
+  return {
+    ...p,
+    total_price: toNumber(p.total_price),
+  };
+}
+
+function normalizeOrder<T extends Record<string, any>>(o: T): T {
+  if (!o) return o;
+  return {
+    ...o,
+    total_price: toNumber(o.total_price),
+    details: Array.isArray(o.details) ? o.details.map(normalizeOrderDetail) : o.details,
+    payment: o.payment ? normalizePayment(o.payment) : o.payment,
+  };
+}
+
+function normalizeInventory<T extends Record<string, any>>(i: T): T {
+  if (!i) return i;
+  return {
+    ...i,
+    current_stock: toInt(i.current_stock),
+    min_stock: toInt(i.min_stock),
+  };
+}
+
+function normalizeProductStockInfo<T extends Record<string, any>>(s: T): T {
+  if (!s) return s;
+  return {
+    ...s,
+    current_stock: toInt(s.current_stock),
+    min_stock: toInt(s.min_stock),
+  };
+}
+
+// ============================================================
 // CONFIGURACIÓN
 // ============================================================
 
@@ -313,55 +401,62 @@ const customers = {
 
 const products = {
   /** GET /api/products — catálogo público con filtros */
-  getAll(filters?: ProductFilters): Promise<Product[]> {
-    return request<Product[]>('/products', {
+  async getAll(filters?: ProductFilters): Promise<Product[]> {
+    const data = await request<Product[]>('/products', {
       query: filters as Record<string, string | number | boolean | undefined | null> | undefined,
       skipAuth: true,
     });
+    return data.map(normalizeProduct);
   },
 
   /** GET /api/products/:id — detalle público */
-  getById(product_id: number, location_id?: number): Promise<Product> {
-    return request<Product>(`/products/${product_id}`, {
+  async getById(product_id: number, location_id?: number): Promise<Product> {
+    const data = await request<Product>(`/products/${product_id}`, {
       query: { location_id },
       skipAuth: true,
     });
+    return normalizeProduct(data);
   },
 
   /** GET /api/products/stock — info de stock de un producto en una sede */
-  getStock(productId: number, location_id: number): Promise<ProductStockInfo> {
-    return request<ProductStockInfo>('/products/stock', {
+  async getStock(productId: number, location_id: number): Promise<ProductStockInfo> {
+    const data = await request<ProductStockInfo>('/products/stock', {
       query: { productId, location_id },
     });
+    return normalizeProductStockInfo(data);
   },
 
   /** POST /api/products (admin) */
-  create(payload: Partial<Product>): Promise<Product> {
-    return request<Product>('/products', { method: 'POST', body: payload });
+  async create(payload: Partial<Product>): Promise<Product> {
+    const data = await request<Product>('/products', { method: 'POST', body: payload });
+    return normalizeProduct(data);
   },
 
   /** PUT /api/products/:id (admin) */
-  update(product_id: number, payload: Partial<Product>): Promise<Product> {
-    return request<Product>(`/products/${product_id}`, {
+  async update(product_id: number, payload: Partial<Product>): Promise<Product> {
+    const data = await request<Product>(`/products/${product_id}`, {
       method: 'PUT',
       body: payload,
     });
+    return normalizeProduct(data);
   },
 
   /** PATCH /api/products/:id (admin) — actualización parcial */
-  patch(product_id: number, payload: Partial<Product>): Promise<Product> {
-    return request<Product>(`/products/${product_id}`, {
+  async patch(product_id: number, payload: Partial<Product>): Promise<Product> {
+    const data = await request<Product>(`/products/${product_id}`, {
       method: 'PATCH',
       body: payload,
     });
+    return normalizeProduct(data);
   },
 
   /** PATCH /api/products/offers/:id — toggle oferta (admin) */
-  toggleOffer(product_id: number, is_offer: boolean): Promise<Product> {
-    return request<Product>(`/products/offers/${product_id}`, {
+  async toggleOffer(product_id: number, is_offer: boolean): Promise<Product> {
+    const data = await request<Product>(`/products/offers/${product_id}`, {
       method: 'PATCH',
       body: { is_offer },
     });
+    return normalizeProduct(data);
   },
 
   /** DELETE /api/products/:id (admin) */
@@ -476,18 +571,20 @@ const locations = {
 
 const orders = {
   /** GET /api/orders — listar pedidos (admin/emp) */
-  getAll(filters?: {
+  async getAll(filters?: {
     location_id?: number;
     order_state?: OrderState;
     date_from?: string;
     date_to?: string;
   }): Promise<Order[]> {
-    return request<Order[]>('/orders', { query: filters });
+    const data = await request<Order[]>('/orders', { query: filters });
+    return data.map(normalizeOrder);
   },
 
   /** GET /api/orders/my-orders — pedidos del customer autenticado */
-  getMyOrders(): Promise<Order[]> {
-    return request<Order[]>('/orders/my-orders');
+  async getMyOrders(): Promise<Order[]> {
+    const data = await request<Order[]>('/orders/my-orders');
+    return data.map(normalizeOrder);
   },
 
   /** GET /api/orders/stats?date= — KPIs del día (staff/admin) */
@@ -501,26 +598,77 @@ const orders = {
   },
 
   /** GET /api/orders/:id — detalle del pedido */
-  getById(order_id: number): Promise<Order> {
-    return request<Order>(`/orders/${order_id}`);
+  async getById(order_id: number): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}`);
+    return normalizeOrder(data);
   },
 
   /** POST /api/orders — crear pedido web (customer) */
-  create(payload: OrderCreatePayload): Promise<Order> {
-    return request<Order>('/orders', { method: 'POST', body: payload });
+  async create(payload: OrderCreatePayload): Promise<Order> {
+    const data = await request<Order>('/orders', { method: 'POST', body: payload });
+    return normalizeOrder(data);
   },
 
   /** POST /api/orders/walk-in — venta presencial (staff/admin) */
-  createWalkIn(payload: OrderWalkInPayload): Promise<Order> {
-    return request<Order>('/orders/walk-in', { method: 'POST', body: payload });
+  async createWalkIn(payload: OrderWalkInPayload): Promise<Order> {
+    const data = await request<Order>('/orders/walk-in', { method: 'POST', body: payload });
+    return normalizeOrder(data);
   },
 
   /** PATCH /api/orders/:id/status — cambiar estado (staff cualquiera, cust solo cancelar pendientes) */
-  updateStatus(order_id: number, order_state: OrderState): Promise<Order> {
-    return request<Order>(`/orders/${order_id}/status`, {
+  async updateStatus(order_id: number, order_state: OrderState): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}/status`, {
       method: 'PATCH',
       body: { order_state },
     });
+    return normalizeOrder(data);
+  },
+
+  /** PATCH /api/orders/:id/cancel — cancelación del cliente (no aplica a tarjeta) */
+  async cancel(order_id: number): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}/cancel`, {
+      method: 'PATCH',
+    });
+    return normalizeOrder(data);
+  },
+
+  /** POST /api/orders/:id/cancel-with-refund — cancelación staff de pedido con tarjeta (refund manual) */
+  async cancelWithRefund(
+    order_id: number,
+    data: { reason: string; refund_confirmed: boolean; force?: boolean }
+  ): Promise<Order> {
+    const res = await request<Order>(`/orders/${order_id}/cancel-with-refund`, {
+      method: 'POST',
+      body: data,
+    });
+    return normalizeOrder(res);
+  },
+
+  /** PATCH /api/orders/:id/status → 'en proceso' — validar pago manual (yape/plin/transferencia) */
+  async validatePayment(order_id: number): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}/status`, {
+      method: 'PATCH',
+      body: { order_state: 'en proceso' },
+    });
+    return normalizeOrder(data);
+  },
+
+  /** PATCH /api/orders/:id/status → 'entregado' — marcar pedido como entregado */
+  async markDelivered(order_id: number): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}/status`, {
+      method: 'PATCH',
+      body: { order_state: 'entregado' },
+    });
+    return normalizeOrder(data);
+  },
+
+  /** PATCH /api/orders/:id/status → 'cancelado' — cancelación staff sin tarjeta */
+  async staffCancel(order_id: number, reason: string): Promise<Order> {
+    const data = await request<Order>(`/orders/${order_id}/status`, {
+      method: 'PATCH',
+      body: { order_state: 'cancelado', cancellation_reason: reason },
+    });
+    return normalizeOrder(data);
   },
 };
 
@@ -530,21 +678,24 @@ const orders = {
 
 const inventory = {
   /** GET /api/inventory — listar inventario (staff/admin) */
-  getAll(filters?: { location_id?: number; product_id?: number }): Promise<InventoryItem[]> {
-    return request<InventoryItem[]>('/inventory', { query: filters });
+  async getAll(filters?: { location_id?: number; product_id?: number }): Promise<InventoryItem[]> {
+    const data = await request<InventoryItem[]>('/inventory', { query: filters });
+    return data.map(normalizeInventory);
   },
 
   /** POST /api/inventory (admin) */
-  create(payload: Omit<InventoryItem, 'inventory_id'>): Promise<InventoryItem> {
-    return request<InventoryItem>('/inventory', { method: 'POST', body: payload });
+  async create(payload: Omit<InventoryItem, 'inventory_id'>): Promise<InventoryItem> {
+    const data = await request<InventoryItem>('/inventory', { method: 'POST', body: payload });
+    return normalizeInventory(data);
   },
 
   /** PATCH /api/inventory/:id (admin) */
-  update(inventory_id: number, payload: Partial<InventoryItem>): Promise<InventoryItem> {
-    return request<InventoryItem>(`/inventory/${inventory_id}`, {
+  async update(inventory_id: number, payload: Partial<InventoryItem>): Promise<InventoryItem> {
+    const data = await request<InventoryItem>(`/inventory/${inventory_id}`, {
       method: 'PATCH',
       body: payload,
     });
+    return normalizeInventory(data);
   },
 };
 

@@ -1,9 +1,12 @@
 const OrderModel = require('../models/orderModel');
 const pool = require('../config/db');
 const { toFloat, toInt } = require('../utils/casting');
+const { processCardPayment } = require('../services/paymentService');
 
 const VALID_ORDER_STATES = ['pendiente', 'en proceso', 'entregado', 'cancelado'];
 const VALID_DELIVERY_TYPES = ['delivery', 'pickup'];
+const VALID_PAYMENT_METHODS = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia'];
+const VALID_VOUCHER_TYPES = ['boleta', 'factura', 'ticket'];
 
 const orderController = {
 
@@ -67,40 +70,221 @@ const orderController = {
   },
 
   // POST /api/orders
+  // Acepta DOS formatos:
+  //  1) Flat (frontend web checkout con MercadoPago):
+  //     { items: [...], delivery_type, address, phone, notes,
+  //       payment_method, voucher_type, location_id,
+  //       card_token, mp_payment_method_id, installments,
+  //       payer_email, payer_identification }
+  //  2) Legacy { order: {...}, details: [...] } — mantenido por compatibilidad
   create: async (req, res) => {
-    try {
-      const { order, details } = req.body;
+    const isFlat = Array.isArray(req.body && req.body.items);
 
-      if (!details || details.length === 0) {
-        return res.status(400).json({ message: 'El pedido debe tener al menos un producto.' });
+    if (!isFlat) {
+      // ===== Legacy path ({order, details}) =====
+      try {
+        const { order, details } = req.body;
+
+        if (!details || details.length === 0) {
+          return res.status(400).json({ message: 'El pedido debe tener al menos un producto.' });
+        }
+
+        if (order && order.delivery_type && !VALID_DELIVERY_TYPES.includes(order.delivery_type)) {
+          return res.status(400).json({
+            message: `delivery_type debe ser '${VALID_DELIVERY_TYPES.join("' o '")}'.`
+          });
+        }
+
+        for (const detail of details) {
+          const stockResult = await pool.query(
+            `SELECT current_stock FROM inventory
+             WHERE product_id = $1 AND location_id = $2`,
+            [detail.product_id, order.location_id]
+          );
+          const stock = stockResult.rows[0];
+          if (!stock || stock.current_stock < detail.amount) {
+            return res.status(409).json({
+              message: `Stock insuficiente para el producto ID ${detail.product_id}.`
+            });
+          }
+        }
+
+        const newOrder = await OrderModel.create(order, details);
+        return res.status(201).json(newOrder);
+      } catch (err) {
+        console.error('[orders/create:legacy]', err);
+        return res.status(500).json({ message: 'Error en el servidor.' });
       }
+    }
 
-      if (order && order.delivery_type && !VALID_DELIVERY_TYPES.includes(order.delivery_type)) {
-        return res.status(400).json({
-          message: `delivery_type debe ser '${VALID_DELIVERY_TYPES.join("' o '")}'.`
+    // ===== Flat path (web checkout + MercadoPago) =====
+    const {
+      items,
+      delivery_type,
+      phone,
+      payment_method,
+      voucher_type,
+      location_id,
+      card_token,
+      mp_payment_method_id,
+      installments,
+      payer_email,
+      payer_identification,
+    } = req.body;
+
+    // Validaciones básicas
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: 'Carrito vacío.' });
+    }
+    if (!location_id) {
+      return res.status(400).json({ message: 'Se requiere location_id.' });
+    }
+    if (!payment_method || !VALID_PAYMENT_METHODS.includes(payment_method)) {
+      return res.status(400).json({
+        message: `payment_method requerido. Debe ser: ${VALID_PAYMENT_METHODS.join(', ')}.`,
+      });
+    }
+    if (delivery_type && !VALID_DELIVERY_TYPES.includes(delivery_type)) {
+      return res.status(400).json({
+        message: `delivery_type debe ser '${VALID_DELIVERY_TYPES.join("' o '")}'.`,
+      });
+    }
+    if (voucher_type && !VALID_VOUCHER_TYPES.includes(voucher_type)) {
+      return res.status(400).json({
+        message: `voucher_type inválido. Debe ser: ${VALID_VOUCHER_TYPES.join(', ')}.`,
+      });
+    }
+    if (payment_method === 'tarjeta' && !card_token) {
+      return res.status(400).json({ message: 'Token de tarjeta requerido.' });
+    }
+
+    // Validar stock antes de tocar el pago
+    for (const it of items) {
+      const stockResult = await pool.query(
+        `SELECT current_stock FROM inventory
+         WHERE product_id = $1 AND location_id = $2`,
+        [it.product_id, location_id]
+      );
+      const stock = stockResult.rows[0];
+      if (!stock || stock.current_stock < Number(it.amount)) {
+        return res.status(409).json({
+          message: `Stock insuficiente para el producto ID ${it.product_id}.`,
         });
       }
+    }
 
-      // Verificar stock antes de crear
-      for (const detail of details) {
-        const stockResult = await pool.query(
-          `SELECT current_stock FROM inventory
-           WHERE product_id = $1 AND location_id = $2`,
-          [detail.product_id, order.location_id]
+    // Calcular totales (regla: envío gratis si pickup o subtotal >= 50)
+    const subtotal = items.reduce(
+      (sum, i) => sum + Number(i.unit_price) * Number(i.amount),
+      0
+    );
+    const shipping = delivery_type === 'pickup' ? 0 : (subtotal >= 50 ? 0 : 8);
+    const total = subtotal + shipping;
+
+    // Procesar pago con MercadoPago ANTES de tocar BD
+    let mpResult = null;
+    if (payment_method === 'tarjeta') {
+      mpResult = await processCardPayment({
+        token: card_token,
+        amount: total,
+        payment_method_id: mp_payment_method_id,
+        installments: installments || 1,
+        email: payer_email || req.user.email,
+        description: `Pedido Botica Central - ${items.length} producto(s)`,
+        payer: { identification: payer_identification },
+      });
+
+      if (!mpResult.success) {
+        return res.status(402).json({
+          message: 'Pago rechazado por MercadoPago',
+          status: mpResult.status,
+          status_detail: mpResult.status_detail,
+        });
+      }
+    }
+
+    // Estado del pedido según método de pago
+    let orderState = 'pendiente';
+    if (payment_method === 'tarjeta' && mpResult && mpResult.success) orderState = 'en proceso';
+    else if (payment_method === 'efectivo') orderState = 'en proceso';
+
+    const customer_id = req.user.customer_id || null;
+
+    // Transacción BD
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const orderResult = await client.query(
+        `INSERT INTO orders
+          (order_state, delivery_type, order_date, total_price, customer_id, user_id, location_id)
+         VALUES ($1, $2, NOW(), $3, $4, NULL, $5)
+         RETURNING *`,
+        [orderState, delivery_type, total, customer_id, location_id]
+      );
+      const order = orderResult.rows[0];
+
+      for (const it of items) {
+        const sub_total = Number(it.unit_price) * Number(it.amount);
+        await client.query(
+          `INSERT INTO order_detail (amount, unit_price, sub_total_price, product_id, order_id)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [it.amount, it.unit_price, sub_total, it.product_id, order.order_id]
         );
-        const stock = stockResult.rows[0];
-        if (!stock || stock.current_stock < detail.amount) {
-          return res.status(409).json({
-            message: `Stock insuficiente para el producto ID ${detail.product_id}.`
-          });
+
+        const stockUpd = await client.query(
+          `UPDATE inventory
+           SET current_stock = current_stock - $1
+           WHERE product_id = $2 AND location_id = $3 AND current_stock >= $1
+           RETURNING current_stock`,
+          [it.amount, it.product_id, location_id]
+        );
+        if (stockUpd.rowCount === 0) {
+          throw new Error(`Stock insuficiente para producto ${it.product_id}`);
         }
       }
 
-      const newOrder = await OrderModel.create(order, details);
-      res.status(201).json(newOrder);
+      // Payment: incluye campos MP si era tarjeta (la tabla payment fue ampliada
+      // con mp_payment_id, mp_status, mp_status_detail en .env/BD).
+      await client.query(
+        `INSERT INTO payment
+          (payment_method, total_price, voucher_type, email_pay, phone_pay,
+           mp_payment_id, mp_status, mp_status_detail, order_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          payment_method,
+          total,
+          voucher_type || null,
+          payer_email || req.user.email || null,
+          phone || null,
+          mpResult ? mpResult.mp_payment_id : null,
+          mpResult ? mpResult.status : null,
+          mpResult ? mpResult.status_detail : null,
+          order.order_id,
+        ]
+      );
+
+      await client.query('COMMIT');
+
+      const fullOrder = await OrderModel.findById(order.order_id);
+      return res.status(201).json(fullOrder);
     } catch (err) {
-      console.error('[orders/create]', err);
-      return res.status(500).json({ message: 'Error en el servidor.' });
+      await client.query('ROLLBACK');
+      console.error('[orders/create:flat]', err);
+
+      if (mpResult && mpResult.success) {
+        // Pago cobrado pero BD falló → caso crítico que en G se resolverá con reembolso/webhook
+        console.error('[orders/create:flat] CRITICAL: payment captured but DB failed.', {
+          mp_payment_id: mpResult.mp_payment_id,
+        });
+      }
+
+      if (err && err.message && err.message.includes('Stock insuficiente')) {
+        return res.status(409).json({ message: err.message });
+      }
+      return res.status(500).json({ message: 'Error al crear el pedido.' });
+    } finally {
+      client.release();
     }
   },
 
@@ -354,6 +538,208 @@ const orderController = {
     } catch (err) {
       console.error('[orders/updateStatus]', err);
       return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
+  // PATCH /api/orders/:id/cancel
+  // Cancelación del pedido por parte del cliente dueño.
+  // Reglas:
+  //   - Ownership: req.user.customer_id === order.customer_id
+  //   - Estado debe ser 'pendiente' o 'en proceso'
+  //   - payment_method NO puede ser 'tarjeta' (requeriría refund con MP)
+  // Si pasa: BEGIN → UPDATE orders + restaurar stock por cada order_detail → COMMIT.
+  cancel: async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const orderId = parseInt(req.params.id, 10);
+      if (!orderId) return res.status(400).json({ message: 'ID inválido' });
+
+      // 1. Verificar existencia + ownership + estado + método de pago
+      const checkResult = await client.query(
+        `SELECT o.order_id, o.order_state, o.customer_id, o.location_id, p.payment_method
+         FROM orders o
+         LEFT JOIN payment p ON p.order_id = o.order_id
+         WHERE o.order_id = $1`,
+        [orderId]
+      );
+
+      if (checkResult.rowCount === 0) {
+        return res.status(404).json({ message: 'Pedido no encontrado' });
+      }
+
+      const order = checkResult.rows[0];
+
+      if (order.customer_id !== req.user.customer_id) {
+        return res.status(403).json({ message: 'No tienes permiso para cancelar este pedido' });
+      }
+
+      if (!['pendiente', 'en proceso'].includes(order.order_state)) {
+        return res.status(409).json({
+          message: `No se puede cancelar un pedido en estado "${order.order_state}"`
+        });
+      }
+
+      if (order.payment_method === 'tarjeta') {
+        return res.status(409).json({
+          message: 'Los pedidos pagados con tarjeta no pueden cancelarse desde aquí. Contacta al staff para procesar la devolución.'
+        });
+      }
+
+      // 2. Transacción: cancelar + restaurar stock
+      await client.query('BEGIN');
+
+      await client.query(
+        `UPDATE orders SET order_state = 'cancelado' WHERE order_id = $1`,
+        [orderId]
+      );
+
+      const detailsResult = await client.query(
+        `SELECT product_id, amount FROM order_detail WHERE order_id = $1`,
+        [orderId]
+      );
+
+      for (const detail of detailsResult.rows) {
+        // product_id puede ser NULL si el producto fue eliminado: en ese caso no se restaura.
+        if (detail.product_id) {
+          await client.query(
+            `UPDATE inventory
+             SET current_stock = current_stock + $1
+             WHERE product_id = $2 AND location_id = $3`,
+            [detail.amount, detail.product_id, order.location_id]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+
+      const updatedOrder = await OrderModel.findById(orderId);
+      return res.json(updatedOrder);
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+      console.error('[orders/cancel]', err);
+      return res.status(500).json({ message: 'Error al cancelar el pedido' });
+    } finally {
+      client.release();
+    }
+  },
+
+  // POST /api/orders/:id/cancel-with-refund
+  // Cancelación de pedidos pagados con TARJETA por parte del staff (emp/admin).
+  // Requiere que el staff confirme que ya procesó el refund manual en MercadoPago.
+  // Reglas:
+  //   - Estado debe ser 'pendiente' o 'en proceso'
+  //   - payment_method debe ser 'tarjeta'
+  //   - emp solo puede cancelar pedidos de su sede
+  //   - Hasta 7 días desde el pedido. Admin puede forzar con force=true.
+  //   - refund_confirmed debe ser true (auditoría: el staff afirma que lo procesó)
+  //   - reason mínimo 5 caracteres
+  // Si pasa: BEGIN → UPDATE orders (estado + auditoría) + restaurar stock → COMMIT.
+  cancelWithRefund: async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const orderId = parseInt(req.params.id, 10);
+      const { reason, refund_confirmed, force = false } = req.body || {};
+
+      if (!orderId) return res.status(400).json({ message: 'ID inválido' });
+      if (!refund_confirmed) {
+        return res.status(400).json({
+          message: 'Debe confirmar que procesó el refund en MercadoPago'
+        });
+      }
+      if (!reason || String(reason).trim().length < 5) {
+        return res.status(400).json({
+          message: 'Razón de cancelación requerida (mín. 5 caracteres)'
+        });
+      }
+
+      const checkResult = await client.query(
+        `SELECT o.order_id, o.order_state, o.location_id, o.order_date,
+                p.payment_method
+         FROM orders o
+         LEFT JOIN payment p ON p.order_id = o.order_id
+         WHERE o.order_id = $1`,
+        [orderId]
+      );
+
+      if (checkResult.rowCount === 0) {
+        return res.status(404).json({ message: 'Pedido no encontrado' });
+      }
+
+      const order = checkResult.rows[0];
+
+      // emp solo puede cancelar pedidos de SU sede
+      if (req.user.role === 'emp' && order.location_id !== req.user.location_id) {
+        return res.status(403).json({ message: 'Solo puede cancelar pedidos de su sede' });
+      }
+
+      if (!['pendiente', 'en proceso'].includes(order.order_state)) {
+        return res.status(409).json({
+          message: `No se puede cancelar un pedido en estado "${order.order_state}"`
+        });
+      }
+
+      if (order.payment_method !== 'tarjeta') {
+        return res.status(409).json({
+          message: 'Este endpoint es solo para pedidos con tarjeta. Use el endpoint regular para otros métodos.'
+        });
+      }
+
+      const orderDate = new Date(order.order_date);
+      const daysSince = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSince > 7 && !force) {
+        return res.status(409).json({
+          message: `Han pasado ${Math.floor(daysSince)} días desde el pedido. Solo admin puede forzar.`,
+          days_since: Math.floor(daysSince),
+          requires_force: true,
+        });
+      }
+      if (daysSince > 7 && force && req.user.role !== 'admin') {
+        return res.status(403).json({
+          message: 'Solo admin puede forzar cancelaciones después de 7 días'
+        });
+      }
+
+      await client.query('BEGIN');
+
+      await client.query(
+        `UPDATE orders
+         SET order_state = 'cancelado',
+             cancelled_by_user_id = $1,
+             cancelled_at = CURRENT_TIMESTAMP,
+             cancellation_reason = $2,
+             refund_processed = true
+         WHERE order_id = $3`,
+        [req.user.user_id, String(reason).trim(), orderId]
+      );
+
+      const detailsResult = await client.query(
+        `SELECT product_id, amount FROM order_detail WHERE order_id = $1`,
+        [orderId]
+      );
+
+      for (const detail of detailsResult.rows) {
+        if (detail.product_id) {
+          await client.query(
+            `UPDATE inventory
+             SET current_stock = current_stock + $1
+             WHERE product_id = $2 AND location_id = $3`,
+            [detail.amount, detail.product_id, order.location_id]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+
+      const updatedOrder = await OrderModel.findById(orderId);
+      return res.json(updatedOrder);
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+      console.error('[orders/cancelWithRefund]', err);
+      return res.status(500).json({ message: 'Error al cancelar el pedido' });
+    } finally {
+      client.release();
     }
   }
 };

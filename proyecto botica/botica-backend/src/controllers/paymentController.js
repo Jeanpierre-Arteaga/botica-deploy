@@ -1,4 +1,8 @@
 const PaymentModel = require('../models/paymentModel');
+const {
+  processCardPayment,
+  getPaymentStatus,
+} = require('../services/paymentService');
 
 const VALID_PAYMENT_METHODS = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia'];
 const VALID_VOUCHER_TYPES = ['boleta', 'factura', 'ticket'];
@@ -93,7 +97,37 @@ const paymentController = {
       console.error('[payments/delete]', err);
       return res.status(500).json({ message: 'Error en el servidor.' });
     }
-  }
+  },
+
+  // POST /api/payments/process
+  // Cargo con tarjeta independiente vía MercadoPago. En el flujo de
+  // producción el cargo va dentro de POST /api/orders; este endpoint
+  // queda como utilidad para pruebas o flujos custom.
+  processCardCharge: async (req, res) => {
+    try {
+      const result = await processCardPayment(req.body);
+      if (!result.success) {
+        return res.status(402).json(result);
+      }
+      return res.json(result);
+    } catch (err) {
+      console.error('[payments/process]', err);
+      return res.status(500).json({ message: 'Error al procesar el pago.' });
+    }
+  },
+
+  // GET /api/payments/mp/:id
+  // Consulta estado actual de un pago en MercadoPago.
+  mpStatus: async (req, res) => {
+    try {
+      const result = await getPaymentStatus(req.params.id);
+      if (!result.success) return res.status(404).json(result);
+      return res.json(result);
+    } catch (err) {
+      console.error('[payments/mp/:id]', err);
+      return res.status(500).json({ message: 'Error consultando pago.' });
+    }
+  },
 };
 
 module.exports = paymentController;

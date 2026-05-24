@@ -1,0 +1,315 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router';
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Truck,
+  AlertTriangle,
+  MapPin,
+  CreditCard,
+  Package,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { api, ApiError } from '../lib/api';
+import type { Order, OrderState } from '../lib/types';
+
+type BadgeIcon = typeof Clock;
+
+interface BadgeConfig {
+  color: string;
+  bg: string;
+  icon: BadgeIcon;
+  label: string;
+}
+
+const STATUS_CONFIG: Record<OrderState, BadgeConfig> = {
+  pendiente:   { color: '#92400E', bg: '#FEF3C7', icon: Clock,        label: 'Pendiente' },
+  'en proceso':{ color: '#1E40AF', bg: '#DBEAFE', icon: Truck,        label: 'En proceso' },
+  entregado:   { color: '#065F46', bg: '#D1FAE5', icon: CheckCircle2, label: 'Entregado' },
+  cancelado:   { color: '#991B1B', bg: '#FEE2E2', icon: XCircle,      label: 'Cancelado' },
+};
+
+function StatusBadge({ state }: { state: OrderState }) {
+  const c = STATUS_CONFIG[state] || STATUS_CONFIG.pendiente;
+  const Icon = c.icon;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+      style={{ color: c.color, backgroundColor: c.bg }}
+    >
+      <Icon size={14} />
+      {c.label}
+    </span>
+  );
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+  tarjeta: 'Tarjeta',
+  yape: 'Yape',
+  plin: 'Plin',
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+};
+
+export function DetallePedidoCustomer() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+
+    api.orders
+      .getById(parseInt(id, 10))
+      .then(setOrder)
+      .catch((err) => {
+        console.error(err);
+        const status = err instanceof ApiError ? err.status : 0;
+        if (status === 403) {
+          toast.error('No tienes permiso para ver este pedido');
+          navigate('/mis-pedidos');
+        } else if (status === 404) {
+          toast.error('Pedido no encontrado');
+          navigate('/mis-pedidos');
+        } else {
+          toast.error('Error al cargar el pedido');
+        }
+      })
+      .finally(() => setIsLoading(false));
+  }, [id, navigate]);
+
+  const handleCancel = async () => {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      const updated = await api.orders.cancel(order.order_id);
+      setOrder(updated);
+      setShowConfirmCancel(false);
+      toast.success('Pedido cancelado correctamente');
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof ApiError
+          ? (err.body as { message?: string } | undefined)?.message || err.message
+          : 'Error al cancelar el pedido';
+      toast.error(msg);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="inline-block w-12 h-12 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#4A5260] mt-4">Cargando detalle...</p>
+      </div>
+    );
+  }
+
+  if (!order) return null;
+
+  const subtotal =
+    order.details?.reduce((sum, d) => sum + Number(d.sub_total_price || 0), 0) || 0;
+  const shipping = Number(order.total_price) - subtotal;
+
+  const paymentMethod = order.payment?.payment_method;
+  const canCancel =
+    ['pendiente', 'en proceso'].includes(order.order_state) &&
+    paymentMethod !== 'tarjeta';
+
+  const cantCancelReason = (() => {
+    if (order.order_state === 'entregado') return 'Este pedido ya fue entregado';
+    if (order.order_state === 'cancelado') return 'Este pedido ya está cancelado';
+    if (paymentMethod === 'tarjeta')
+      return 'Pedidos con tarjeta no pueden cancelarse desde aquí. Contacta al staff para procesar la devolución.';
+    return null;
+  })();
+
+  const orderDate = new Date(order.order_date);
+  const dateStr = orderDate.toLocaleString('es-PE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <Link
+        to="/mis-pedidos"
+        className="inline-flex items-center gap-2 text-[#4A5260] hover:text-[#F26430] text-sm mb-4"
+      >
+        <ArrowLeft size={16} />
+        Volver a Mis pedidos
+      </Link>
+
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-[#1A1F2E]">Pedido #{order.order_id}</h1>
+          <p className="text-sm text-[#4A5260] mt-1">Realizado el {dateStr}</p>
+        </div>
+        <StatusBadge state={order.order_state} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
+              <Package size={18} className="text-[#F26430]" />
+              Productos ({order.details?.length || 0})
+            </h2>
+            <div className="space-y-3">
+              {order.details?.map((d, idx) => (
+                <div
+                  key={d.detail_id ?? idx}
+                  className="flex justify-between items-start py-2 border-b border-[#E5E7EB] last:border-0"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-[#1A1F2E]">
+                      {d.product_name || `Producto #${d.product_id}`}
+                    </p>
+                    <p className="text-sm text-[#4A5260]">
+                      {d.amount} × S/ {Number(d.unit_price).toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-[#1A1F2E]">
+                    S/ {Number(d.sub_total_price).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
+              <MapPin size={18} className="text-[#F26430]" />
+              Entrega
+            </h2>
+            <p className="font-medium text-[#1A1F2E] mb-1">
+              {order.delivery_type === 'delivery'
+                ? 'Delivery a domicilio'
+                : order.delivery_type === 'pickup'
+                ? 'Recojo en tienda'
+                : 'Sin especificar'}
+            </p>
+            {order.location_name && (
+              <p className="text-sm text-[#4A5260]">Sede: {order.location_name}</p>
+            )}
+          </section>
+
+          {paymentMethod === 'tarjeta' &&
+            ['pendiente', 'en proceso'].includes(order.order_state) && (
+              <div className="bg-[#FEF3C7] border border-[#F59E0B] rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle className="text-[#F59E0B] flex-shrink-0 mt-0.5" size={20} />
+                <div className="text-sm text-[#92400E]">
+                  <p className="font-semibold mb-1">¿Necesitas cancelar este pedido?</p>
+                  <p>
+                    Como pagaste con tarjeta, la cancelación requiere procesar una devolución
+                    con MercadoPago. Contacta al staff de la botica al{' '}
+                    <strong>(01) 357-2468</strong> o por WhatsApp para gestionar tu cancelación
+                    y reembolso.
+                  </p>
+                </div>
+              </div>
+            )}
+        </div>
+
+        <div className="lg:col-span-1 space-y-4">
+          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
+              <CreditCard size={18} className="text-[#F26430]" />
+              Pago
+            </h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#4A5260]">Método</span>
+                <span className="font-medium">
+                  {paymentMethod ? PAYMENT_LABELS[paymentMethod] || paymentMethod : 'N/A'}
+                </span>
+              </div>
+              {order.payment?.voucher_type && (
+                <div className="flex justify-between">
+                  <span className="text-[#4A5260]">Comprobante</span>
+                  <span className="font-medium capitalize">{order.payment.voucher_type}</span>
+                </div>
+              )}
+              <div className="border-t border-[#E5E7EB] pt-2 mt-2 space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-[#4A5260]">Subtotal</span>
+                  <span>S/ {subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#4A5260]">Envío</span>
+                  <span>
+                    {shipping === 0 ? (
+                      <span className="text-[#10B981]">Gratis</span>
+                    ) : (
+                      `S/ ${shipping.toFixed(2)}`
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-[#E5E7EB] pt-2 mt-2">
+                  <span className="font-bold">Total</span>
+                  <span className="font-bold text-[#F26430] text-lg">
+                    S/ {Number(order.total_price).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {canCancel && (
+            <div>
+              {!showConfirmCancel ? (
+                <button
+                  onClick={() => setShowConfirmCancel(true)}
+                  className="w-full px-4 py-3 border-2 border-[#DC2626] text-[#DC2626] hover:bg-[#FEE2E2] font-medium rounded-md transition-colors"
+                >
+                  Cancelar pedido
+                </button>
+              ) : (
+                <div className="bg-[#FEE2E2] border-2 border-[#DC2626] rounded-xl p-4 space-y-3">
+                  <p className="text-sm text-[#991B1B] font-medium">
+                    ¿Seguro que quieres cancelar?
+                  </p>
+                  <p className="text-xs text-[#991B1B]">
+                    Esta acción no se puede deshacer. El stock será devuelto al inventario.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCancel}
+                      disabled={isCancelling}
+                      className="flex-1 px-3 py-2 bg-[#DC2626] hover:bg-[#991B1B] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {isCancelling ? 'Cancelando...' : 'Sí, cancelar'}
+                    </button>
+                    <button
+                      onClick={() => setShowConfirmCancel(false)}
+                      disabled={isCancelling}
+                      className="flex-1 px-3 py-2 border border-[#4A5260] text-[#4A5260] text-sm font-medium rounded-md disabled:opacity-50"
+                    >
+                      No, mantener
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!canCancel && cantCancelReason && order.order_state !== 'cancelado' && (
+            <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl p-4 text-sm text-[#4A5260]">
+              {cantCancelReason}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -255,37 +255,52 @@ export interface Order {
   customer_name?: string | null;
   customer_dni?: string | null;
   customer_phone?: string | null;
+  customer_email?: string | null;
   customer_address?: string | null;
   // Datos de location (del JOIN):
   location_name?: string | null;
   // Datos del user que registró (del JOIN, solo en walk-in):
   user_full_name?: string | null;
+  employee_name?: string | null;
+  // Campos de entrega:
+  delivery_address?: string | null;
+  delivery_phone?: string | null;
+  delivery_notes?: string | null;
+  // Auditoría de cancelación:
+  cancelled_by_user_id?: number | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  refund_processed?: boolean;
+  cancelled_by_name?: string | null;
   // Detalles (sólo en findById):
   details?: OrderDetail[];
   // Pago (si existe):
   payment?: Payment | null;
 }
 
-// Payload para crear un pedido web (customer)
+// Payload para crear un pedido web (customer) — formato plano del Checkout
+// integrado con MercadoPago. Si payment_method === 'tarjeta', el backend
+// procesa el cargo con MP usando card_token antes de tocar la BD.
 export interface OrderCreatePayload {
-  order: {
-    delivery_type: DeliveryType;
-    location_id: number;
-    customer_id: number;
-    total_price: number;
-  };
-  details: Array<{
+  items: Array<{
     product_id: number;
     amount: number;
     unit_price: number;
-    sub_total_price: number;
   }>;
-  payment?: {
-    payment_method: PaymentMethod;
-    voucher_type?: VoucherType;
-    email_pay?: string;
-    phone_pay?: string;
-  };
+  delivery_type: DeliveryType;
+  address?: string | null;
+  phone?: string;
+  notes?: string;
+  payment_method: PaymentMethod;
+  voucher_type?: VoucherType;
+  location_id: number;
+
+  // Solo si payment_method === 'tarjeta' (lo genera el Card Payment Brick de MP)
+  card_token?: string;
+  mp_payment_method_id?: string;
+  installments?: number;
+  payer_email?: string;
+  payer_identification?: { type: string; number: string };
 }
 
 // Payload para crear venta presencial (walk-in, staff)
@@ -323,6 +338,10 @@ export interface Payment {
   email_pay: string | null;
   phone_pay: string | null;
   order_id: number;
+  // Campos MercadoPago (solo si payment_method === 'tarjeta')
+  mp_payment_id?: string | null;
+  mp_status?: string | null;
+  mp_status_detail?: string | null;
 }
 
 

@@ -42,14 +42,17 @@ const OrderModel = {
   findById: async (id) => {
     // Datos del pedido
     const orderResult = await pool.query(
-      `SELECT o.*, 
-              c.full_name AS customer_name, c.dni, c.phone, c.email,
+      `SELECT o.*,
+              c.full_name AS customer_name, c.dni AS customer_dni,
+              c.phone AS customer_phone, c.email AS customer_email,
               l.location_name,
-              u.full_name AS employee_name
+              u.full_name AS employee_name,
+              cu.full_name AS cancelled_by_name
        FROM orders o
-       LEFT JOIN customer c ON o.customer_id = c.customer_id
-       LEFT JOIN location l ON o.location_id = l.location_id
-       LEFT JOIN users u ON o.user_id = u.user_id
+       LEFT JOIN customer c  ON o.customer_id = c.customer_id
+       LEFT JOIN location l  ON o.location_id = l.location_id
+       LEFT JOIN users    u  ON o.user_id = u.user_id
+       LEFT JOIN users    cu ON cu.user_id = o.cancelled_by_user_id
        WHERE o.order_id = $1`,
       [id]
     );
@@ -65,22 +68,39 @@ const OrderModel = {
       [id]
     );
 
+    // Pago asociado (puede no existir si todavía no se registró)
+    const paymentResult = await pool.query(
+      `SELECT * FROM payment WHERE order_id = $1 LIMIT 1`,
+      [id]
+    );
+
     return {
       ...orderResult.rows[0],
-      details: detailResult.rows
+      details: detailResult.rows,
+      payment: paymentResult.rows[0] || null
     };
   },
 
   findByCustomer: async (customer_id) => {
     const result = await pool.query(
-      `SELECT o.*, l.location_name
+      `SELECT o.*,
+              l.location_name,
+              pay.payment_method,
+              (SELECT COUNT(*)::int FROM order_detail od WHERE od.order_id = o.order_id) AS detail_count
        FROM orders o
        LEFT JOIN location l ON o.location_id = l.location_id
+       LEFT JOIN payment  pay ON pay.order_id = o.order_id
        WHERE o.customer_id = $1
        ORDER BY o.order_date DESC`,
       [customer_id]
     );
-    return result.rows;
+    // Expone payment como objeto (consistente con findById) para que el frontend
+    // pueda hacer order.payment?.payment_method en la lista.
+    return result.rows.map((r) => ({
+      ...r,
+      payment: r.payment_method ? { payment_method: r.payment_method } : null,
+      details: r.detail_count > 0 ? new Array(r.detail_count) : [],
+    }));
   },
 
   create: async (orderData, details) => {

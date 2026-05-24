@@ -5,7 +5,7 @@ import { CartProvider } from "./lib/CartContext";
 import { LocationProvider } from "./lib/LocationContext";
 import { RequireRole } from "./components/RequireRole";
 import { PublicLayout } from "./layouts/PublicLayout";
-import { WorkerLayout } from "./layouts/WorkerLayout";
+import StaffLayout from "./layouts/StaffLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { Home } from "./pages/Home";
 import { Catalogo } from "./pages/Catalogo";
@@ -18,10 +18,11 @@ import { Registro } from "./pages/Registro";
 import { StaffLogin } from "./pages/StaffLogin";
 import { AdminLogin } from "./pages/AdminLogin";
 import { NotFound } from "./pages/NotFound";
-import { WorkerDashboard } from "./pages/worker/WorkerDashboard";
+import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffPedidos from "./pages/staff/StaffPedidos";
+import StaffDetallePedido from "./pages/staff/StaffDetallePedido";
 import { NuevaVenta } from "./pages/worker/NuevaVenta";
 import { PedidosWeb } from "./pages/worker/PedidosWeb";
-import { DetallePedido } from "./pages/worker/DetallePedido";
 import { CierreCaja } from "./pages/worker/CierreCaja";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { GestionProductos } from "./pages/admin/GestionProductos";
@@ -29,6 +30,7 @@ import { ControlStock } from "./pages/admin/ControlStock";
 import { GestionUsuarios } from "./pages/admin/GestionUsuarios";
 import { Reportes } from "./pages/admin/Reportes";
 import { MisPedidos } from "./pages/MisPedidos";
+import { DetallePedidoCustomer } from "./pages/DetallePedidoCustomer";
 
 // ============================================================
 // RootProviders
@@ -70,7 +72,14 @@ export const router = createBrowserRouter([
               </RequireRole>
             ),
           },
-          { path: "confirmacion", Component: Confirmacion },
+          {
+            path: "confirmacion/:orderId",
+            element: (
+              <RequireRole roles={["cust"]}>
+                <Confirmacion />
+              </RequireRole>
+            ),
+          },
           { path: "login", Component: ClientLogin },
           { path: "registro", Component: Registro },
           {
@@ -82,12 +91,10 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            // TODO F2: crear página DetallePedidoCustomer dedicada.
-            // Por ahora apunta a MisPedidos para evitar 404 desde el link en MisPedidos.tsx:228
             path: "mis-pedidos/:id",
             element: (
               <RequireRole roles={["cust"]}>
-                <MisPedidos />
+                <DetallePedidoCustomer />
               </RequireRole>
             ),
           },
@@ -102,14 +109,14 @@ export const router = createBrowserRouter([
             path: "",
             element: (
               <RequireRole roles={["emp", "admin"]}>
-                <WorkerLayout />
+                <StaffLayout />
               </RequireRole>
             ),
             children: [
-              { path: "dashboard", Component: WorkerDashboard },
+              { path: "dashboard", Component: StaffDashboard },
               { path: "nueva-venta", Component: NuevaVenta },
-              { path: "pedidos", Component: PedidosWeb },
-              { path: "pedidos/:id", Component: DetallePedido },
+              { path: "pedidos", Component: StaffPedidos },
+              { path: "pedidos/:orderId", Component: StaffDetallePedido },
               { path: "cierre", Component: CierreCaja },
             ],
           },

@@ -1,242 +1,151 @@
-import { Link } from "react-router";
-import { Package, Clock, CheckCircle, XCircle, ChevronRight, MapPin } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import { ChevronRight, Clock, CheckCircle2, XCircle, Truck, ShoppingBag } from 'lucide-react';
+import { toast } from 'sonner';
+import { api } from '../lib/api';
+import type { Order, OrderState } from '../lib/types';
 
-interface Order {
-  id: string;
-  date: string;
-  status: "pending" | "processing" | "delivered" | "cancelled";
-  total: number;
-  items: number;
-  branch: "ate" | "santa-anita";
-  products: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+type BadgeIcon = typeof Clock;
+
+interface BadgeConfig {
+  color: string;
+  bg: string;
+  icon: BadgeIcon;
+  label: string;
 }
 
-export function MisPedidos() {
-  const [orders] = useState<Order[]>([
-    {
-      id: "PED-0045",
-      date: "21 Abr 2026, 14:30",
-      status: "processing",
-      total: 145.50,
-      items: 3,
-      branch: "ate",
-      products: [
-        { name: "Paracetamol 500mg x 100 tabletas", quantity: 2, price: 25.00 },
-        { name: "Vitamina C 1000mg x 60 tabletas", quantity: 1, price: 35.00 },
-        { name: "Ibuprofeno 400mg x 50 cápsulas", quantity: 1, price: 18.90 },
-      ],
-    },
-    {
-      id: "PED-0042",
-      date: "18 Abr 2026, 10:15",
-      status: "delivered",
-      total: 89.90,
-      items: 2,
-      branch: "santa-anita",
-      products: [
-        { name: "Omeprazol 20mg x 30 cápsulas", quantity: 2, price: 22.50 },
-        { name: "Loratadina 10mg x 20 tabletas", quantity: 3, price: 15.00 },
-      ],
-    },
-    {
-      id: "PED-0038",
-      date: "12 Abr 2026, 16:45",
-      status: "delivered",
-      total: 62.00,
-      items: 2,
-      branch: "ate",
-      products: [
-        { name: "Complejo B x 100 cápsulas", quantity: 1, price: 28.00 },
-        { name: "Diclofenaco 50mg x 30 tabletas", quantity: 1, price: 19.50 },
-      ],
-    },
-    {
-      id: "PED-0035",
-      date: "08 Abr 2026, 11:20",
-      status: "cancelled",
-      total: 125.00,
-      items: 3,
-      branch: "ate",
-      products: [
-        { name: "Amoxicilina 500mg x 30 cápsulas", quantity: 2, price: 25.00 },
-        { name: "Metformina 850mg x 60 tabletas", quantity: 1, price: 32.00 },
-      ],
-    },
-  ]);
+const STATUS_CONFIG: Record<OrderState, BadgeConfig> = {
+  pendiente:   { color: '#92400E', bg: '#FEF3C7', icon: Clock,        label: 'Pendiente' },
+  'en proceso':{ color: '#1E40AF', bg: '#DBEAFE', icon: Truck,        label: 'En proceso' },
+  entregado:   { color: '#065F46', bg: '#D1FAE5', icon: CheckCircle2, label: 'Entregado' },
+  cancelado:   { color: '#991B1B', bg: '#FEE2E2', icon: XCircle,      label: 'Cancelado' },
+};
 
-  const getStatusConfig = (status: Order["status"]) => {
-    switch (status) {
-      case "pending":
-        return {
-          label: "Pendiente",
-          icon: Clock,
-          color: "text-amber-600",
-          bg: "bg-amber-50",
-          border: "border-amber-200",
-        };
-      case "processing":
-        return {
-          label: "En preparación",
-          icon: Package,
-          color: "text-blue-600",
-          bg: "bg-blue-50",
-          border: "border-blue-200",
-        };
-      case "delivered":
-        return {
-          label: "Entregado",
-          icon: CheckCircle,
-          color: "text-green-600",
-          bg: "bg-green-50",
-          border: "border-green-200",
-        };
-      case "cancelled":
-        return {
-          label: "Cancelado",
-          icon: XCircle,
-          color: "text-red-600",
-          bg: "bg-red-50",
-          border: "border-red-200",
-        };
-    }
-  };
+function StatusBadge({ state }: { state: OrderState }) {
+  const c = STATUS_CONFIG[state] || STATUS_CONFIG.pendiente;
+  const Icon = c.icon;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+      style={{ color: c.color, backgroundColor: c.bg }}
+    >
+      <Icon size={12} />
+      {c.label}
+    </span>
+  );
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+  tarjeta: 'Tarjeta',
+  yape: 'Yape',
+  plin: 'Plin',
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+};
+
+export function MisPedidos() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.orders
+      .getMyOrders()
+      .then(setOrders)
+      .catch((err) => {
+        console.error(err);
+        toast.error('Error al cargar tus pedidos');
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <div className="inline-block w-12 h-12 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#4A5260] mt-4">Cargando tus pedidos...</p>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <h1 className="text-3xl font-bold text-[#1A1F2E] mb-6">Mis pedidos</h1>
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-12 text-center">
+          <ShoppingBag size={64} className="mx-auto text-[#E5E7EB] mb-4" />
+          <h2 className="text-xl font-bold text-[#1A1F2E] mb-2">Aún no tienes pedidos</h2>
+          <p className="text-[#4A5260] mb-6">
+            Cuando hagas tu primera compra, aparecerá aquí
+          </p>
+          <Link
+            to="/catalogo"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+          >
+            Explorar el catálogo
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-5xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-            <Link to="/" className="hover:text-[#FF6633]">
-              Inicio
-            </Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">Mis Pedidos</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Mis Pedidos</h1>
-          <p className="text-gray-600">Revisa el estado de tus compras recientes</p>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="text-sm text-[#4A5260] mb-2">
+        <Link to="/" className="hover:text-[#F26430]">Inicio</Link>
+        <span className="mx-2">›</span>
+        <span className="text-[#1A1F2E] font-medium">Mis pedidos</span>
+      </div>
 
-        {/* Orders List */}
-        {orders.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-800 mb-2">No tienes pedidos</h2>
-            <p className="text-gray-600 mb-6">Cuando realices una compra, tus pedidos aparecerán aquí</p>
+      <h1 className="text-3xl font-bold text-[#1A1F2E] mb-2">Mis pedidos</h1>
+      <p className="text-[#4A5260] mb-6">
+        {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'} en total
+      </p>
+
+      <div className="space-y-3">
+        {orders.map((order) => {
+          const detailsCount = order.details?.length || 0;
+          const paymentLabel = order.payment?.payment_method
+            ? PAYMENT_LABELS[order.payment.payment_method] || order.payment.payment_method
+            : 'N/A';
+
+          const orderDate = new Date(order.order_date);
+          const dateStr = orderDate.toLocaleDateString('es-PE', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+
+          return (
             <Link
-              to="/catalogo"
-              className="inline-block bg-[#FF6633] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#E85522] transition-colors"
+              key={order.order_id}
+              to={`/mis-pedidos/${order.order_id}`}
+              className="block bg-white rounded-xl border border-[#E5E7EB] hover:border-[#F26430] hover:shadow-md transition-all p-5"
             >
-              Explorar productos
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {orders.map((order) => {
-              const statusConfig = getStatusConfig(order.status);
-              const StatusIcon = statusConfig.icon;
-
-              return (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  {/* Order Header */}
-                  <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-gray-800">
-                            Pedido {order.id}
-                          </h3>
-                          <span
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border} border`}
-                          >
-                            <StatusIcon className="w-4 h-4" />
-                            {statusConfig.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {order.date}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {order.branch === "ate" ? "Ate" : "Santa Anita"}
-                          </div>
-                          <span>{order.items} {order.items === 1 ? "producto" : "productos"}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600 mb-1">Total</p>
-                        <p className="text-2xl font-bold text-[#FF6633]">
-                          S/ {order.total.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h3 className="font-bold text-[#1A1F2E] text-lg">
+                      Pedido #{order.order_id}
+                    </h3>
+                    <StatusBadge state={order.order_state} />
                   </div>
 
-                  {/* Order Products */}
-                  <div className="p-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Productos</h4>
-                    <div className="space-y-3">
-                      {order.products.map((product, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800">
-                              {product.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Cantidad: {product.quantity}
-                            </p>
-                          </div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            S/ {(product.price * product.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <p className="text-sm text-[#4A5260]">
+                    {dateStr} · {detailsCount} {detailsCount === 1 ? 'producto' : 'productos'} · {paymentLabel}
+                  </p>
 
-                  {/* Order Actions */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                    <div className="flex items-center justify-between gap-3">
-                      {order.status === "processing" && (
-                        <button className="text-sm text-red-600 font-semibold hover:text-red-700 transition-colors">
-                          Cancelar pedido
-                        </button>
-                      )}
-                      {order.status === "delivered" && (
-                        <Link
-                          to="/catalogo"
-                          className="text-sm text-[#FF6633] font-semibold hover:text-[#E85522] transition-colors"
-                        >
-                          Volver a comprar
-                        </Link>
-                      )}
-                      <div className="flex-1"></div>
-                      <Link
-                        to={`/mis-pedidos/${order.id}`}
-                        className="text-sm text-[#2B7DBF] font-semibold hover:text-[#1E5A8F] transition-colors"
-                      >
-                        Ver detalles
-                      </Link>
-                    </div>
-                  </div>
+                  <p className="text-xl font-bold text-[#F26430] mt-2">
+                    S/ {Number(order.total_price).toFixed(2)}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="hidden sm:flex items-center text-[#4A5260]">
+                  <ChevronRight size={20} />
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
