@@ -1,0 +1,540 @@
+import { Link, useSearchParams } from "react-router";
+import {
+  ChevronRight,
+  SlidersHorizontal,
+  X,
+  AlertCircle,
+  Search,
+  PackageX,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ProductCard } from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/Skeleton";
+import { api } from "../lib/api";
+import { useLocations } from "../lib/LocationContext";
+import type {
+  Category,
+  Laboratory,
+  Product,
+  ProductFilters,
+} from "../lib/types";
+
+type SortKey = "relevance" | "price-asc" | "price-desc" | "name";
+
+function readFilters(searchParams: URLSearchParams): ProductFilters {
+  const nombre = searchParams.get("nombre")?.trim() || undefined;
+  const categoryRaw = searchParams.get("category_id");
+  const laboratoryRaw = searchParams.get("laboratory_id");
+  const offerRaw = searchParams.get("is_offer");
+
+  return {
+    nombre,
+    category_id:
+      categoryRaw && !Number.isNaN(Number(categoryRaw))
+        ? Number(categoryRaw)
+        : undefined,
+    laboratory_id:
+      laboratoryRaw && !Number.isNaN(Number(laboratoryRaw))
+        ? Number(laboratoryRaw)
+        : undefined,
+    is_offer: offerRaw === "true" ? true : undefined,
+  };
+}
+
+export function Catalogo() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { selectedLocation, isLoading: isLoadingLocation } = useLocations();
+
+  // Filtros derivados de la URL
+  const filters = useMemo(() => readFilters(searchParams), [searchParams]);
+
+  // Catálogos auxiliares para mostrar los filtros
+  const [categorias, setCategorias] = useState<Category[]>([]);
+  const [laboratorios, setLaboratorios] = useState<Laboratory[]>([]);
+
+  // Productos y estados
+  const [productos, setProductos] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  // UI
+  const [sortBy, setSortBy] = useState<SortKey>("relevance");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Cargar categorías y laboratorios una sola vez
+  useEffect(() => {
+    Promise.all([api.categories.getAll(), api.laboratories.getAll()])
+      .then(([c, l]) => {
+        setCategorias(c);
+        setLaboratorios(l);
+      })
+      .catch(() => {
+        // Si falla, el sidebar simplemente sale sin opciones — la lista de productos sigue funcionando.
+      });
+  }, []);
+
+  // Cargar productos cuando cambian filtros o sede
+  useEffect(() => {
+    if (isLoadingLocation) return;
+    let cancelled = false;
+    setIsLoadingProducts(true);
+    setProductsError(null);
+
+    api.products
+      .getAll({
+        ...filters,
+        location_id: selectedLocation?.location_id,
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setProductos(data);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Error cargando productos:", err);
+        setProductsError("No se pudieron cargar los productos.");
+        setProductos([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingProducts(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedLocation,
+    isLoadingLocation,
+    filters.nombre,
+    filters.category_id,
+    filters.laboratory_id,
+    filters.is_offer,
+    reloadKey,
+  ]);
+
+  // Filtro extra client-side: solo con stock
+  const productosVisibles = useMemo(() => {
+    const arr = onlyInStock
+      ? productos.filter(
+          (p) => p.current_stock === undefined || p.current_stock > 0,
+        )
+      : productos;
+
+    const sorted = [...arr];
+    if (sortBy === "price-asc") {
+      sorted.sort((a, b) => Number(a.product_price) - Number(b.product_price));
+    } else if (sortBy === "price-desc") {
+      sorted.sort((a, b) => Number(b.product_price) - Number(a.product_price));
+    } else if (sortBy === "name") {
+      sorted.sort((a, b) =>
+        a.product_name.localeCompare(b.product_name, "es", {
+          sensitivity: "base",
+        }),
+      );
+    }
+    return sorted;
+  }, [productos, onlyInStock, sortBy]);
+
+  const updateParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === null || value === "") {
+      next.delete(key);
+    } else {
+      next.set(key, value);
+    }
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearFilters = () => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+    setOnlyInStock(false);
+  };
+
+  const hasActiveFilters =
+    !!filters.nombre ||
+    filters.category_id !== undefined ||
+    filters.laboratory_id !== undefined ||
+    !!filters.is_offer ||
+    onlyInStock;
+
+  const activeCategory = categorias.find(
+    (c) => c.category_id === filters.category_id,
+  );
+  const activeLab = laboratorios.find(
+    (l) => l.laboratory_id === filters.laboratory_id,
+  );
+
+  // ============================================================
+  // FILTERS PANEL — usado en desktop y mobile (drawer)
+  // ============================================================
+  const FiltersPanel = ({ onApply }: { onApply?: () => void }) => (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal className="w-5 h-5 text-[#F26430]" />
+        <h3 className="font-bold text-lg text-[#1A1F2E]">Filtrar productos</h3>
+      </div>
+
+      {/* Categoría */}
+      <div>
+        <label className="block font-semibold mb-3 text-sm text-[#1A1F2E]">
+          Categoría
+        </label>
+        <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+          <label className="flex items-center gap-2 cursor-pointer text-sm py-1">
+            <input
+              type="radio"
+              name="cat"
+              checked={filters.category_id === undefined}
+              onChange={() => updateParam("category_id", null)}
+              className="accent-[#F26430]"
+            />
+            <span className="text-[#4A5260]">Todas las categorías</span>
+          </label>
+          {categorias.map((c) => (
+            <label
+              key={c.category_id}
+              className="flex items-center gap-2 cursor-pointer text-sm py-1"
+            >
+              <input
+                type="radio"
+                name="cat"
+                checked={filters.category_id === c.category_id}
+                onChange={() =>
+                  updateParam("category_id", String(c.category_id))
+                }
+                className="accent-[#F26430]"
+              />
+              <span className="text-[#1A1F2E]">{c.category_name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Laboratorio */}
+      <div>
+        <label className="block font-semibold mb-3 text-sm text-[#1A1F2E]">
+          Laboratorio
+        </label>
+        <select
+          value={filters.laboratory_id ?? ""}
+          onChange={(e) =>
+            updateParam(
+              "laboratory_id",
+              e.target.value === "" ? null : e.target.value,
+            )
+          }
+          className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F26430]/30 focus:border-[#F26430] text-sm bg-white text-[#1A1F2E]"
+        >
+          <option value="">Todos los laboratorios</option>
+          {laboratorios.map((l) => (
+            <option key={l.laboratory_id} value={l.laboratory_id}>
+              {l.laboratory_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Ofertas */}
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!filters.is_offer}
+            onChange={(e) =>
+              updateParam("is_offer", e.target.checked ? "true" : null)
+            }
+            className="accent-[#F26430] w-4 h-4"
+          />
+          <span className="text-sm font-medium text-[#1A1F2E]">
+            Solo productos en oferta
+          </span>
+        </label>
+      </div>
+
+      {/* Stock */}
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={onlyInStock}
+            onChange={(e) => setOnlyInStock(e.target.checked)}
+            className="accent-[#F26430] w-4 h-4"
+          />
+          <span className="text-sm font-medium text-[#1A1F2E]">
+            Solo con stock disponible
+          </span>
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-2 pt-2 border-t border-[#E5E7EB]">
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              clearFilters();
+              onApply?.();
+            }}
+            className="w-full text-[#4A5260] text-sm font-medium underline hover:text-[#F26430] transition-colors"
+          >
+            Limpiar filtros
+          </button>
+        )}
+        {onApply && (
+          <button
+            type="button"
+            onClick={onApply}
+            className="w-full bg-[#F26430] text-white py-2.5 rounded-lg font-semibold hover:bg-[#D94E1F] transition-colors"
+          >
+            Aplicar
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="bg-[#F9FAFB] min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-[#4A5260] mb-5">
+          <Link to="/" className="hover:text-[#F26430]">
+            Inicio
+          </Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-[#1A1F2E] font-medium">Catálogo</span>
+          {activeCategory && (
+            <>
+              <ChevronRight className="w-4 h-4" />
+              <span className="text-[#1A1F2E] font-medium">
+                {activeCategory.category_name}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#1A1F2E]">
+            Catálogo
+            {selectedLocation && (
+              <span className="text-base font-normal text-[#9CA3AF] ml-2">
+                · Sede{" "}
+                {selectedLocation.district || selectedLocation.location_name}
+              </span>
+            )}
+          </h1>
+          {filters.nombre && (
+            <p className="text-sm text-[#4A5260] mt-1">
+              Resultados para “
+              <span className="font-medium text-[#1A1F2E]">
+                {filters.nombre}
+              </span>
+              ”
+              <button
+                type="button"
+                onClick={() => updateParam("nombre", null)}
+                className="ml-2 text-[#F26430] hover:underline"
+              >
+                quitar
+              </button>
+            </p>
+          )}
+        </div>
+
+        {/* Active chips (mobile-friendly) */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {activeCategory && (
+              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+                {activeCategory.category_name}
+                <button
+                  type="button"
+                  onClick={() => updateParam("category_id", null)}
+                  aria-label="Quitar filtro categoría"
+                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {activeLab && (
+              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+                {activeLab.laboratory_name}
+                <button
+                  type="button"
+                  onClick={() => updateParam("laboratory_id", null)}
+                  aria-label="Quitar filtro laboratorio"
+                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filters.is_offer && (
+              <span className="inline-flex items-center gap-1.5 bg-[#FFF4EE] border border-[#F26430] text-[#F26430] text-xs font-semibold px-3 py-1.5 rounded-full">
+                En oferta
+                <button
+                  type="button"
+                  onClick={() => updateParam("is_offer", null)}
+                  aria-label="Quitar filtro oferta"
+                  className="hover:text-[#D94E1F]"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {onlyInStock && (
+              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+                Con stock
+                <button
+                  type="button"
+                  onClick={() => setOnlyInStock(false)}
+                  aria-label="Quitar filtro stock"
+                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs text-[#4A5260] hover:text-[#F26430] underline"
+            >
+              Limpiar todos
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar Desktop */}
+          <aside className="hidden lg:block lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+              <FiltersPanel />
+            </div>
+          </aside>
+
+          {/* Content */}
+          <div className="lg:col-span-3">
+            {/* Top bar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(true)}
+                  className="lg:hidden inline-flex items-center gap-2 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm font-medium text-[#1A1F2E] hover:bg-[#F9FAFB]"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Filtros
+                </button>
+                <span className="text-sm text-[#4A5260]">
+                  {isLoadingProducts
+                    ? "Cargando..."
+                    : `${productosVisibles.length} ${productosVisibles.length === 1 ? "producto encontrado" : "productos encontrados"}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <label htmlFor="sort" className="text-sm text-[#4A5260]">
+                  Ordenar
+                </label>
+                <select
+                  id="sort"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  className="px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F26430]/30 focus:border-[#F26430] text-sm bg-white"
+                >
+                  <option value="relevance">Relevancia</option>
+                  <option value="price-asc">Precio: menor a mayor</option>
+                  <option value="price-desc">Precio: mayor a menor</option>
+                  <option value="name">Nombre A-Z</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Grid */}
+            {productsError ? (
+              <div className="bg-white border border-[#FECACA] rounded-2xl p-10 text-center">
+                <AlertCircle className="w-10 h-10 text-[#DC2626] mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-[#1A1F2E] mb-2">
+                  No pudimos cargar el catálogo
+                </h3>
+                <p className="text-sm text-[#4A5260] mb-4">{productsError}</p>
+                <button
+                  type="button"
+                  onClick={() => setReloadKey((k) => k + 1)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F26430] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : isLoadingProducts ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductCardSkeleton key={`cat-skel-${i}`} />
+                ))}
+              </div>
+            ) : productosVisibles.length === 0 ? (
+              <div className="bg-white border border-[#E5E7EB] rounded-2xl p-12 text-center">
+                {filters.nombre ? (
+                  <Search className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                ) : (
+                  <PackageX className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                )}
+                <h3 className="text-lg font-semibold text-[#1A1F2E] mb-2">
+                  No se encontraron productos
+                </h3>
+                <p className="text-sm text-[#4A5260] mb-5">
+                  {hasActiveFilters
+                    ? "Prueba ajustando los filtros o cambiando de sede."
+                    : "Aún no hay productos disponibles en esta sede."}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F26430] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                {productosVisibles.map((product) => (
+                  <ProductCard key={product.product_id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Drawer Mobile */}
+      {mobileFiltersOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div
+            className="flex-1 bg-black/40"
+            onClick={() => setMobileFiltersOpen(false)}
+            aria-hidden
+          />
+          <div className="w-[85%] max-w-sm bg-white h-full overflow-y-auto p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-semibold text-[#1A1F2E]">Filtros</span>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                aria-label="Cerrar filtros"
+                className="p-2 text-[#4A5260] hover:bg-[#F9FAFB] rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <FiltersPanel onApply={() => setMobileFiltersOpen(false)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

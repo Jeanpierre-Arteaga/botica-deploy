@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Uploads locales
+uploads/
+tmp/
+temp/
+
+# Tests
+coverage/
+.nyc_output/
+
+# Editor
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db

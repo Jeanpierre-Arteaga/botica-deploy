@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check src/models/productModel.js)",
+      "Bash(node --check src/controllers/productController.js)"
+    ]
+  }
+}

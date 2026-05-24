@@ -1,0 +1,592 @@
+// ============================================================
+// BOTICA CENTRAL — Cliente HTTP del API
+// ============================================================
+// Cliente centralizado que habla con el backend Express.
+// Toda llamada al backend pasa por aquí. NO hacer fetch sueltos
+// en componentes.
+//
+// USO:
+//   import { api } from './lib/api';
+//   const products = await api.products.getAll({ is_offer: true });
+//   await api.auth.loginStaff('ADMIN01', 'admin1234');
+// ============================================================
+
+import type {
+  StaffLoginResponse,
+  CustomerAuthResponse,
+  CustomerRegisterPayload,
+  User,
+  UserCreatePayload,
+  UserUpdatePayload,
+  Customer,
+  CustomerCreatePayload,
+  Product,
+  ProductFilters,
+  ProductStockInfo,
+  Laboratory,
+  Category,
+  Location,
+  Order,
+  OrderState,
+  OrderCreatePayload,
+  OrderWalkInPayload,
+  InventoryItem,
+  DashboardSummary,
+  SalesReport,
+  OrdersStats,
+  ShiftSummary,
+} from './types';
+
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+
+const API_BASE =
+  (import.meta.env?.VITE_API_BASE as string) ||
+  'http://localhost:3000/api';
+
+const TOKEN_STORAGE_KEY = 'botica_token';
+
+// ============================================================
+// TOKEN MANAGEMENT
+// ============================================================
+
+export const tokenStorage = {
+  get(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  },
+  set(token: string): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+  },
+  clear(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  },
+};
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, message: string, body?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+// ============================================================
+// FETCH WRAPPER
+// ============================================================
+
+interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  body?: unknown;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  /** Si true, no incluye el token (para endpoints públicos como login) */
+  skipAuth?: boolean;
+}
+
+async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, query, skipAuth = false } = opts;
+
+  // Construir URL con query params
+  let url = `${API_BASE}${path}`;
+  if (query) {
+    const search = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        search.append(k, String(v));
+      }
+    });
+    const qs = search.toString();
+    if (qs) url += `?${qs}`;
+  }
+
+  // Headers
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (!skipAuth) {
+    const token = tokenStorage.get();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  // Fetch
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    throw new ApiError(0, 'Sin conexión con el servidor.', err);
+  }
+
+  // Status sin body (204 No Content)
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  // Parsear body
+  let data: unknown;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    data = await response.text();
+  }
+
+  // Error HTTP
+  if (!response.ok) {
+    const message =
+      (data as { message?: string })?.message ||
+      `Error ${response.status}`;
+
+    // Notificar al AuthContext si es 401 (token expirado/inválido)
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('api-unauthorized', { detail: { status: 401 } })
+      );
+    }
+
+    throw new ApiError(response.status, message, data);
+  }
+
+  return data as T;
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+
+const auth = {
+  /** Login para staff y admin con user_code + password */
+  async loginStaff(user_code: string, user_password: string): Promise<StaffLoginResponse> {
+    const res = await request<StaffLoginResponse>('/auth/login', {
+      method: 'POST',
+      body: { user_code, user_password },
+      skipAuth: true,
+    });
+    tokenStorage.set(res.token);
+    return res;
+  },
+
+  /** Login para customer con email + password */
+  async loginCustomer(email: string, customer_password: string): Promise<CustomerAuthResponse> {
+    const res = await request<CustomerAuthResponse>('/auth/customer-login', {
+      method: 'POST',
+      body: { email, customer_password },
+      skipAuth: true,
+    });
+    tokenStorage.set(res.token);
+    return res;
+  },
+
+  /** Registro de customer nuevo (auto-login incluido) */
+  async registerCustomer(payload: CustomerRegisterPayload): Promise<CustomerAuthResponse> {
+    const res = await request<CustomerAuthResponse>('/auth/customer-register', {
+      method: 'POST',
+      body: payload,
+      skipAuth: true,
+    });
+    tokenStorage.set(res.token);
+    return res;
+  },
+
+  /** Cerrar sesión (solo borra el token local) */
+  logout(): void {
+    tokenStorage.clear();
+  },
+};
+
+// ============================================================
+// USERS (staff/admin, admin-only)
+// ============================================================
+
+const users = {
+  /** GET /api/users — listar usuarios (admin) */
+  getAll(): Promise<User[]> {
+    return request<User[]>('/users');
+  },
+
+  /** GET /api/users/me — datos del usuario autenticado (staff/admin) */
+  getMe(): Promise<User> {
+    return request<User>('/users/me');
+  },
+
+  /** GET /api/users/:id — detalle de usuario (admin) */
+  getById(user_id: number): Promise<User> {
+    return request<User>(`/users/${user_id}`);
+  },
+
+  /** POST /api/users — crear usuario staff/admin (admin) */
+  create(payload: UserCreatePayload): Promise<User> {
+    return request<User>('/users', { method: 'POST', body: payload });
+  },
+
+  /** PUT /api/users/:id — actualizar datos del usuario (admin) */
+  update(user_id: number, payload: UserUpdatePayload): Promise<User> {
+    return request<User>(`/users/${user_id}`, { method: 'PUT', body: payload });
+  },
+
+  /** PATCH /api/users/:id/role — cambiar rol (admin) */
+  updateRole(user_id: number, role: 'admin' | 'emp'): Promise<User> {
+    return request<User>(`/users/${user_id}/role`, {
+      method: 'PATCH',
+      body: { role },
+    });
+  },
+
+  /** DELETE /api/users/:id (admin) */
+  delete(user_id: number): Promise<void> {
+    return request<void>(`/users/${user_id}`, { method: 'DELETE' });
+  },
+};
+
+// ============================================================
+// CUSTOMERS
+// ============================================================
+
+const customers = {
+  /** GET /api/customers — listar clientes (admin/emp) */
+  getAll(): Promise<Customer[]> {
+    return request<Customer[]>('/customers');
+  },
+
+  /** GET /api/customers/me — datos del customer autenticado */
+  getMe(): Promise<Customer> {
+    return request<Customer>('/customers/me');
+  },
+
+  /** GET /api/customers/:id (admin/emp, o el propio cust) */
+  getById(customer_id: number): Promise<Customer> {
+    return request<Customer>(`/customers/${customer_id}`);
+  },
+
+  /** GET /api/customers/dni/:dni — buscar por DNI (admin/emp para POS) */
+  getByDni(dni: string): Promise<Customer> {
+    return request<Customer>(`/customers/dni/${dni}`);
+  },
+
+  /** POST /api/customers — crear customer (público para checkout walk-in) */
+  create(payload: CustomerCreatePayload): Promise<Customer> {
+    return request<Customer>('/customers', {
+      method: 'POST',
+      body: payload,
+      skipAuth: true,
+    });
+  },
+
+  /** PUT /api/customers/:id — actualizar (cust solo el suyo, staff cualquiera) */
+  update(customer_id: number, payload: Partial<CustomerCreatePayload>): Promise<Customer> {
+    return request<Customer>(`/customers/${customer_id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+
+  /** DELETE /api/customers/:id (admin) */
+  delete(customer_id: number): Promise<void> {
+    return request<void>(`/customers/${customer_id}`, { method: 'DELETE' });
+  },
+};
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+const products = {
+  /** GET /api/products — catálogo público con filtros */
+  getAll(filters?: ProductFilters): Promise<Product[]> {
+    return request<Product[]>('/products', {
+      query: filters as Record<string, string | number | boolean | undefined | null> | undefined,
+      skipAuth: true,
+    });
+  },
+
+  /** GET /api/products/:id — detalle público */
+  getById(product_id: number, location_id?: number): Promise<Product> {
+    return request<Product>(`/products/${product_id}`, {
+      query: { location_id },
+      skipAuth: true,
+    });
+  },
+
+  /** GET /api/products/stock — info de stock de un producto en una sede */
+  getStock(productId: number, location_id: number): Promise<ProductStockInfo> {
+    return request<ProductStockInfo>('/products/stock', {
+      query: { productId, location_id },
+    });
+  },
+
+  /** POST /api/products (admin) */
+  create(payload: Partial<Product>): Promise<Product> {
+    return request<Product>('/products', { method: 'POST', body: payload });
+  },
+
+  /** PUT /api/products/:id (admin) */
+  update(product_id: number, payload: Partial<Product>): Promise<Product> {
+    return request<Product>(`/products/${product_id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+
+  /** PATCH /api/products/:id (admin) — actualización parcial */
+  patch(product_id: number, payload: Partial<Product>): Promise<Product> {
+    return request<Product>(`/products/${product_id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+  },
+
+  /** PATCH /api/products/offers/:id — toggle oferta (admin) */
+  toggleOffer(product_id: number, is_offer: boolean): Promise<Product> {
+    return request<Product>(`/products/offers/${product_id}`, {
+      method: 'PATCH',
+      body: { is_offer },
+    });
+  },
+
+  /** DELETE /api/products/:id (admin) */
+  delete(product_id: number): Promise<void> {
+    return request<void>(`/products/${product_id}`, { method: 'DELETE' });
+  },
+};
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+
+const categories = {
+  /** GET /api/categories — público */
+  getAll(): Promise<Category[]> {
+    return request<Category[]>('/categories', { skipAuth: true });
+  },
+
+  /** GET /api/categories/:id */
+  getById(category_id: number): Promise<Category> {
+    return request<Category>(`/categories/${category_id}`, { skipAuth: true });
+  },
+
+  /** POST /api/categories (admin) */
+  create(payload: Omit<Category, 'category_id'>): Promise<Category> {
+    return request<Category>('/categories', { method: 'POST', body: payload });
+  },
+
+  /** PUT /api/categories/:id (admin) */
+  update(category_id: number, payload: Partial<Category>): Promise<Category> {
+    return request<Category>(`/categories/${category_id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+
+  /** DELETE /api/categories/:id (admin) */
+  delete(category_id: number): Promise<void> {
+    return request<void>(`/categories/${category_id}`, { method: 'DELETE' });
+  },
+};
+
+// ============================================================
+// LABORATORIES
+// ============================================================
+
+const laboratories = {
+  /** GET /api/laboratories */
+  getAll(): Promise<Laboratory[]> {
+    return request<Laboratory[]>('/laboratories', { skipAuth: true });
+  },
+
+  /** GET /api/laboratories/:id */
+  getById(laboratory_id: number): Promise<Laboratory> {
+    return request<Laboratory>(`/laboratories/${laboratory_id}`, {
+      skipAuth: true,
+    });
+  },
+
+  /** POST /api/laboratories (admin) */
+  create(payload: Omit<Laboratory, 'laboratory_id'>): Promise<Laboratory> {
+    return request<Laboratory>('/laboratories', {
+      method: 'POST',
+      body: payload,
+    });
+  },
+
+  /** PUT /api/laboratories/:id (admin) */
+  update(laboratory_id: number, payload: Partial<Laboratory>): Promise<Laboratory> {
+    return request<Laboratory>(`/laboratories/${laboratory_id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+};
+
+// ============================================================
+// LOCATIONS (sedes)
+// ============================================================
+
+const locations = {
+  /** GET /api/locations — público */
+  getAll(): Promise<Location[]> {
+    return request<Location[]>('/locations', { skipAuth: true });
+  },
+
+  /** GET /api/locations/:id */
+  getById(location_id: number): Promise<Location> {
+    return request<Location>(`/locations/${location_id}`, { skipAuth: true });
+  },
+
+  /** POST /api/locations (admin) */
+  create(payload: Omit<Location, 'location_id'>): Promise<Location> {
+    return request<Location>('/locations', { method: 'POST', body: payload });
+  },
+
+  /** PUT /api/locations/:id (admin) */
+  update(location_id: number, payload: Partial<Location>): Promise<Location> {
+    return request<Location>(`/locations/${location_id}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  },
+};
+
+// ============================================================
+// ORDERS (pedidos)
+// ============================================================
+
+const orders = {
+  /** GET /api/orders — listar pedidos (admin/emp) */
+  getAll(filters?: {
+    location_id?: number;
+    order_state?: OrderState;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<Order[]> {
+    return request<Order[]>('/orders', { query: filters });
+  },
+
+  /** GET /api/orders/my-orders — pedidos del customer autenticado */
+  getMyOrders(): Promise<Order[]> {
+    return request<Order[]>('/orders/my-orders');
+  },
+
+  /** GET /api/orders/stats?date= — KPIs del día (staff/admin) */
+  getStats(date?: string): Promise<OrdersStats> {
+    return request<OrdersStats>('/orders/stats', { query: { date } });
+  },
+
+  /** GET /api/orders/shift-summary?date= — cierre de caja del trabajador */
+  getShiftSummary(date?: string): Promise<ShiftSummary> {
+    return request<ShiftSummary>('/orders/shift-summary', { query: { date } });
+  },
+
+  /** GET /api/orders/:id — detalle del pedido */
+  getById(order_id: number): Promise<Order> {
+    return request<Order>(`/orders/${order_id}`);
+  },
+
+  /** POST /api/orders — crear pedido web (customer) */
+  create(payload: OrderCreatePayload): Promise<Order> {
+    return request<Order>('/orders', { method: 'POST', body: payload });
+  },
+
+  /** POST /api/orders/walk-in — venta presencial (staff/admin) */
+  createWalkIn(payload: OrderWalkInPayload): Promise<Order> {
+    return request<Order>('/orders/walk-in', { method: 'POST', body: payload });
+  },
+
+  /** PATCH /api/orders/:id/status — cambiar estado (staff cualquiera, cust solo cancelar pendientes) */
+  updateStatus(order_id: number, order_state: OrderState): Promise<Order> {
+    return request<Order>(`/orders/${order_id}/status`, {
+      method: 'PATCH',
+      body: { order_state },
+    });
+  },
+};
+
+// ============================================================
+// INVENTORY
+// ============================================================
+
+const inventory = {
+  /** GET /api/inventory — listar inventario (staff/admin) */
+  getAll(filters?: { location_id?: number; product_id?: number }): Promise<InventoryItem[]> {
+    return request<InventoryItem[]>('/inventory', { query: filters });
+  },
+
+  /** POST /api/inventory (admin) */
+  create(payload: Omit<InventoryItem, 'inventory_id'>): Promise<InventoryItem> {
+    return request<InventoryItem>('/inventory', { method: 'POST', body: payload });
+  },
+
+  /** PATCH /api/inventory/:id (admin) */
+  update(inventory_id: number, payload: Partial<InventoryItem>): Promise<InventoryItem> {
+    return request<InventoryItem>(`/inventory/${inventory_id}`, {
+      method: 'PATCH',
+      body: payload,
+    });
+  },
+};
+
+// ============================================================
+// DASHBOARD (staff/admin)
+// ============================================================
+
+const dashboard = {
+  /** GET /api/dashboard/summary — KPIs completos */
+  getSummary(filters?: { location_id?: number; date?: string }): Promise<DashboardSummary> {
+    return request<DashboardSummary>('/dashboard/summary', { query: filters });
+  },
+};
+
+// ============================================================
+// REPORTS (admin)
+// ============================================================
+
+const reports = {
+  /** GET /api/reports/sales — reporte de ventas (admin) */
+  getSales(params: {
+    date_from: string;
+    date_to: string;
+    location_id?: number;
+  }): Promise<SalesReport> {
+    return request<SalesReport>('/reports/sales', { query: params });
+  },
+};
+
+// ============================================================
+// EXPORT
+// ============================================================
+
+export const api = {
+  auth,
+  users,
+  customers,
+  products,
+  categories,
+  laboratories,
+  locations,
+  orders,
+  inventory,
+  dashboard,
+  reports,
+};
+
+export default api;
