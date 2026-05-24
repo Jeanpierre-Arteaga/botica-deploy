@@ -4,7 +4,11 @@ const categoryController = {
 
   getAll: async (req, res) => {
     try {
-      const categories = await CategoryModel.findAll();
+      let featured = null;
+      if (req.query.featured === 'true') featured = true;
+      else if (req.query.featured === 'false') featured = false;
+
+      const categories = await CategoryModel.findAll({ featured });
       res.json(categories);
     } catch (err) {
       console.error('[categories/getAll]', err);

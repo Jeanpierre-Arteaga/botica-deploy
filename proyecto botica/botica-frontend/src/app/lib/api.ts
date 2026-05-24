@@ -375,9 +375,12 @@ const products = {
 // ============================================================
 
 const categories = {
-  /** GET /api/categories — público */
-  getAll(): Promise<Category[]> {
-    return request<Category[]>('/categories', { skipAuth: true });
+  /** GET /api/categories — público (soporta filtro ?featured=true|false) */
+  getAll(filters?: { featured?: boolean }): Promise<Category[]> {
+    return request<Category[]>('/categories', {
+      query: filters as Record<string, string | number | boolean | undefined | null> | undefined,
+      skipAuth: true,
+    });
   },
 
   /** GET /api/categories/:id */

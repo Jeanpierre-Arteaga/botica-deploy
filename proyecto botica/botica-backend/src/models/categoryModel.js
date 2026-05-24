@@ -2,10 +2,23 @@ const pool = require('../config/db');
 
 const CategoryModel = {
 
-  findAll: async () => {
-    const result = await pool.query(
-      `SELECT * FROM category ORDER BY category_name`
-    );
+  findAll: async (filters = {}) => {
+    const { featured } = filters;
+    const featuredParam = (featured === true || featured === false) ? featured : null;
+
+    const result = await pool.query(`
+      SELECT
+        category_id,
+        category_name,
+        category_description,
+        icon_name,
+        color_hex,
+        is_featured,
+        display_order
+      FROM category
+      WHERE ($1::boolean IS NULL OR is_featured = $1::boolean)
+      ORDER BY display_order, category_name
+    `, [featuredParam]);
     return result.rows;
   },
 

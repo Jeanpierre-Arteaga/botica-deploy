@@ -50,10 +50,10 @@ export function Home() {
   const [categorias, setCategorias] = useState<Category[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Cargar categorías una sola vez
+  // Cargar categorías destacadas (selección editorial desde BD)
   useEffect(() => {
     api.categories
-      .getAll()
+      .getAll({ featured: true })
       .then(setCategorias)
       .catch(() => setCategorias([]));
   }, []);

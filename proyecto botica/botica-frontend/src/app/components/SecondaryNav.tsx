@@ -1,6 +1,9 @@
 import { Link, useLocation } from "react-router";
-import { ChevronDown, Tag, Baby, Pill, Heart, Book } from "lucide-react";
+import { ChevronDown, Tag } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { api } from "../lib/api";
+import { CategoryIcon } from "./CategoryIcon";
+import type { Category } from "../lib/types";
 
 export function SecondaryNav() {
   const [showCategories, setShowCategories] = useState(false);
@@ -8,29 +11,26 @@ export function SecondaryNav() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
 
-  const categories = [
-    { label: "Analgésicos", slug: "analgesicos" },
-    { label: "Antibióticos", slug: "antibioticos" },
-    { label: "Vitaminas", slug: "vitaminas" },
-    { label: "Mamá & Bebé", slug: "mama-bebe" },
-    { label: "Cuidado Personal", slug: "cuidado-personal" },
-    { label: "Dermatología", slug: "dermatologia" },
-    { label: "Gastroenterología", slug: "gastroenterologia" },
-    { label: "Respiratorio", slug: "respiratorio" },
-    { label: "Cardiovascular", slug: "cardiovascular" },
-    { label: "Diabetes", slug: "diabetes" },
-    { label: "Suplementos", slug: "suplementos" },
-    { label: "Genéricos", slug: "genericos" },
-  ];
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [featured, setFeatured] = useState<Category[]>([]);
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
 
-  const menuItems = [
-    { label: "Ofertas", icon: Tag, to: "/catalogo?tipo=ofertas" },
-    { label: "Vitaminas", icon: Pill, to: "/catalogo?categoria=vitaminas" },
-    { label: "Mamá & Bebé", icon: Baby, to: "/catalogo?categoria=mama-bebe" },
-    { label: "Genéricos", icon: Heart, to: "/catalogo?tipo=generico" },
-    { label: "Cuidado Personal", to: "/catalogo?categoria=cuidado-personal" },
-    { label: "Catálogos", icon: Book, to: "/catalogo" },
-  ];
+  // Categorías destacadas (chips horizontales)
+  useEffect(() => {
+    api.categories
+      .getAll({ featured: true })
+      .then(setFeatured)
+      .catch(() => setFeatured([]))
+      .finally(() => setIsLoadingFeatured(false));
+  }, []);
+
+  // Todas las categorías (dropdown completo)
+  useEffect(() => {
+    api.categories
+      .getAll()
+      .then(setAllCategories)
+      .catch(() => setAllCategories([]));
+  }, []);
 
   useEffect(() => {
     if (showCategories && buttonRef.current) {
@@ -42,47 +42,82 @@ export function SecondaryNav() {
     }
   }, [showCategories]);
 
-  const isActive = (to: string) => {
-    return location.pathname + location.search === to;
-  };
+  const isActive = (to: string) =>
+    location.pathname + location.search === to;
+
+  const offersHref = "/catalogo?is_offer=true";
 
   return (
     <>
       <div className="bg-white border-b border-[#E5E7EB] sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {/* Categorías Dropdown */}
+          <div
+            className="flex items-center gap-1 overflow-x-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {/* Categorías Dropdown (TODAS desde BD) */}
             <div className="relative flex-shrink-0">
               <button
                 ref={buttonRef}
                 onClick={() => setShowCategories(!showCategories)}
                 className="flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 text-[#4A5260] hover:text-[#F26430] transition-colors text-sm font-medium whitespace-nowrap border-b-2 border-transparent"
               >
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCategories ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showCategories ? 'rotate-180' : ''}`}
+                />
                 <span>Categorías</span>
               </button>
             </div>
 
-            {/* Other Menu Items */}
-            {menuItems.map((item, index) => (
-              <Link
-                key={index}
-                to={item.to}
-                className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
-                  isActive(item.to)
-                    ? 'text-[#F26430] border-[#F26430]'
-                    : 'text-[#4A5260] hover:text-[#F26430] border-transparent'
-                }`}
-              >
-                {item.icon && <item.icon className="w-4 h-4" />}
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {/* Ofertas (filtro especial, NO es categoría) */}
+            <Link
+              to={offersHref}
+              className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
+                isActive(offersHref)
+                  ? 'text-[#F26430] border-[#F26430]'
+                  : 'text-[#F26430] hover:text-[#D94E1F] border-transparent'
+              }`}
+            >
+              <Tag className="w-4 h-4" />
+              <span>Ofertas</span>
+            </Link>
+
+            {/* Chips destacados (featured desde BD) */}
+            {isLoadingFeatured ? (
+              <div className="flex gap-2 py-3 md:py-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-8 w-24 bg-[#F9FAFB] rounded-full animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              featured.map((cat) => {
+                const to = `/catalogo?category_id=${cat.category_id}`;
+                const active = isActive(to);
+                return (
+                  <Link
+                    key={cat.category_id}
+                    to={to}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
+                      active
+                        ? 'text-[#F26430] border-[#F26430]'
+                        : 'text-[#4A5260] hover:text-[#F26430] border-transparent'
+                    }`}
+                    style={!active && cat.color_hex ? { color: cat.color_hex } : undefined}
+                  >
+                    <CategoryIcon name={cat.icon_name} size={16} />
+                    <span>{cat.category_name}</span>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
-      {/* Portal-style Dropdown Menu */}
+      {/* Portal-style Dropdown Menu (TODAS las categorías desde BD) */}
       {showCategories && (
         <>
           <div
@@ -91,22 +126,35 @@ export function SecondaryNav() {
           />
 
           <div
-            className="fixed z-[9999] bg-white rounded-[16px] shadow-lg border border-[#E5E7EB] py-4 px-3 w-[calc(100vw-2rem)] md:w-80 grid grid-cols-2 gap-2 max-h-[450px] overflow-y-auto"
+            className="fixed z-[9999] bg-white rounded-[16px] shadow-lg border border-[#E5E7EB] py-4 px-3 w-[calc(100vw-2rem)] md:w-96 max-h-[450px] overflow-y-auto"
             style={{
               top: `${dropdownPosition.top}px`,
               left: window.innerWidth < 768 ? '1rem' : `${dropdownPosition.left}px`
             }}
           >
-            {categories.map((category, index) => (
-              <Link
-                key={index}
-                to={`/catalogo?categoria=${category.slug}`}
-                onClick={() => setShowCategories(false)}
-                className="px-4 py-3 rounded-[10px] hover:bg-[#FFF4EE] hover:text-[#F26430] transition-colors text-sm font-normal text-[#1A1F2E]"
-              >
-                {category.label}
-              </Link>
-            ))}
+            {allCategories.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-[#9CA3AF]">
+                No hay categorías disponibles.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-1">
+                {allCategories.map((cat) => (
+                  <Link
+                    key={cat.category_id}
+                    to={`/catalogo?category_id=${cat.category_id}`}
+                    onClick={() => setShowCategories(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-[#FFF4EE] hover:text-[#F26430] transition-colors text-[#1A1F2E]"
+                  >
+                    <CategoryIcon
+                      name={cat.icon_name}
+                      size={16}
+                      className="flex-shrink-0"
+                    />
+                    <span className="truncate">{cat.category_name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
