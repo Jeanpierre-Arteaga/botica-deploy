@@ -473,6 +473,12 @@ export interface ShiftSummary {
     total: number;
     count: number;
   }>;
+  top_products: Array<{
+    product_id: number;
+    product_name: string;
+    total_sold: number;
+    revenue: number;
+  }>;
   transactions: Array<{
     order_id: number;
     order_date: string;

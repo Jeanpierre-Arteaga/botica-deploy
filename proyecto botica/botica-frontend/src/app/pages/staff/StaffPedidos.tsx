@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router';
+import { useSearchParams, useLocation as useRouteLocation, Link } from 'react-router';
 import {
   Search, Clock, CheckCircle2, XCircle, Truck, ChevronRight, Inbox,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useAuth } from '../../lib/AuthContext';
+import { useLocations } from '../../lib/LocationContext';
 import { toast } from 'sonner';
 import type { Order, OrderState } from '../../lib/types';
 
@@ -19,22 +21,37 @@ const FILTERS: { value: Filter; label: string }[] = [
 
 export default function StaffPedidos() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { locations } = useLocations();
+  const { pathname } = useRouteLocation();
+  const isAdmin = user?.role === 'admin';
+  // /admin/pedidos y /staff/pedidos comparten esta página; los enlaces de
+  // detalle deben quedarse en la sección actual.
+  const basePath = pathname.startsWith('/admin') ? '/admin/pedidos' : '/staff/pedidos';
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState('');
+  // Solo admin puede filtrar por sede; emp queda fijado a la suya por el backend.
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
 
   const stateFilter = (searchParams.get('state') as Filter) || 'all';
 
   useEffect(() => {
-    loadOrders(stateFilter);
-  }, [stateFilter]);
+    loadOrders(stateFilter, selectedLocationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateFilter, selectedLocationId]);
 
-  async function loadOrders(filter: Filter) {
+  async function loadOrders(filter: Filter, locationId: number | null) {
     setIsLoading(true);
     try {
-      const data = await api.orders.getAll(
-        filter === 'all' ? {} : { order_state: filter }
-      );
+      // El backend fuerza la sede del emp por el JWT; el front no manda location_id
+      // salvo que un admin elija una sede concreta.
+      const filters: { order_state?: OrderState; location_id?: number } = {};
+      if (filter !== 'all') filters.order_state = filter;
+      if (isAdmin && locationId) filters.location_id = locationId;
+
+      const data = await api.orders.getAll(filters);
       setOrders(data);
     } catch (err) {
       console.error(err);
@@ -64,11 +81,33 @@ export default function StaffPedidos() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">Pedidos web</h1>
-        <p className="text-sm text-[#4A5260]">Gestiona los pedidos online</p>
+        <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">Pedidos</h1>
+        <p className="text-sm text-[#4A5260]">
+          {isAdmin ? 'Gestiona los pedidos de todas las sedes' : 'Gestiona los pedidos de tu sede'}
+        </p>
       </div>
 
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+        {isAdmin && (
+          <div className="mb-3">
+            <label className="text-xs text-[#4A5260] mb-1 block">Filtrar por sede</label>
+            <select
+              value={selectedLocationId ?? 'all'}
+              onChange={(e) =>
+                setSelectedLocationId(e.target.value === 'all' ? null : parseInt(e.target.value, 10))
+              }
+              className="w-full md:w-64 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+            >
+              <option value="all">Todas las sedes</option>
+              {locations.map((l) => (
+                <option key={l.location_id} value={l.location_id}>
+                  {l.location_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="relative mb-3">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input
@@ -117,7 +156,7 @@ export default function StaffPedidos() {
       ) : (
         <div className="space-y-2">
           {filtered.map((order) => (
-            <OrderRow key={order.order_id} order={order} />
+            <OrderRow key={order.order_id} order={order} basePath={basePath} />
           ))}
         </div>
       )}
@@ -125,10 +164,10 @@ export default function StaffPedidos() {
   );
 }
 
-function OrderRow({ order }: { order: Order }) {
+function OrderRow({ order, basePath }: { order: Order; basePath: string }) {
   return (
     <Link
-      to={`/staff/pedidos/${order.order_id}`}
+      to={`${basePath}/${order.order_id}`}
       className="block bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#F26430] hover:shadow-sm transition-all"
     >
       <div className="flex items-center justify-between gap-3">

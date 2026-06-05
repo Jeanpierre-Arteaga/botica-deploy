@@ -21,9 +21,8 @@ import { NotFound } from "./pages/NotFound";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffPedidos from "./pages/staff/StaffPedidos";
 import StaffDetallePedido from "./pages/staff/StaffDetallePedido";
-import { NuevaVenta } from "./pages/worker/NuevaVenta";
-import { PedidosWeb } from "./pages/worker/PedidosWeb";
-import { CierreCaja } from "./pages/worker/CierreCaja";
+import StaffNuevaVenta from "./pages/staff/StaffNuevaVenta";
+import StaffCierre from "./pages/staff/StaffCierre";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { GestionProductos } from "./pages/admin/GestionProductos";
 import { ControlStock } from "./pages/admin/ControlStock";
@@ -114,10 +113,10 @@ export const router = createBrowserRouter([
             ),
             children: [
               { path: "dashboard", Component: StaffDashboard },
-              { path: "nueva-venta", Component: NuevaVenta },
+              { path: "nueva-venta", Component: StaffNuevaVenta },
               { path: "pedidos", Component: StaffPedidos },
               { path: "pedidos/:orderId", Component: StaffDetallePedido },
-              { path: "cierre", Component: CierreCaja },
+              { path: "cierre", Component: StaffCierre },
             ],
           },
         ],
@@ -137,7 +136,8 @@ export const router = createBrowserRouter([
               { path: "dashboard", Component: AdminDashboard },
               { path: "productos", Component: GestionProductos },
               { path: "stock", Component: ControlStock },
-              { path: "pedidos", Component: PedidosWeb },
+              { path: "pedidos", Component: StaffPedidos },
+              { path: "pedidos/:orderId", Component: StaffDetallePedido },
               { path: "usuarios", Component: GestionUsuarios },
               { path: "reportes", Component: Reportes },
             ],

@@ -11,9 +11,20 @@ const VALID_VOUCHER_TYPES = ['boleta', 'factura', 'ticket'];
 const orderController = {
 
   // GET /api/orders
+  // Multi-tenancy:
+  //  - emp   → SIEMPRE se fuerza su sede (req.user.location_id), ignora el query.
+  //  - admin → filtro de sede opcional vía ?location_id.
+  // (La ruta solo admite admin/emp; los customers usan /my-orders.)
   getAll: async (req, res) => {
     try {
-      const orders = await OrderModel.findAll(req.query);
+      const filtros = { ...req.query };
+
+      if (req.user.role === 'emp') {
+        filtros.location_id = req.user.location_id; // sede del trabajador, no negociable
+      }
+      // admin: respeta filtros.location_id del query si vino (o ninguno = todas las sedes)
+
+      const orders = await OrderModel.findAll(filtros);
       res.json(orders);
     } catch (err) {
       console.error('[orders/getAll]', err);
@@ -289,55 +300,131 @@ const orderController = {
   },
 
   // POST /api/orders/walk-in
-  // Venta presencial registrada por un trabajador (emp/admin)
-  // El customer_id puede ser null (cliente genérico) o un customer existente
+  // Venta presencial (POS) registrada por un trabajador (emp/admin).
+  // Formato del body (nested, alineado con OrderWalkInPayload del frontend):
+  //   {
+  //     order:   { location_id, customer_id, delivery_type? },
+  //     details: [{ product_id, amount, unit_price, sub_total_price? }],
+  //     payment: { payment_method, voucher_type? }
+  //   }
+  // El DNI/cliente es OBLIGATORIO (customer_id) para emitir comprobante.
+  // Hace BEGIN/COMMIT/ROLLBACK: crea orders ('entregado'), order_detail,
+  // descuenta inventario validando stock, y registra el payment.
   createWalkIn: async (req, res) => {
+    const { order, details, payment } = req.body || {};
+
+    // ---- Validaciones (antes de tocar BD) ----
+    if (!details || !Array.isArray(details) || details.length === 0) {
+      return res.status(400).json({ message: 'Se requiere al menos un item.' });
+    }
+    if (!order || !order.location_id) {
+      return res.status(400).json({ message: 'Se requiere location_id.' });
+    }
+    if (!order.customer_id) {
+      return res.status(400).json({ message: 'Cliente requerido (DNI obligatorio).' });
+    }
+    if (!payment || !payment.payment_method) {
+      return res.status(400).json({ message: 'Método de pago requerido.' });
+    }
+
+    // POS solo acepta pagos presenciales (sin transferencia ni tarjeta MP online)
+    const POS_PAYMENT_METHODS = ['efectivo', 'yape', 'plin', 'tarjeta'];
+    if (!POS_PAYMENT_METHODS.includes(payment.payment_method)) {
+      return res.status(400).json({
+        message: `Método de pago inválido para POS. Debe ser: ${POS_PAYMENT_METHODS.join(', ')}.`
+      });
+    }
+    if (payment.voucher_type && !VALID_VOUCHER_TYPES.includes(payment.voucher_type)) {
+      return res.status(400).json({
+        message: `voucher_type inválido. Debe ser: ${VALID_VOUCHER_TYPES.join(', ')}.`
+      });
+    }
+
+    const delivery_type = order.delivery_type || 'pickup';
+    if (!VALID_DELIVERY_TYPES.includes(delivery_type)) {
+      return res.status(400).json({
+        message: `delivery_type debe ser '${VALID_DELIVERY_TYPES.join("' o '")}'.`
+      });
+    }
+
+    const location_id = order.location_id;
+    const customer_id = order.customer_id;
+
+    // Total calculado en backend (no se confía en el total del cliente)
+    const total = details.reduce(
+      (sum, d) => sum + Number(d.unit_price) * Number(d.amount), 0
+    );
+    if (!(total > 0)) {
+      return res.status(400).json({ message: 'Total inválido.' });
+    }
+
+    // El cliente debe existir y estar activo
+    const custResult = await pool.query(
+      'SELECT customer_id FROM customer WHERE customer_id = $1 AND is_active = true',
+      [customer_id]
+    );
+    if (custResult.rowCount === 0) {
+      return res.status(404).json({ message: 'Cliente no encontrado.' });
+    }
+
+    // ---- Transacción ----
+    const client = await pool.connect();
     try {
-      const { order, details } = req.body;
+      await client.query('BEGIN');
 
-      // Validar campos requeridos
-      if (!details || !Array.isArray(details) || details.length === 0) {
-        return res.status(400).json({ message: 'Se requiere al menos un item.' });
-      }
-      if (!order || !order.location_id) {
-        return res.status(400).json({ message: 'Se requiere location_id.' });
-      }
+      // 1. Pedido (POS = entregado de inmediato, registrado por el trabajador)
+      const orderResult = await client.query(
+        `INSERT INTO orders
+          (order_state, delivery_type, order_date, total_price, customer_id, user_id, location_id)
+         VALUES ('entregado', $1, NOW(), $2, $3, $4, $5)
+         RETURNING *`,
+        [delivery_type, total, customer_id, req.user.user_id, location_id]
+      );
+      const newOrder = orderResult.rows[0];
 
-      // Forzar valores del trabajador autenticado (del JWT)
-      const walkInOrder = {
-        ...order,
-        user_id: req.user.user_id,           // el emp/admin que registra la venta
-        order_state: 'entregado',            // venta presencial = entrega inmediata
-        delivery_type: order.delivery_type || 'pickup',
-        // customer_id viene del body (puede ser null para cliente genérico)
-      };
+      // 2. Detalles + descuento de stock con validación atómica
+      for (const d of details) {
+        const sub_total = Number(d.unit_price) * Number(d.amount);
 
-      if (walkInOrder.delivery_type && !VALID_DELIVERY_TYPES.includes(walkInOrder.delivery_type)) {
-        return res.status(400).json({
-          message: `delivery_type debe ser '${VALID_DELIVERY_TYPES.join("' o '")}'.`
-        });
-      }
-
-      // Verificar stock antes de crear
-      for (const detail of details) {
-        const stockResult = await pool.query(
-          `SELECT current_stock FROM inventory
-           WHERE product_id = $1 AND location_id = $2`,
-          [detail.product_id, walkInOrder.location_id]
+        await client.query(
+          `INSERT INTO order_detail (amount, unit_price, sub_total_price, product_id, order_id)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [d.amount, d.unit_price, sub_total, d.product_id, newOrder.order_id]
         );
-        const stock = stockResult.rows[0];
-        if (!stock || stock.current_stock < detail.amount) {
-          return res.status(409).json({
-            message: `Stock insuficiente para el producto ID ${detail.product_id}.`
-          });
+
+        const stockUpd = await client.query(
+          `UPDATE inventory
+           SET current_stock = current_stock - $1
+           WHERE product_id = $2 AND location_id = $3 AND current_stock >= $1
+           RETURNING current_stock`,
+          [d.amount, d.product_id, location_id]
+        );
+        if (stockUpd.rowCount === 0) {
+          throw new Error(`Stock insuficiente para el producto ID ${d.product_id}.`);
         }
       }
 
-      const newOrder = await OrderModel.create(walkInOrder, details);
-      return res.status(201).json(newOrder);
+      // 3. Pago presencial
+      await client.query(
+        `INSERT INTO payment
+          (payment_method, total_price, voucher_type, order_id)
+         VALUES ($1, $2, $3, $4)`,
+        [payment.payment_method, total, payment.voucher_type || 'ticket', newOrder.order_id]
+      );
+
+      await client.query('COMMIT');
+
+      const fullOrder = await OrderModel.findById(newOrder.order_id);
+      return res.status(201).json(fullOrder);
     } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
       console.error('[orders/createWalkIn]', err);
-      return res.status(500).json({ message: 'Error en el servidor.' });
+      if (err && err.message && err.message.includes('Stock insuficiente')) {
+        return res.status(409).json({ message: err.message });
+      }
+      return res.status(500).json({ message: 'Error al procesar la venta.' });
+    } finally {
+      client.release();
     }
   },
 
@@ -354,12 +441,15 @@ const orderController = {
 
       const params = [date, locId];
 
+      // "Ventas" = sólo ventas realizadas (en proceso + entregado), incluye POS
+      // (walk-in con user_id) y web. Las pendientes (sin pago validado) NO suman
+      // a ventas pero sí se cuentan aparte. Las canceladas quedan fuera.
       const kpisQ = pool.query(
         `SELECT
-           COALESCE(SUM(total_price), 0)  AS ventas,
-           COUNT(*)::int                  AS pedidos,
-           COUNT(*) FILTER (WHERE order_state = 'pendiente')::int AS pendientes,
-           COALESCE(AVG(total_price), 0)  AS ticket_promedio
+           COALESCE(SUM(total_price) FILTER (WHERE order_state IN ('en proceso','entregado')), 0)  AS ventas,
+           COUNT(*) FILTER (WHERE order_state IN ('en proceso','entregado'))::int                  AS pedidos,
+           COUNT(*) FILTER (WHERE order_state = 'pendiente')::int                                  AS pendientes,
+           COALESCE(AVG(total_price) FILTER (WHERE order_state IN ('en proceso','entregado')), 0)  AS ticket_promedio
          FROM orders
          WHERE DATE(order_date) = $1::date
            AND order_state != 'cancelado'
@@ -425,7 +515,7 @@ const orderController = {
          FROM orders
          WHERE DATE(order_date) = $1::date
            AND user_id = $2::int
-           AND order_state != 'cancelado'`,
+           AND order_state = 'entregado'`,
         params
       );
 
@@ -438,7 +528,7 @@ const orderController = {
          LEFT JOIN payment pay ON pay.order_id = o.order_id
          WHERE DATE(o.order_date) = $1::date
            AND o.user_id = $2::int
-           AND o.order_state != 'cancelado'
+           AND o.order_state = 'entregado'
          GROUP BY COALESCE(pay.payment_method, 'sin_pago')
          ORDER BY total DESC`,
         params
@@ -463,7 +553,26 @@ const orderController = {
         params
       );
 
-      const [rTot, rPay, rTx] = await Promise.all([totalsQ, payQ, txQ]);
+      // Top 3 productos vendidos por el trabajador en el turno
+      const topQ = pool.query(
+        `SELECT
+           pr.product_id,
+           pr.product_name,
+           SUM(od.amount)::int          AS total_sold,
+           COALESCE(SUM(od.sub_total_price), 0) AS revenue
+         FROM order_detail od
+         JOIN orders  o  ON o.order_id  = od.order_id
+         JOIN product pr ON pr.product_id = od.product_id
+         WHERE DATE(o.order_date) = $1::date
+           AND o.user_id = $2::int
+           AND o.order_state = 'entregado'
+         GROUP BY pr.product_id, pr.product_name
+         ORDER BY total_sold DESC
+         LIMIT 3`,
+        params
+      );
+
+      const [rTot, rPay, rTx, rTop] = await Promise.all([totalsQ, payQ, txQ, topQ]);
       const t = rTot.rows[0] || {};
 
       return res.json({
@@ -477,6 +586,12 @@ const orderController = {
           payment_method: r.payment_method,
           total: toFloat(r.total),
           count: toInt(r.count)
+        })),
+        top_products: rTop.rows.map(r => ({
+          product_id: r.product_id,
+          product_name: r.product_name,
+          total_sold: toInt(r.total_sold),
+          revenue: toFloat(r.revenue)
         })),
         transactions: rTx.rows.map(r => ({
           order_id: r.order_id,
