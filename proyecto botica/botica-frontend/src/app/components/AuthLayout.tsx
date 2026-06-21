@@ -1,34 +1,24 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import {
-  ArrowLeft,
-  ShieldCheck,
-  Truck,
-  Clock,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import logo from "@/imports/botica_icono-2.jpeg";
 
 /**
- * AuthLayout — shell presentacional premium para todas las pantallas de
+ * AuthLayout — shell presentacional minimalista para todas las pantallas de
  * autenticación (login cliente, registro, acceso staff, acceso admin).
  *
  * Es 100% UI: no contiene estado, ni handlers, ni llamadas de auth. Cada
  * página mantiene su propia lógica y solo inserta su <form> como children.
  *
  * Layout dividido:
- *   · Panel de marca (izq, oculto en móvil): navy con logo, foto real de
- *     respaldo (// TODO) sobre degradado y bullets de confianza.
+ *   · Panel media (izq, oculto en móvil): imagen/video real opcional sobre un
+ *     degradado cinematográfico navy con glow de acento (ken-burns sutil).
+ *     Solo logo + UNA línea corta. Sin bullets ni textos largos.
  *   · Panel de formulario (der): superficie con tokens --c-*; se adapta a
  *     tema claro/oscuro automáticamente.
  */
 
 type AuthTone = "client" | "staff" | "admin";
-
-interface TrustItem {
-  icon: LucideIcon;
-  text: string;
-}
 
 interface AuthLayoutProps {
   /** Título del formulario (panel derecho) */
@@ -37,40 +27,27 @@ interface AuthLayoutProps {
   children: ReactNode;
   /** Links bajo el formulario (registro / volver, etc.) */
   footer?: ReactNode;
-  /** Texto grande del panel de marca */
-  brandHeadline: ReactNode;
-  brandSubtext: string;
-  /** Etiqueta tipo "chip" sobre el headline del panel de marca */
-  badge?: string;
+  /** UNA línea corta sobre el panel media (lo único que cambia por pantalla) */
+  brandLine: ReactNode;
   tone?: AuthTone;
-  /** Bullets de confianza del panel de marca (default: storefront) */
-  trust?: TrustItem[];
   /** Ancho del formulario: las pantallas con muchos campos usan "wide" */
   width?: "narrow" | "wide";
 }
 
+/** Glow de acento según el tono de la pantalla */
 const TONE_GLOW: Record<AuthTone, string> = {
-  client: "rgba(241, 90, 41, 0.28)",
-  staff: "rgba(56, 189, 248, 0.22)",
-  admin: "rgba(56, 189, 248, 0.18)",
+  client: "rgba(241, 90, 41, 0.32)",
+  staff: "rgba(56, 189, 248, 0.26)",
+  admin: "rgba(56, 189, 248, 0.22)",
 };
-
-const DEFAULT_TRUST: TrustItem[] = [
-  { icon: ShieldCheck, text: "Medicamentos certificados por DIGEMID" },
-  { icon: Truck, text: "Delivery en 24 – 48 h a tu puerta" },
-  { icon: Clock, text: "Atención de Lun a Dom · 8:00 a. m. – 10:00 p. m." },
-];
 
 export function AuthLayout({
   title,
   subtitle,
   children,
   footer,
-  brandHeadline,
-  brandSubtext,
-  badge,
+  brandLine,
   tone = "client",
-  trust = DEFAULT_TRUST,
   width = "narrow",
 }: AuthLayoutProps) {
   return (
@@ -78,32 +55,40 @@ export function AuthLayout({
       className="min-h-screen w-full lg:grid lg:grid-cols-[1.05fr_1fr]"
       style={{ backgroundColor: "var(--c-bg)" }}
     >
-      {/* ===== Panel de marca (izquierda) ===== */}
+      {/* ===== Panel media (izquierda) ===== */}
       <aside
         className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 xl:p-16"
         style={{
           background:
-            "linear-gradient(160deg, var(--c-ink) 0%, var(--c-ink-2) 55%, #13233F 100%)",
+            "linear-gradient(155deg, var(--c-ink) 0%, var(--c-ink-2) 50%, #13233F 100%)",
         }}
       >
-        {/* Foto real de respaldo. // TODO: reemplazar /auth-side.jpg por una
-            imagen real (farmacia / atención al cliente). Si no existe, se ve
-            solo el degradado navy y no se rompe nada. */}
+        {/* Media real opcional (foto/poster). Si /auth-side.jpg no existe se ve
+            solo el degradado navy y no se rompe nada. Ken-burns muy sutil. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-cover bg-center opacity-[0.16] mix-blend-luminosity"
+          className="absolute inset-0 bg-cover bg-center opacity-[0.20] mix-blend-luminosity animate-kenburns"
           style={{ backgroundImage: "url('/auth-side.jpg')" }}
         />
         {/* Glow de acento según tono */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-24 -right-16 w-[460px] h-[460px] rounded-full blur-[130px]"
+          className="pointer-events-none absolute -top-28 -right-20 w-[480px] h-[480px] rounded-full blur-[140px]"
           style={{ backgroundColor: TONE_GLOW[tone] }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-32 -left-16 w-[420px] h-[420px] rounded-full blur-[140px]"
-          style={{ backgroundColor: "rgba(30, 41, 59, 0.6)" }}
+          className="pointer-events-none absolute -bottom-36 -left-20 w-[440px] h-[440px] rounded-full blur-[150px]"
+          style={{ backgroundColor: "rgba(30, 41, 59, 0.55)" }}
+        />
+        {/* Velo inferior para asentar la línea de marca */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(6,11,22,0.55) 0%, transparent 100%)",
+          }}
         />
 
         {/* Logo */}
@@ -117,56 +102,13 @@ export function AuthLayout({
           </Link>
         </div>
 
-        {/* Mensaje central */}
-        <div className="relative max-w-md">
-          {badge && (
-            <span
-              className="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium tracking-wide mb-6"
-              style={{
-                borderColor: "rgba(255,255,255,0.16)",
-                backgroundColor: "rgba(255,255,255,0.06)",
-                color: "#7DD3FC",
-              }}
-            >
-              {badge}
-            </span>
-          )}
-          <h2
-            className="text-3xl xl:text-4xl font-bold text-white leading-[1.15] mb-5"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            {brandHeadline}
-          </h2>
-          <p
-            className="text-base leading-relaxed"
-            style={{ color: "rgba(226,232,240,0.78)" }}
-          >
-            {brandSubtext}
-          </p>
-        </div>
-
-        {/* Bullets de confianza */}
-        <ul className="relative space-y-4">
-          {trust.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-center gap-3.5">
-              <span
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <Icon className="h-5 w-5" style={{ color: "var(--c-brand)" }} />
-              </span>
-              <span
-                className="text-sm font-medium"
-                style={{ color: "rgba(226,232,240,0.9)" }}
-              >
-                {text}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* UNA línea corta */}
+        <h2
+          className="relative max-w-md text-3xl xl:text-4xl font-bold text-white leading-[1.15]"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {brandLine}
+        </h2>
       </aside>
 
       {/* ===== Panel de formulario (derecha) ===== */}
@@ -194,7 +136,7 @@ export function AuthLayout({
             width === "wide" ? "max-w-xl" : "max-w-md"
           }`}
         >
-          {/* Logo solo visible en móvil (panel de marca oculto) */}
+          {/* Logo solo visible en móvil (panel media oculto) */}
           <Link to="/" className="lg:hidden mb-8 inline-flex">
             <img
               src={logo}

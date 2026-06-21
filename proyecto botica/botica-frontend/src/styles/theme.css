@@ -63,6 +63,8 @@
   --c-warning: #F59E0B;  --c-warning-soft: #FEF3C7;
   --c-error:   #DC2626;  --c-error-soft:   #FEE2E2;
   --c-info:    #2563EB;  --c-info-soft:    #DBEAFE;
+  /* Violeta de rol (admin) — strong constante, soft voltea en oscuro */
+  --c-violet:  #8B6FC9;  --c-violet-soft:  #F1ECF9;
 
   /* Categorías — paleta cohesiva y desaturada (misma familia, jewel tones) */
   --cat-1: #4C82A8;  /* azul acero  - medicamentos */
@@ -215,6 +217,7 @@ html[data-theme="dark"] {
   --c-warning-soft: #2A2110;
   --c-error-soft:   #2A1414;
   --c-info-soft:    #0E1E3A;
+  --c-violet-soft:  #241E36;
 
   /* Sombras un poco más marcadas sobre fondo oscuro */
   --elev-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
@@ -320,6 +323,8 @@ html[data-theme="dark"] p { color: var(--c-muted); }
   --color-error-soft: var(--c-error-soft);
   --color-info: var(--c-info);
   --color-info-soft: var(--c-info-soft);
+  --color-violet: var(--c-violet);
+  --color-violet-soft: var(--c-violet-soft);
   --shadow-soft: var(--elev-soft);
   --shadow-card: var(--elev-card);
   --shadow-pop: var(--elev-pop);
@@ -527,6 +532,44 @@ html[data-theme="dark"] p { color: var(--c-muted); }
   :focus-visible {
     outline: 2px solid var(--c-brand);
     outline-offset: 2px;
+  }
+
+  /* ================================================================
+     SELECCIÓN DE TEXTO — tono de marca, nunca el azul del navegador.
+     Global (claro y oscuro). Cosmético, no afecta lógica.
+     ================================================================ */
+  ::selection {
+    background-color: rgba(241, 90, 41, 0.24);
+    color: var(--c-text);
+  }
+  ::-moz-selection {
+    background-color: rgba(241, 90, 41, 0.24);
+    color: var(--c-text);
+  }
+  /* Sobre superficies navy (sidebar/topbar admin·staff) el texto es claro */
+  .bg-ink ::selection,
+  .bg-ink-2 ::selection,
+  .scroll-navy ::selection {
+    background-color: rgba(241, 90, 41, 0.38);
+    color: #fff;
+  }
+  html[data-theme="dark"] ::selection {
+    background-color: rgba(251, 107, 58, 0.34);
+    color: #fff;
+  }
+
+  /* ================================================================
+     SCROLLBAR OCULTA PERO FUNCIONAL — para paneles donde la barra
+     no debe verse (p. ej. nav del sidebar admin). El scroll sigue.
+     ================================================================ */
+  .scrollbar-none {
+    -ms-overflow-style: none;     /* IE/Edge */
+    scrollbar-width: none;        /* Firefox */
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;                /* Chrome/Safari/Opera */
   }
 
   /* ================================================================

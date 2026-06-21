@@ -224,7 +224,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => runAction('validate')}
-                    className="w-full bg-info hover:bg-info disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-info hover:brightness-110 active:scale-[0.99] disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-all"
                   >
                     Validar pago manual
                   </button>
@@ -233,7 +233,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => runAction('deliver')}
-                    className="w-full bg-success hover:bg-success disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-success hover:brightness-110 active:scale-[0.99] disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-all"
                   >
                     Marcar como entregado
                   </button>
@@ -242,7 +242,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => setModal('cancel')}
-                    className="w-full bg-surface hover:bg-error-soft disabled:opacity-50 text-error border border-error font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-surface hover:bg-error-soft active:scale-[0.99] disabled:opacity-50 text-error border border-error/60 hover:border-error font-semibold py-2.5 rounded-lg text-sm transition-all"
                   >
                     Cancelar pedido
                   </button>
@@ -251,7 +251,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => setModal('cancel-refund')}
-                    className="w-full bg-surface hover:bg-error-soft disabled:opacity-50 text-error border border-error font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-surface hover:bg-error-soft active:scale-[0.99] disabled:opacity-50 text-error border border-error/60 hover:border-error font-semibold py-2.5 rounded-lg text-sm transition-all"
                   >
                     Cancelar con refund manual
                   </button>
@@ -300,11 +300,22 @@ function Section({
 }) {
   return (
     <div
-      className="bg-surface rounded-xl border p-4"
+      className="bg-surface rounded-2xl border shadow-soft p-5"
       style={accent ? { borderColor: accent } : { borderColor: 'var(--c-line)' }}
     >
-      <h2 className="flex items-center gap-2 font-bold text-text mb-3 text-sm">
-        {Icon && <Icon size={16} className={accent ? '' : 'text-brand'} />}
+      <h2 className="flex items-center gap-2.5 font-bold text-text mb-4 text-sm">
+        {Icon && (
+          <span
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={
+              accent
+                ? { backgroundColor: `${accent}1A`, color: accent }
+                : { backgroundColor: 'var(--c-brand-soft)', color: 'var(--c-brand)' }
+            }
+          >
+            <Icon size={16} />
+          </span>
+        )}
         {title}
       </h2>
       {children}

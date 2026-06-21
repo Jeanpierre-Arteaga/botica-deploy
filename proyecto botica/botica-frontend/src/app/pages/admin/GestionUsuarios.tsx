@@ -73,7 +73,7 @@ export function GestionUsuarios() {
 
   const getRoleBadge = (role: string) => {
     if (role === "admin") {
-      return { bg: "bg-purple-100", text: "text-purple-700", label: "Administrador" };
+      return { bg: "bg-violet-soft", text: "text-violet", label: "Administrador" };
     }
     return { bg: "bg-info-soft", text: "text-info", label: "Trabajador" };
   };
@@ -102,8 +102,8 @@ export function GestionUsuarios() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line p-5 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line p-5 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
             <input
@@ -111,15 +111,15 @@ export function GestionUsuarios() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nombre, email o código..."
-              className="w-full pl-12 pr-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full pl-12 pr-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
             />
           </div>
-          <select className="px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+          <select className="px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors">
             <option>Todos los roles</option>
             <option>Administradores</option>
             <option>Trabajadores</option>
           </select>
-          <select className="px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+          <select className="px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors">
             <option>Todas las sedes</option>
             <option>Ate</option>
             <option>Santa Anita</option>
@@ -129,50 +129,26 @@ export function GestionUsuarios() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Total usuarios</p>
-            <UserCheck className="w-5 h-5 text-faint" />
-          </div>
-          <p className="text-2xl font-bold text-brand">{users.length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Usuarios activos</p>
-            <UserCheck className="w-5 h-5 text-success" />
-          </div>
-          <p className="text-2xl font-bold text-success">{users.filter(u => u.status === "active").length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Administradores</p>
-            <Shield className="w-5 h-5 text-purple-500" />
-          </div>
-          <p className="text-2xl font-bold text-purple-600">{users.filter(u => u.role === "admin").length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Trabajadores</p>
-            <UserCheck className="w-5 h-5 text-info" />
-          </div>
-          <p className="text-2xl font-bold text-cool">{users.filter(u => u.role === "worker").length}</p>
-        </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
+        <UserStat icon={UserCheck} label="Total usuarios" value={users.length} accent="#F15A29" index={0} />
+        <UserStat icon={UserCheck} label="Usuarios activos" value={users.filter(u => u.status === "active").length} accent="#16A34A" index={1} />
+        <UserStat icon={Shield} label="Administradores" value={users.filter(u => u.role === "admin").length} accent="#8B6FC9" index={2} />
+        <UserStat icon={UserCheck} label="Trabajadores" value={users.filter(u => u.role === "worker").length} accent="#4C82A8" index={3} />
       </div>
 
       {/* Users Table */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line overflow-hidden">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-page border-b border-line">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Usuario</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Email</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Rol</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Sede asignada</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Estado</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Último acceso</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Acciones</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Usuario</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Email</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Rol</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Sede asignada</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Estado</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Último acceso</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -184,7 +160,7 @@ export function GestionUsuarios() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                          user.role === "admin" ? "bg-purple-500" : "bg-cool"
+                          user.role === "admin" ? "bg-violet" : "bg-cool"
                         }`}>
                           {user.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                         </div>
@@ -206,11 +182,12 @@ export function GestionUsuarios() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                         user.status === "active"
                           ? "bg-success-soft text-success"
                           : "bg-line-2 text-muted"
                       }`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         {user.status === "active" ? "Activo" : "Inactivo"}
                       </span>
                     </td>
@@ -241,49 +218,54 @@ export function GestionUsuarios() {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-xl p-8 max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-6">
-              {editingUser ? "Editar Usuario" : "Nuevo Usuario"}
-            </h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-2xl shadow-pop border border-line p-8 max-w-lg w-full">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <UserCheck className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl font-bold text-text">
+                {editingUser ? "Editar Usuario" : "Nuevo Usuario"}
+              </h2>
+            </div>
 
             <form className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-muted">Nombre completo</label>
+                <label className="block text-sm font-semibold mb-2 text-text">Nombre completo</label>
                 <input
                   type="text"
                   defaultValue={editingUser?.name}
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   placeholder="Ej: Juan Pérez"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-muted">Email corporativo</label>
+                <label className="block text-sm font-semibold mb-2 text-text">Email corporativo</label>
                 <input
                   type="email"
                   defaultValue={editingUser?.email}
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   placeholder="usuario@boticascentral.pe"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-muted">Rol</label>
+                  <label className="block text-sm font-semibold mb-2 text-text">Rol</label>
                   <select
                     defaultValue={editingUser?.role}
-                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   >
                     <option value="worker">Trabajador</option>
                     <option value="admin">Administrador</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-muted">Sede</label>
+                  <label className="block text-sm font-semibold mb-2 text-text">Sede</label>
                   <select
                     defaultValue={editingUser?.branch}
-                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   >
                     <option value="ate">Ate</option>
                     <option value="santa-anita">Santa Anita</option>
@@ -294,23 +276,23 @@ export function GestionUsuarios() {
 
               {!editingUser && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-muted">Contraseña inicial</label>
+                  <label className="block text-sm font-semibold mb-2 text-text">Contraseña inicial</label>
                   <input
                     type="password"
-                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                     placeholder="Mínimo 8 caracteres"
                   />
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-page border border-line rounded-lg px-4 py-3">
                 <input
                   type="checkbox"
                   id="activeStatus"
                   defaultChecked={editingUser?.status === "active" || !editingUser}
-                  className="w-5 h-5 rounded border-line text-brand focus:ring-brand"
+                  className="w-5 h-5 rounded border-line text-brand focus:ring-brand accent-[var(--c-brand)]"
                 />
-                <label htmlFor="activeStatus" className="text-sm font-semibold text-muted">
+                <label htmlFor="activeStatus" className="text-sm font-semibold text-text">
                   Usuario activo
                 </label>
               </div>
@@ -319,14 +301,14 @@ export function GestionUsuarios() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 bg-brand text-white py-3 rounded-lg font-semibold hover:bg-brand-hover transition-colors"
+                  className="flex-1 bg-brand text-white py-3 rounded-lg font-semibold hover:bg-brand-hover active:scale-[0.99] transition-all"
                 >
                   {editingUser ? "Guardar cambios" : "Crear usuario"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 bg-line text-muted py-3 rounded-lg font-semibold hover:bg-line-2 transition-colors"
+                  className="flex-1 bg-page text-muted border border-line py-3 rounded-lg font-semibold hover:bg-line-2 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -335,6 +317,33 @@ export function GestionUsuarios() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UserStat({
+  icon: Icon, label, value, accent, index,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  accent: string;
+  index: number;
+}) {
+  return (
+    <div
+      className="animate-panel relative overflow-hidden bg-surface rounded-2xl shadow-soft border border-line p-5 hover:shadow-card hover:-translate-y-0.5 transition-all"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <span className="absolute left-0 top-0 h-full w-1 rounded-r" style={{ backgroundColor: accent }} />
+      <div
+        className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+        style={{ backgroundColor: `${accent}1A`, color: accent }}
+      >
+        <Icon className="w-[22px] h-[22px]" />
+      </div>
+      <p className="text-[11px] text-muted font-semibold uppercase tracking-wider mb-1.5">{label}</p>
+      <p className="text-[26px] lg:text-[28px] leading-none font-bold text-text tabular-nums">{value}</p>
     </div>
   );
 }

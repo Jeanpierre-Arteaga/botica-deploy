@@ -144,7 +144,7 @@ export function ProductoDetalle() {
   // ============================================================
   if (isLoading) {
     return (
-      <div className="bg-[#F9FAFB] min-h-screen">
+      <div className="bg-page min-h-screen">
         <ProductDetailSkeleton />
       </div>
     );
@@ -152,13 +152,13 @@ export function ProductoDetalle() {
 
   if (notFound) {
     return (
-      <div className="bg-[#F9FAFB] min-h-screen">
+      <div className="bg-page min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <PackageX className="w-16 h-16 text-[#9CA3AF] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#1A1F2E] mb-2">
+          <PackageX className="w-16 h-16 text-faint mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-text mb-2">
             Producto no encontrado
           </h1>
-          <p className="text-[#4A5260] mb-6">
+          <p className="text-muted mb-6">
             El producto que buscas no existe o fue retirado del catálogo.
           </p>
           <Button
@@ -175,13 +175,13 @@ export function ProductoDetalle() {
 
   if (error || !product) {
     return (
-      <div className="bg-[#F9FAFB] min-h-screen">
+      <div className="bg-page min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          <AlertCircle className="w-16 h-16 text-[#DC2626] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#1A1F2E] mb-2">
+          <AlertCircle className="w-16 h-16 text-error mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-text mb-2">
             No pudimos cargar el producto
           </h1>
-          <p className="text-[#4A5260] mb-6">
+          <p className="text-muted mb-6">
             {error || "Ocurrió un problema inesperado."}
           </p>
           <Button
@@ -197,15 +197,15 @@ export function ProductoDetalle() {
   }
 
   return (
-    <div className="bg-[#F9FAFB] min-h-screen">
+    <div className="bg-page min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-[#4A5260] mb-5 flex-wrap">
-          <Link to="/" className="hover:text-[#F15A29]">
+        <div className="flex items-center gap-2 text-sm text-muted mb-5 flex-wrap">
+          <Link to="/" className="hover:text-brand">
             Inicio
           </Link>
           <ChevronRight className="w-4 h-4" />
-          <Link to="/catalogo" className="hover:text-[#F15A29]">
+          <Link to="/catalogo" className="hover:text-brand">
             Catálogo
           </Link>
           {product.category_name && product.category_id != null && (
@@ -213,14 +213,14 @@ export function ProductoDetalle() {
               <ChevronRight className="w-4 h-4" />
               <Link
                 to={`/catalogo?category_id=${product.category_id}`}
-                className="hover:text-[#F15A29]"
+                className="hover:text-brand"
               >
                 {product.category_name}
               </Link>
             </>
           )}
           <ChevronRight className="w-4 h-4" />
-          <span className="text-[#1A1F2E] font-medium truncate max-w-[60vw] md:max-w-none">
+          <span className="text-text font-medium truncate max-w-[60vw] md:max-w-none">
             {product.product_name}
           </span>
         </div>
@@ -228,10 +228,10 @@ export function ProductoDetalle() {
         {/* Main */}
         <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-10">
           {/* Imagen */}
-          <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 md:p-8">
-            <div className="aspect-square bg-[#FFF4EE] rounded-xl overflow-hidden flex items-center justify-center relative">
+          <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8">
+            <div className="aspect-square bg-brand-soft rounded-xl overflow-hidden flex items-center justify-center relative">
               {product.is_offer && (
-                <div className="absolute top-4 left-4 bg-[#F15A29] text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm z-10">
+                <div className="absolute top-4 left-4 bg-brand text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm z-10">
                   Oferta
                 </div>
               )}
@@ -242,7 +242,7 @@ export function ProductoDetalle() {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center text-[#9CA3AF]">
+                <div className="flex flex-col items-center justify-center text-faint">
                   <Pill className="w-20 h-20" />
                   <span className="text-sm mt-2">Sin imagen</span>
                 </div>
@@ -251,61 +251,61 @@ export function ProductoDetalle() {
           </div>
 
           {/* Info */}
-          <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 md:p-8 flex flex-col">
+          <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8 flex flex-col">
             {/* Laboratorio y categoría */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {product.laboratory_name && (
-                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-[#EFF4FB] text-[#1E4D8C]">
+                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-info-soft text-info">
                   {product.laboratory_name}
                 </span>
               )}
               {product.category_name && (
-                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-[#F9FAFB] text-[#4A5260] border border-[#E5E7EB]">
+                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-page text-muted border border-line">
                   {product.category_name}
                 </span>
               )}
               {product.is_generic && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-success-soft text-success">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Genérico
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-[#1A1F2E] mb-2 leading-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-text mb-2 leading-tight">
               {product.product_name}
             </h1>
 
             {product.active_ingredient && (
-              <p className="text-sm text-[#4A5260] mb-5">
-                <span className="text-[#9CA3AF]">Principio activo:</span>{" "}
-                <span className="font-medium text-[#1A1F2E]">
+              <p className="text-sm text-muted mb-5">
+                <span className="text-faint">Principio activo:</span>{" "}
+                <span className="font-medium text-text">
                   {product.active_ingredient}
                 </span>
               </p>
             )}
 
             <div className="flex items-baseline gap-3 mb-5">
-              <span className="text-4xl md:text-5xl font-bold text-[#F15A29]">
+              <span className="text-4xl md:text-5xl font-bold text-brand">
                 S/ {Number(product.product_price).toFixed(2)}
               </span>
             </div>
 
             {/* Estado de stock */}
-            <div className="mb-6 p-4 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
+            <div className="mb-6 p-4 rounded-xl bg-page border border-line">
               <div className="flex items-center gap-3 mb-1">
                 <span
                   className={`inline-block w-2.5 h-2.5 rounded-full ${
-                    hasStock ? "bg-[#16A34A]" : "bg-[#DC2626]"
+                    hasStock ? "bg-success" : "bg-error"
                   }`}
                 />
-                <span className="text-sm font-semibold text-[#1A1F2E]">
+                <span className="text-sm font-semibold text-text">
                   {selectedLocation
                     ? `Sede ${selectedLocation.district || selectedLocation.location_name}`
                     : "Disponibilidad"}
                 </span>
               </div>
-              <p className="text-sm text-[#4A5260] pl-5">
+              <p className="text-sm text-muted pl-5">
                 {stockNumber === null
                   ? "Selecciona una sede para ver el stock disponible."
                   : stockNumber === 0
@@ -318,7 +318,7 @@ export function ProductoDetalle() {
 
             {/* Cantidad */}
             <div className="mb-5">
-              <label className="block text-sm font-semibold mb-2 text-[#1A1F2E]">
+              <label className="block text-sm font-semibold mb-2 text-text">
                 Cantidad
               </label>
               <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export function ProductoDetalle() {
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={!hasStock || quantity <= 1}
-                  className="w-11 h-11 border border-[#E5E7EB] rounded-lg hover:bg-[#F9FAFB] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-11 h-11 border border-line rounded-lg hover:bg-page flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Disminuir cantidad"
                 >
                   <Minus className="w-4 h-4" />
@@ -345,7 +345,7 @@ export function ProductoDetalle() {
                     }
                   }}
                   disabled={!hasStock}
-                  className="w-20 h-11 text-center border border-[#E5E7EB] rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] disabled:bg-[#F9FAFB]"
+                  className="w-20 h-11 text-center border border-line rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:bg-page"
                 />
                 <button
                   type="button"
@@ -353,7 +353,7 @@ export function ProductoDetalle() {
                     setQuantity((q) => Math.min(maxQuantity, q + 1))
                   }
                   disabled={!hasStock || quantity >= maxQuantity}
-                  className="w-11 h-11 border border-[#E5E7EB] rounded-lg hover:bg-[#F9FAFB] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-11 h-11 border border-line rounded-lg hover:bg-page flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Aumentar cantidad"
                 >
                   <Plus className="w-4 h-4" />
@@ -378,8 +378,8 @@ export function ProductoDetalle() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 md:p-8 mb-10">
-          <div className="border-b border-[#E5E7EB] mb-5 overflow-x-auto">
+        <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8 mb-10">
+          <div className="border-b border-line mb-5 overflow-x-auto">
             <div className="flex gap-6 md:gap-8 min-w-max">
               <TabButton
                 active={activeTab === "descripcion"}
@@ -414,7 +414,7 @@ export function ProductoDetalle() {
             </div>
           </div>
 
-          <div className="text-sm md:text-base text-[#4A5260] leading-relaxed">
+          <div className="text-sm md:text-base text-muted leading-relaxed">
             {activeTab === "descripcion" && (
               <TabContent
                 text={product.product_composition}
@@ -469,7 +469,7 @@ export function ProductoDetalle() {
         {/* Relacionados */}
         {related.length > 0 && (
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-[#1A1F2E] mb-5">
+            <h2 className="text-xl md:text-2xl font-bold text-text mb-5">
               También te puede interesar
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
@@ -502,8 +502,8 @@ function TabButton({
       onClick={onClick}
       className={`pb-3 text-sm md:text-base font-semibold transition-colors whitespace-nowrap ${
         active
-          ? "text-[#F15A29] border-b-2 border-[#F15A29]"
-          : "text-[#4A5260] hover:text-[#1A1F2E]"
+          ? "text-brand border-b-2 border-brand"
+          : "text-muted hover:text-text"
       }`}
     >
       {children}
@@ -519,7 +519,7 @@ function TabContent({
   fallback: string;
 }) {
   if (!text || text.trim() === "") {
-    return <p className="text-[#9CA3AF] italic">{fallback}</p>;
+    return <p className="text-faint italic">{fallback}</p>;
   }
   return <p className="whitespace-pre-line">{text}</p>;
 }
@@ -535,14 +535,14 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="w-4 h-4 text-[#9CA3AF] mt-1 flex-shrink-0" />
+      <Icon className="w-4 h-4 text-faint mt-1 flex-shrink-0" />
       <div>
-        <dt className="text-xs text-[#9CA3AF] uppercase tracking-wide font-medium mb-0.5">
+        <dt className="text-xs text-faint uppercase tracking-wide font-medium mb-0.5">
           {label}
         </dt>
-        <dd className="text-sm text-[#1A1F2E] font-medium">
+        <dd className="text-sm text-text font-medium">
           {value || (
-            <span className="text-[#9CA3AF] italic font-normal">
+            <span className="text-faint italic font-normal">
               No registrado
             </span>
           )}

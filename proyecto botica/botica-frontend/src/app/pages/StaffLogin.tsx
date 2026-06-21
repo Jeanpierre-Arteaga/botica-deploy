@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { AlertCircle, Store, Package, ClipboardList } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
 import {
@@ -49,20 +49,13 @@ export function StaffLogin() {
   return (
     <AuthLayout
       tone="staff"
-      badge="Panel del personal"
-      brandHeadline={
+      brandLine={
         <>
-          Atiende a tus clientes
+          Tu sede, tu turno,
           <br />
-          con todo en un solo lugar
+          todo en un panel.
         </>
       }
-      brandSubtext="Registra ventas en mostrador, gestiona los pedidos de tu sede y cierra tu turno. Todo desde el panel de personal de Boticas Central."
-      trust={[
-        { icon: Store, text: 'Ventas en mostrador (POS) rápidas y guiadas' },
-        { icon: Package, text: 'Pedidos web de tu sede al instante' },
-        { icon: ClipboardList, text: 'Cierre de turno con resumen de caja' },
-      ]}
       title="Acceso Personal"
       subtitle="Ingresa con tu código de trabajador"
     >

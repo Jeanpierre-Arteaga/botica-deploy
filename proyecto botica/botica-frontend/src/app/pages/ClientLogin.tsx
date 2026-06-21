@@ -47,15 +47,13 @@ export function ClientLogin() {
   return (
     <AuthLayout
       tone="client"
-      badge="Tu botica de confianza, ahora online"
-      brandHeadline={
+      brandLine={
         <>
-          Tu salud,
+          Tu salud, a un clic
           <br />
-          a un clic de distancia
+          de distancia.
         </>
       }
-      brandSubtext="Inicia sesión para comprar tus medicamentos, hacer seguimiento a tus pedidos y recibir todo en la puerta de tu casa."
       title="Iniciar sesión"
       subtitle="Accede a tu cuenta de Boticas Central"
       footer={

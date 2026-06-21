@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { AlertCircle, LayoutDashboard, BarChart3, ShieldCheck } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
 import {
@@ -49,20 +49,13 @@ export function AdminLogin() {
   return (
     <AuthLayout
       tone="admin"
-      badge="Panel administrativo"
-      brandHeadline={
+      brandLine={
         <>
-          Controla toda tu botica
+          Toda tu botica,
           <br />
-          desde un solo panel
+          bajo control.
         </>
       }
-      brandSubtext="Gestiona el catálogo, el stock entre sedes, los pedidos web y a tu equipo. Reportes de ventas y rotación en tiempo real."
-      trust={[
-        { icon: LayoutDashboard, text: 'Dashboard con ventas y alertas de stock' },
-        { icon: BarChart3, text: 'Reportes de ventas y rotación' },
-        { icon: ShieldCheck, text: 'Acceso restringido a administradores' },
-      ]}
       title="Acceso Administrador"
       subtitle="Ingresa con tus credenciales de administrador"
     >

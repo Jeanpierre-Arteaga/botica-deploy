@@ -173,19 +173,19 @@ export function Checkout() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="text-sm text-[#4A5260] mb-4">
-        <Link to="/carrito" className="hover:text-[#F15A29]">Carrito</Link>
+      <div className="text-sm text-muted mb-4">
+        <Link to="/carrito" className="hover:text-brand">Carrito</Link>
         <span className="mx-2">›</span>
-        <span className="text-[#1A1F2E] font-medium">Checkout</span>
+        <span className="text-text font-medium">Checkout</span>
       </div>
 
-      <h1 className="text-3xl font-bold text-[#1A1F2E] mb-6 text-center">Finalizar compra</h1>
+      <h1 className="text-3xl font-bold text-text mb-6 text-center">Finalizar compra</h1>
 
       <Stepper steps={STEPS} currentStep={currentStep} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+          <div className="bg-surface rounded-xl border border-line p-6">
             {currentStep === 1 && (
               <StepDatos
                 deliveryType={deliveryType}
@@ -223,11 +223,11 @@ export function Checkout() {
                   location={selectedLocation}
                 />
 
-                <div className="mt-6 border-t border-[#E5E7EB] pt-6">
+                <div className="mt-6 border-t border-line pt-6">
                   {paymentMethod === 'tarjeta' && (
                     <div>
-                      <h3 className="font-bold text-[#1A1F2E] mb-3">Datos de la tarjeta</h3>
-                      <p className="text-sm text-[#4A5260] mb-4">
+                      <h3 className="font-bold text-text mb-3">Datos de la tarjeta</h3>
+                      <p className="text-sm text-muted mb-4">
                         Tus datos están protegidos por MercadoPago. La botica nunca verá tu tarjeta.
                       </p>
                       <CardPayment
@@ -238,7 +238,7 @@ export function Checkout() {
                           toast.error('Error en el formulario de pago');
                         }}
                       />
-                      <div className="mt-4 p-3 bg-[#FFF4EE] rounded-md text-xs text-[#4A5260]">
+                      <div className="mt-4 p-3 bg-brand-soft rounded-md text-xs text-muted">
                         <strong>Tarjetas de prueba (sandbox):</strong>
                         <br />
                         Visa: 4509 9535 6623 3704
@@ -252,25 +252,25 @@ export function Checkout() {
 
                   {(paymentMethod === 'yape' || paymentMethod === 'plin') && (
                     <div className="space-y-4">
-                      <h3 className="font-bold text-[#1A1F2E]">
+                      <h3 className="font-bold text-text">
                         Instrucciones de pago — {paymentMethod === 'yape' ? 'Yape' : 'Plin'}
                       </h3>
-                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4 space-y-2">
-                        <p className="font-semibold text-[#1A1F2E]">Realiza el pago a:</p>
-                        <p className="text-2xl font-bold text-[#F15A29]">987 654 321</p>
-                        <p className="text-sm text-[#4A5260]">Botica Central S.A.C.</p>
-                        <p className="text-sm text-[#4A5260]">
+                      <div className="bg-brand-soft border border-brand rounded-lg p-4 space-y-2">
+                        <p className="font-semibold text-text">Realiza el pago a:</p>
+                        <p className="text-2xl font-bold text-brand">987 654 321</p>
+                        <p className="text-sm text-muted">Botica Central S.A.C.</p>
+                        <p className="text-sm text-muted">
                           Monto: <strong>S/ {total.toFixed(2)}</strong>
                         </p>
                       </div>
-                      <p className="text-sm text-[#4A5260]">
+                      <p className="text-sm text-muted">
                         Una vez completado el pago, confirma tu pedido. El staff validará el pago
                         y procesará tu pedido en las próximas horas.
                       </p>
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-brand hover:bg-brand-hover disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting
                           ? 'Procesando...'
@@ -281,20 +281,20 @@ export function Checkout() {
 
                   {paymentMethod === 'efectivo' && (
                     <div className="space-y-4">
-                      <h3 className="font-bold text-[#1A1F2E]">Pago en efectivo contra entrega</h3>
-                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4">
-                        <p className="text-sm text-[#1A1F2E]">
+                      <h3 className="font-bold text-text">Pago en efectivo contra entrega</h3>
+                      <div className="bg-brand-soft border border-brand rounded-lg p-4">
+                        <p className="text-sm text-text">
                           Pagarás <strong>S/ {total.toFixed(2)}</strong> en efectivo cuando recibas
                           tu pedido.
                         </p>
-                        <p className="text-xs text-[#4A5260] mt-2">
+                        <p className="text-xs text-muted mt-2">
                           Por favor, ten el monto exacto preparado para facilitar la entrega.
                         </p>
                       </div>
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-brand hover:bg-brand-hover disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting ? 'Procesando...' : 'Confirmar pedido (pago contra entrega)'}
                       </button>
@@ -303,8 +303,8 @@ export function Checkout() {
 
                   {paymentMethod === 'transferencia' && (
                     <div className="space-y-4">
-                      <h3 className="font-bold text-[#1A1F2E]">Transferencia bancaria</h3>
-                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4 space-y-2 text-sm">
+                      <h3 className="font-bold text-text">Transferencia bancaria</h3>
+                      <div className="bg-brand-soft border border-brand rounded-lg p-4 space-y-2 text-sm">
                         <p><strong>Banco:</strong> BCP</p>
                         <p><strong>Cuenta:</strong> 191-1234567890-0-12</p>
                         <p><strong>CCI:</strong> 002-191-001234567890-12</p>
@@ -312,14 +312,14 @@ export function Checkout() {
                         <p><strong>RUC:</strong> 20512345678</p>
                         <p><strong>Monto:</strong> S/ {total.toFixed(2)}</p>
                       </div>
-                      <p className="text-sm text-[#4A5260]">
+                      <p className="text-sm text-muted">
                         Realiza la transferencia y confirma tu pedido. El staff validará el pago
                         y procesará tu pedido.
                       </p>
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-brand hover:bg-brand-hover disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting ? 'Procesando...' : 'Confirmar pedido (transferencia)'}
                       </button>
@@ -333,7 +333,7 @@ export function Checkout() {
           <div className="flex items-center justify-between mt-6">
             <button
               onClick={currentStep === 1 ? () => navigate('/carrito') : handleBack}
-              className="flex items-center gap-2 px-4 py-2 text-[#4A5260] hover:text-[#1A1F2E] font-medium"
+              className="flex items-center gap-2 px-4 py-2 text-muted hover:text-text font-medium"
             >
               <ArrowLeft size={18} />
               {currentStep === 1 ? 'Volver al carrito' : 'Anterior'}
@@ -342,7 +342,7 @@ export function Checkout() {
             {currentStep < 3 && (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+                className="flex items-center gap-2 px-6 py-2.5 bg-brand hover:bg-brand-hover text-white font-medium rounded-md transition-colors"
               >
                 Siguiente
                 <ArrowRight size={18} />
@@ -352,26 +352,26 @@ export function Checkout() {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 sticky top-4">
-            <h3 className="font-bold text-[#1A1F2E] mb-3">Resumen</h3>
+          <div className="bg-surface rounded-xl border border-line p-6 sticky top-4">
+            <h3 className="font-bold text-text mb-3">Resumen</h3>
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Productos ({itemCount})</span>
+                <span className="text-muted">Productos ({itemCount})</span>
                 <span>S/ {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Envío</span>
+                <span className="text-muted">Envío</span>
                 <span>
                   {shippingCost === 0 ? (
-                    <span className="text-[#10B981]">Gratis</span>
+                    <span className="text-success">Gratis</span>
                   ) : (
                     `S/ ${shippingCost.toFixed(2)}`
                   )}
                 </span>
               </div>
-              <div className="border-t border-[#E5E7EB] pt-2 mt-2 flex justify-between items-baseline">
+              <div className="border-t border-line pt-2 mt-2 flex justify-between items-baseline">
                 <span className="font-bold">Total</span>
-                <span className="font-bold text-[#F15A29] text-lg">
+                <span className="font-bold text-brand text-lg">
                   S/ {total.toFixed(2)}
                 </span>
               </div>
@@ -403,55 +403,55 @@ function StepDatos(props: StepDatosProps) {
 
   return (
     <div>
-      <h2 className="font-bold text-[#1A1F2E] text-xl mb-4">Datos de entrega</h2>
+      <h2 className="font-bold text-text text-xl mb-4">Datos de entrega</h2>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <button
           onClick={() => setDeliveryType('delivery')}
           className={`p-4 rounded-lg border-2 text-left transition-colors ${
             deliveryType === 'delivery'
-              ? 'border-[#F15A29] bg-[#FFF4EE]'
-              : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
+              ? 'border-brand bg-brand-soft'
+              : 'border-line hover:border-brand/40'
           }`}
         >
-          <Truck className="mb-2 text-[#F15A29]" size={24} />
-          <p className="font-semibold text-[#1A1F2E]">Delivery</p>
-          <p className="text-xs text-[#4A5260]">Recibe en tu domicilio</p>
+          <Truck className="mb-2 text-brand" size={24} />
+          <p className="font-semibold text-text">Delivery</p>
+          <p className="text-xs text-muted">Recibe en tu domicilio</p>
         </button>
 
         <button
           onClick={() => setDeliveryType('pickup')}
           className={`p-4 rounded-lg border-2 text-left transition-colors ${
             deliveryType === 'pickup'
-              ? 'border-[#F15A29] bg-[#FFF4EE]'
-              : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
+              ? 'border-brand bg-brand-soft'
+              : 'border-line hover:border-brand/40'
           }`}
         >
-          <Store className="mb-2 text-[#F15A29]" size={24} />
-          <p className="font-semibold text-[#1A1F2E]">Recojo en tienda</p>
-          <p className="text-xs text-[#4A5260]">Gratis, en la sede</p>
+          <Store className="mb-2 text-brand" size={24} />
+          <p className="font-semibold text-text">Recojo en tienda</p>
+          <p className="text-xs text-muted">Gratis, en la sede</p>
         </button>
       </div>
 
       <div className="space-y-4">
         {deliveryType === 'delivery' && (
           <div>
-            <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-              Dirección de entrega <span className="text-[#DC2626]">*</span>
+            <label className="block text-sm font-medium text-text mb-1">
+              Dirección de entrega <span className="text-error">*</span>
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Ej: Av. Javier Prado 123, San Isidro"
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29]"
+              className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-            Teléfono de contacto <span className="text-[#DC2626]">*</span>
+          <label className="block text-sm font-medium text-text mb-1">
+            Teléfono de contacto <span className="text-error">*</span>
           </label>
           <input
             type="tel"
@@ -459,20 +459,20 @@ function StepDatos(props: StepDatosProps) {
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
             placeholder="987654321"
             maxLength={9}
-            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29]"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-            Notas adicionales <span className="text-[#9CA3AF] text-xs">(opcional)</span>
+          <label className="block text-sm font-medium text-text mb-1">
+            Notas adicionales <span className="text-faint text-xs">(opcional)</span>
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Referencias del lugar, instrucciones especiales..."
             rows={3}
-            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29] resize-none"
+            className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand resize-none"
           />
         </div>
       </div>
@@ -502,7 +502,7 @@ function StepPago(props: StepPagoProps) {
 
   return (
     <div>
-      <h2 className="font-bold text-[#1A1F2E] text-xl mb-4">Método de pago</h2>
+      <h2 className="font-bold text-text text-xl mb-4">Método de pago</h2>
 
       <div className="space-y-2 mb-6">
         {methods.map((m) => {
@@ -514,24 +514,24 @@ function StepPago(props: StepPagoProps) {
               onClick={() => setPaymentMethod(m.id)}
               className={`w-full p-4 rounded-lg border-2 text-left transition-colors flex items-center gap-3 ${
                 active
-                  ? 'border-[#F15A29] bg-[#FFF4EE]'
-                  : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
+                  ? 'border-brand bg-brand-soft'
+                  : 'border-line hover:border-brand/40'
               }`}
             >
-              <Icon size={24} className={active ? 'text-[#F15A29]' : 'text-[#4A5260]'} />
+              <Icon size={24} className={active ? 'text-brand' : 'text-muted'} />
               <div className="flex-1">
-                <p className="font-semibold text-[#1A1F2E]">{m.label}</p>
-                <p className="text-xs text-[#4A5260]">{m.desc}</p>
+                <p className="font-semibold text-text">{m.label}</p>
+                <p className="text-xs text-muted">{m.desc}</p>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-[#F15A29]' : 'border-[#E5E7EB]'}`}>
-                {active && <div className="w-2.5 h-2.5 bg-[#F15A29] rounded-full" />}
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-brand' : 'border-line'}`}>
+                {active && <div className="w-2.5 h-2.5 bg-brand rounded-full" />}
               </div>
             </button>
           );
         })}
       </div>
 
-      <h3 className="font-semibold text-[#1A1F2E] mb-2">Tipo de comprobante</h3>
+      <h3 className="font-semibold text-text mb-2">Tipo de comprobante</h3>
       <div className="grid grid-cols-3 gap-2">
         {voucherOptions.map((v) => (
           <button
@@ -539,8 +539,8 @@ function StepPago(props: StepPagoProps) {
             onClick={() => setVoucherType(v)}
             className={`p-2 rounded-md border-2 text-sm font-medium capitalize transition-colors ${
               voucherType === v
-                ? 'border-[#F15A29] bg-[#FFF4EE] text-[#F15A29]'
-                : 'border-[#E5E7EB] text-[#4A5260] hover:border-[#FFD4BC]'
+                ? 'border-brand bg-brand-soft text-brand'
+                : 'border-line text-muted hover:border-brand/40'
             }`}
           >
             {v}
@@ -579,45 +579,45 @@ function StepResumen(props: StepResumenProps) {
 
   return (
     <div>
-      <h2 className="font-bold text-[#1A1F2E] text-xl mb-4">Resumen del pedido</h2>
+      <h2 className="font-bold text-text text-xl mb-4">Resumen del pedido</h2>
 
       <div className="space-y-3 mb-6">
-        <div className="border border-[#E5E7EB] rounded-lg p-3">
-          <p className="text-xs text-[#4A5260] mb-1">Cliente</p>
-          <p className="font-semibold text-[#1A1F2E]">{customer.full_name}</p>
-          <p className="text-sm text-[#4A5260]">Tel: {phone}</p>
+        <div className="border border-line rounded-lg p-3">
+          <p className="text-xs text-muted mb-1">Cliente</p>
+          <p className="font-semibold text-text">{customer.full_name}</p>
+          <p className="text-sm text-muted">Tel: {phone}</p>
         </div>
 
-        <div className="border border-[#E5E7EB] rounded-lg p-3">
-          <p className="text-xs text-[#4A5260] mb-1">Entrega</p>
+        <div className="border border-line rounded-lg p-3">
+          <p className="text-xs text-muted mb-1">Entrega</p>
           {deliveryType === 'delivery' ? (
             <>
-              <p className="font-semibold text-[#1A1F2E]">Delivery a domicilio</p>
-              <p className="text-sm text-[#4A5260]">{address}</p>
+              <p className="font-semibold text-text">Delivery a domicilio</p>
+              <p className="text-sm text-muted">{address}</p>
             </>
           ) : (
             <>
-              <p className="font-semibold text-[#1A1F2E]">Recojo en tienda</p>
-              <p className="text-sm text-[#4A5260]">{location?.location_name}</p>
+              <p className="font-semibold text-text">Recojo en tienda</p>
+              <p className="text-sm text-muted">{location?.location_name}</p>
             </>
           )}
-          {notes && <p className="text-xs text-[#4A5260] italic mt-1">Nota: {notes}</p>}
+          {notes && <p className="text-xs text-muted italic mt-1">Nota: {notes}</p>}
         </div>
 
-        <div className="border border-[#E5E7EB] rounded-lg p-3">
-          <p className="text-xs text-[#4A5260] mb-1">Pago</p>
-          <p className="font-semibold text-[#1A1F2E]">{paymentLabels[paymentMethod]}</p>
-          <p className="text-sm text-[#4A5260] capitalize">Comprobante: {voucherType}</p>
+        <div className="border border-line rounded-lg p-3">
+          <p className="text-xs text-muted mb-1">Pago</p>
+          <p className="font-semibold text-text">{paymentLabels[paymentMethod]}</p>
+          <p className="text-sm text-muted capitalize">Comprobante: {voucherType}</p>
         </div>
       </div>
 
-      <h3 className="font-semibold text-[#1A1F2E] mb-2">Productos ({items.length})</h3>
+      <h3 className="font-semibold text-text mb-2">Productos ({items.length})</h3>
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {items.map((item) => (
-          <div key={item.product_id} className="flex justify-between items-start py-2 border-b border-[#E5E7EB] last:border-0">
+          <div key={item.product_id} className="flex justify-between items-start py-2 border-b border-line last:border-0">
             <div className="flex-1">
-              <p className="text-sm font-medium text-[#1A1F2E] line-clamp-1">{item.product_name}</p>
-              <p className="text-xs text-[#4A5260]">{item.amount} x S/ {item.unit_price.toFixed(2)}</p>
+              <p className="text-sm font-medium text-text line-clamp-1">{item.product_name}</p>
+              <p className="text-xs text-muted">{item.amount} x S/ {item.unit_price.toFixed(2)}</p>
             </div>
             <p className="font-semibold text-sm">S/ {(item.unit_price * item.amount).toFixed(2)}</p>
           </div>

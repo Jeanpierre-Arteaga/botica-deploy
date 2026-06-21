@@ -1,5 +1,8 @@
-import { Download, Calendar, TrendingUp, Package, DollarSign } from "lucide-react";
+import { Download, Calendar, TrendingUp, TrendingDown, Package, DollarSign, Receipt, Wallet } from "lucide-react";
 import { useState } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
 
 export function Reportes() {
   const [dateRange, setDateRange] = useState("week");
@@ -24,14 +27,13 @@ export function Reportes() {
   ];
 
   const categoryPerformance = [
-    { category: "Analgésicos", sales: 4850, percentage: 28, color: "#FF6633" },
-    { category: "Vitaminas", sales: 3920, percentage: 23, color: "#3AAB4A" },
-    { category: "Antibióticos", sales: 3150, percentage: 18, color: "#2B7DBF" },
+    { category: "Analgésicos", sales: 4850, percentage: 28, color: "#F15A29" },
+    { category: "Vitaminas", sales: 3920, percentage: 23, color: "#16A34A" },
+    { category: "Antibióticos", sales: 3150, percentage: 18, color: "#4C82A8" },
     { category: "Gastroenterología", sales: 2680, percentage: 16, color: "#F59E0B" },
     { category: "Otros", sales: 2550, percentage: 15, color: "#94A3B8" },
   ];
 
-  const maxSales = Math.max(...salesData.map(d => d.total));
   const totalWeekSales = salesData.reduce((sum, d) => sum + d.total, 0);
   const avgDailySales = totalWeekSales / salesData.length;
 
@@ -50,7 +52,7 @@ export function Reportes() {
       </div>
 
       {/* Filters */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line p-5 mb-6">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line p-5 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -117,65 +119,34 @@ export function Reportes() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-muted font-medium uppercase tracking-wide">Ventas totales</p>
-            <DollarSign className="w-5 h-5 text-brand" />
-          </div>
-          <p className="text-2xl font-bold text-brand mb-2">S/ {totalWeekSales.toFixed(2)}</p>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-success" />
-            <span className="text-xs font-semibold text-success">+18%</span>
-            <span className="text-xs text-muted">vs. anterior</span>
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-muted font-medium uppercase tracking-wide">Promedio diario</p>
-            <DollarSign className="w-5 h-5 text-cool" />
-          </div>
-          <p className="text-2xl font-bold text-cool mb-2">S/ {avgDailySales.toFixed(2)}</p>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-success" />
-            <span className="text-xs font-semibold text-success">+12%</span>
-            <span className="text-xs text-muted">vs. anterior</span>
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-muted font-medium uppercase tracking-wide">Productos vendidos</p>
-            <Package className="w-5 h-5 text-success" />
-          </div>
-          <p className="text-2xl font-bold text-success mb-2">471</p>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-success" />
-            <span className="text-xs font-semibold text-success">+8%</span>
-            <span className="text-xs text-muted">vs. anterior</span>
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-muted font-medium uppercase tracking-wide">Ticket promedio</p>
-            <DollarSign className="w-5 h-5 text-warning" />
-          </div>
-          <p className="text-2xl font-bold text-warning mb-2">S/ 45.30</p>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-success" />
-            <span className="text-xs font-semibold text-success">+5%</span>
-            <span className="text-xs text-muted">vs. anterior</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
+        <ReportKpi
+          icon={Wallet} label="Ventas totales"
+          value={`S/ ${totalWeekSales.toFixed(2)}`}
+          accent="#F15A29" change="+18%" trend="up" index={0}
+        />
+        <ReportKpi
+          icon={DollarSign} label="Promedio diario"
+          value={`S/ ${avgDailySales.toFixed(2)}`}
+          accent="#4C82A8" change="+12%" trend="up" index={1}
+        />
+        <ReportKpi
+          icon={Package} label="Productos vendidos"
+          value="471"
+          accent="#16A34A" change="+8%" trend="up" index={2}
+        />
+        <ReportKpi
+          icon={Receipt} label="Ticket promedio"
+          value="S/ 45.30"
+          accent="#F59E0B" change="+5%" trend="up" index={3}
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-6">
         {/* Sales Chart - 2/3 width */}
-        <div className="col-span-2 bg-surface rounded-xl shadow-sm border border-line p-6">
+        <div className="col-span-2 bg-surface rounded-2xl shadow-soft border border-line p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-bold text-lg">Evolución de Ventas — Última Semana</h2>
+            <h2 className="font-bold text-lg text-text">Evolución de Ventas — Última Semana</h2>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-brand"></div>
@@ -188,37 +159,30 @@ export function Reportes() {
             </div>
           </div>
 
-          <div className="flex items-end gap-3 h-72">
-            {salesData.map((data, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center gap-3">
-                <div className="w-full flex gap-1 items-end h-56">
-                  <div
-                    className="flex-1 bg-brand rounded-t-lg relative group cursor-pointer hover:bg-brand-hover transition-colors"
-                    style={{ height: `${(data.ate / maxSales) * 100}%` }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink-2 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      S/ {data.ate}
-                    </div>
-                  </div>
-                  <div
-                    className="flex-1 bg-cool rounded-t-lg relative group cursor-pointer hover:bg-cool transition-colors"
-                    style={{ height: `${(data.santaAnita / maxSales) * 100}%` }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink-2 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      S/ {data.santaAnita}
-                    </div>
-                  </div>
-                </div>
-                <span className="text-xs text-muted font-medium">{data.day}</span>
-                <span className="text-xs font-bold text-text">S/ {data.total}</span>
-              </div>
-            ))}
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={salesData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--c-line)" vertical={false} />
+                <XAxis
+                  dataKey="day" axisLine={false} tickLine={false}
+                  tick={{ fill: "var(--c-muted)", fontSize: 12 }} dy={8}
+                />
+                <YAxis
+                  axisLine={false} tickLine={false}
+                  tick={{ fill: "var(--c-faint)", fontSize: 11 }}
+                  tickFormatter={(v) => `S/${v / 1000}k`} width={48}
+                />
+                <Tooltip content={<ReportTooltip />} cursor={{ fill: "var(--c-line-2)", opacity: 0.5 }} />
+                <Bar dataKey="ate" name="Ate" fill="#F15A29" radius={[6, 6, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="santaAnita" name="Santa Anita" fill="#4C82A8" radius={[6, 6, 0, 0]} maxBarSize={26} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         {/* Category Performance - 1/3 width */}
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
-          <h2 className="font-bold text-lg mb-6">Ventas por Categoría</h2>
+        <div className="bg-surface rounded-2xl shadow-soft border border-line p-6">
+          <h2 className="font-bold text-lg text-text mb-6">Ventas por Categoría</h2>
           <div className="space-y-4">
             {categoryPerformance.map((cat, index) => (
               <div key={index}>
@@ -251,27 +215,28 @@ export function Reportes() {
       </div>
 
       {/* Top Products Table */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line mt-6 overflow-hidden">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line mt-6 overflow-hidden">
         <div className="p-5 border-b border-line">
-          <h2 className="font-bold text-lg">Productos Más Vendidos</h2>
+          <h2 className="font-bold text-lg text-text">Productos Más Vendidos</h2>
+          <p className="text-xs text-muted mt-0.5">Ranking por unidades de la última semana</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-page border-b border-line">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">#</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Producto</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Categoría</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-muted">Unidades vendidas</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Ingresos</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Tendencia</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">#</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Producto</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Categoría</th>
+                <th className="px-6 py-3.5 text-center text-[11px] font-semibold text-muted uppercase tracking-wide">Unidades vendidas</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Ingresos</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Tendencia</th>
               </tr>
             </thead>
             <tbody>
               {topProducts.map((product, index) => (
-                <tr key={index} className="border-b border-line hover:bg-page transition-colors">
+                <tr key={index} className="border-b border-line-2 hover:bg-page transition-colors">
                   <td className="px-6 py-4">
-                    <span className="text-lg font-bold text-faint">#{index + 1}</span>
+                    <span className="text-lg font-bold text-faint tabular-nums">#{index + 1}</span>
                   </td>
                   <td className="px-6 py-4">
                     <p className="font-semibold text-sm text-text">{product.name}</p>
@@ -304,6 +269,65 @@ export function Reportes() {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---- KPI premium coherente con AdminDashboard ---- */
+function ReportKpi({
+  icon: Icon, label, value, accent, change, trend, index,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  accent: string;
+  change: string;
+  trend: "up" | "down";
+  index: number;
+}) {
+  return (
+    <div
+      className="animate-panel group bg-surface rounded-2xl shadow-soft hover:shadow-card border border-line p-5 transition-all duration-300 hover:-translate-y-0.5"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${accent}1A`, color: accent }}
+        >
+          <Icon className="w-[22px] h-[22px]" />
+        </div>
+      </div>
+      <p className="text-[11px] text-muted font-semibold uppercase tracking-wider mb-1.5">{label}</p>
+      <p className="text-[26px] lg:text-[28px] leading-none font-bold text-text tabular-nums mb-2.5">{value}</p>
+      <div className="flex items-center gap-1.5">
+        <span
+          className={`inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-md ${
+            trend === "up" ? "text-success bg-success-soft" : "text-error bg-error-soft"
+          }`}
+        >
+          {trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          {change}
+        </span>
+        <span className="text-xs text-faint">vs. anterior</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Tooltip de marca para recharts ---- */
+function ReportTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-ink-2 text-white rounded-lg shadow-pop px-3 py-2.5 border border-white/10">
+      <p className="text-xs font-semibold mb-1.5 text-slate-300">{label}</p>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2 text-xs">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+          <span className="text-slate-300">{p.name}:</span>
+          <span className="font-bold tabular-nums">S/ {p.value.toLocaleString()}</span>
+        </div>
+      ))}
     </div>
   );
 }

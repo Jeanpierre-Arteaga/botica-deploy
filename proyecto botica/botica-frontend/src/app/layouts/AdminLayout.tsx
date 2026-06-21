@@ -103,7 +103,7 @@ export function AdminLayout() {
   return (
     <div className="flex h-screen bg-page">
       {/* Left Sidebar */}
-      <aside className="w-[276px] bg-ink flex flex-col border-r border-white/5 shadow-[8px_0_32px_-16px_rgba(15,23,42,0.45)]">
+      <aside className="w-[296px] bg-ink flex flex-col border-r border-white/5 shadow-[8px_0_32px_-16px_rgba(15,23,42,0.45)]">
         {/* Logo */}
         <div className="px-6 py-6 border-b border-white/[0.07]">
           <img
@@ -137,10 +137,10 @@ export function AdminLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3.5 py-5 overflow-y-auto scroll-navy">
+        <nav className="flex-1 px-3 py-5 overflow-y-auto scrollbar-none">
           {menuSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="mb-7">
-              <p className="text-slate-500 text-[10px] font-bold mb-2.5 px-3.5 uppercase tracking-[0.14em]">
+            <div key={sectionIndex} className="mb-5 last:mb-0">
+              <p className="text-slate-500 text-[10px] font-bold mb-2 px-3.5 uppercase tracking-[0.14em]">
                 {section.label}
               </p>
               <div className="space-y-1">
@@ -153,8 +153,8 @@ export function AdminLayout() {
                       to={item.path}
                       className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? 'bg-gradient-to-r from-brand/[0.18] via-brand/[0.06] to-transparent text-white'
-                          : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'
+                          ? 'bg-gradient-to-r from-brand/[0.22] via-brand/[0.08] to-transparent text-white ring-1 ring-inset ring-brand/20'
+                          : 'text-slate-300 hover:bg-brand/[0.10] hover:text-white'
                       }`}
                     >
                       {isActive && (
@@ -162,7 +162,7 @@ export function AdminLayout() {
                       )}
                       <Icon
                         className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
-                          isActive ? 'text-brand' : 'text-slate-400 group-hover:text-white'
+                          isActive ? 'text-brand' : 'text-slate-400 group-hover:text-brand'
                         }`}
                       />
                       <span className={`text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>

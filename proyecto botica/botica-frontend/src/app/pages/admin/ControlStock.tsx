@@ -98,7 +98,7 @@ export function ControlStock() {
       </div>
 
       {/* Branch Selector */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line p-5 mb-6">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line p-5 mb-6">
         <div className="flex items-center gap-4">
           <span className="text-sm font-semibold text-muted">Ver stock de:</span>
           <div className="flex gap-2">
@@ -144,58 +144,33 @@ export function ControlStock() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Total productos</p>
-            <Package className="w-5 h-5 text-faint" />
-          </div>
-          <p className="text-2xl font-bold text-text">{stockData.length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Stock crítico</p>
-            <AlertTriangle className="w-5 h-5 text-error" />
-          </div>
-          <p className="text-2xl font-bold text-error">{criticalProducts.length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Stock bajo</p>
-            <TrendingDown className="w-5 h-5 text-warning" />
-          </div>
-          <p className="text-2xl font-bold text-warning">{lowStockProducts.length}</p>
-        </div>
-        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-muted font-medium">Stock normal</p>
-            <TrendingUp className="w-5 h-5 text-success" />
-          </div>
-          <p className="text-2xl font-bold text-success">
-            {stockData.length - criticalProducts.length - lowStockProducts.length}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
+        <StockStat icon={Package} label="Total productos" value={stockData.length} accent="#51607A" index={0} />
+        <StockStat icon={AlertTriangle} label="Stock crítico" value={criticalProducts.length} accent="#DC2626" index={1} />
+        <StockStat icon={TrendingDown} label="Stock bajo" value={lowStockProducts.length} accent="#F59E0B" index={2} />
+        <StockStat icon={TrendingUp} label="Stock normal" value={stockData.length - criticalProducts.length - lowStockProducts.length} accent="#16A34A" index={3} />
       </div>
 
       {/* Stock Table */}
-      <div className="bg-surface rounded-xl shadow-sm border border-line overflow-hidden">
+      <div className="bg-surface rounded-2xl shadow-soft border border-line overflow-hidden">
         <div className="p-5 border-b border-line">
-          <h2 className="font-bold text-lg">
+          <h2 className="font-bold text-lg text-text">
             Inventario — {selectedBranch === "ate" ? "Sede Ate" : "Sede Santa Anita"}
           </h2>
+          <p className="text-xs text-muted mt-0.5">Niveles de stock y estado de reposición</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-page border-b border-line">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Producto</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Categoría</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-muted">Stock actual</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-muted">Stock mínimo</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Estado</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Última reposición</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Tendencia</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Acciones</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Producto</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Categoría</th>
+                <th className="px-6 py-3.5 text-center text-[11px] font-semibold text-muted uppercase tracking-wide">Stock actual</th>
+                <th className="px-6 py-3.5 text-center text-[11px] font-semibold text-muted uppercase tracking-wide">Stock mínimo</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Estado</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Última reposición</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Tendencia</th>
+                <th className="px-6 py-3.5 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -218,7 +193,8 @@ export function ControlStock() {
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-muted">{product.minStock}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.color}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.color}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         {status.label}
                       </span>
                     </td>
@@ -257,14 +233,19 @@ export function ControlStock() {
 
       {/* Transfer Modal */}
       {showTransferModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-xl p-8 max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-6">Transferir Stock entre Sedes</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-2xl shadow-pop border border-line p-8 max-w-lg w-full">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="w-10 h-10 rounded-xl bg-cool-soft text-cool flex items-center justify-center shrink-0">
+                <ArrowRightLeft className="w-5 h-5" />
+              </span>
+              <h2 className="text-xl font-bold text-text">Transferir Stock entre Sedes</h2>
+            </div>
 
             <form className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-muted">Producto</label>
-                <select className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+                <label className="block text-sm font-semibold mb-2 text-text">Producto</label>
+                <select className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors">
                   <option>Seleccionar producto...</option>
                   {stockData.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -274,15 +255,15 @@ export function ControlStock() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-muted">Desde</label>
-                  <select className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+                  <label className="block text-sm font-semibold mb-2 text-text">Desde</label>
+                  <select className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors">
                     <option>Ate</option>
                     <option>Santa Anita</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-muted">Hacia</label>
-                  <select className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+                  <label className="block text-sm font-semibold mb-2 text-text">Hacia</label>
+                  <select className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors">
                     <option>Santa Anita</option>
                     <option>Ate</option>
                   </select>
@@ -290,20 +271,20 @@ export function ControlStock() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-muted">Cantidad a transferir</label>
+                <label className="block text-sm font-semibold mb-2 text-text">Cantidad a transferir</label>
                 <input
                   type="number"
                   min="1"
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   placeholder="0"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-muted">Motivo (opcional)</label>
+                <label className="block text-sm font-semibold mb-2 text-text">Motivo (opcional)</label>
                 <textarea
                   rows={3}
-                  className="w-full px-4 py-3 border border-line rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 bg-page border border-line rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                   placeholder="Describe el motivo de la transferencia..."
                 />
               </div>
@@ -311,14 +292,14 @@ export function ControlStock() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  className="flex-1 bg-brand text-white py-3 rounded-lg font-semibold hover:bg-brand-hover transition-colors"
+                  className="flex-1 bg-brand text-white py-3 rounded-lg font-semibold hover:bg-brand-hover active:scale-[0.99] transition-all"
                 >
                   Confirmar transferencia
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
-                  className="flex-1 bg-line text-muted py-3 rounded-lg font-semibold hover:bg-line-2 transition-colors"
+                  className="flex-1 bg-page text-muted border border-line py-3 rounded-lg font-semibold hover:bg-line-2 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -327,6 +308,33 @@ export function ControlStock() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StockStat({
+  icon: Icon, label, value, accent, index,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  accent: string;
+  index: number;
+}) {
+  return (
+    <div
+      className="animate-panel relative overflow-hidden bg-surface rounded-2xl shadow-soft border border-line p-5 hover:shadow-card hover:-translate-y-0.5 transition-all"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <span className="absolute left-0 top-0 h-full w-1 rounded-r" style={{ backgroundColor: accent }} />
+      <div
+        className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+        style={{ backgroundColor: `${accent}1A`, color: accent }}
+      >
+        <Icon className="w-[22px] h-[22px]" />
+      </div>
+      <p className="text-[11px] text-muted font-semibold uppercase tracking-wider mb-1.5">{label}</p>
+      <p className="text-[26px] lg:text-[28px] leading-none font-bold text-text tabular-nums">{value}</p>
     </div>
   );
 }

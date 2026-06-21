@@ -240,7 +240,7 @@ export function AdminDashboard() {
                         {sale.method === "Yape" ? (
                           <div className="flex items-center gap-2">
                             <img src={yapeIcon} alt="Yape" className="w-6 h-6 rounded" />
-                            <span className="text-xs font-medium text-purple-700">Yape</span>
+                            <span className="text-xs font-medium text-violet">Yape</span>
                           </div>
                         ) : (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-success-soft text-success">
@@ -329,7 +329,7 @@ export function AdminDashboard() {
                         }`}>{alert.current}</span> / {alert.min}
                       </span>
                     </div>
-                    <div className="w-full bg-black/5 rounded-full h-1.5">
+                    <div className="w-full bg-line-2 rounded-full h-1.5">
                       <div
                         className="h-1.5 rounded-full transition-all"
                         style={{

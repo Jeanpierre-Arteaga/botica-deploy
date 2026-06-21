@@ -328,15 +328,15 @@ export default function StaffNuevaVenta() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* IZQUIERDA: productos */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-surface rounded-xl border border-line p-4">
+          <div className="bg-surface rounded-2xl border border-line shadow-soft p-4">
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" size={18} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar producto por nombre..."
-                className="w-full pl-10 pr-3 py-2.5 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full pl-11 pr-3 py-2.5 bg-page border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
               />
             </div>
 
@@ -361,10 +361,16 @@ export default function StaffNuevaVenta() {
               <div className="inline-block w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-surface rounded-xl border border-line p-12 text-center text-muted">
-              {searchQuery
-                ? `No se encontraron productos para "${searchQuery}"`
-                : 'No hay productos en esta sede'}
+            <div className="bg-surface rounded-2xl border border-line shadow-soft p-12 text-center">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-page flex items-center justify-center">
+                <Package size={28} className="text-faint" />
+              </div>
+              <p className="font-semibold text-text">Sin resultados</p>
+              <p className="text-sm text-muted mt-0.5">
+                {searchQuery
+                  ? `No se encontraron productos para "${searchQuery}"`
+                  : 'No hay productos en esta sede'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -433,9 +439,11 @@ export default function StaffNuevaVenta() {
         {/* DERECHA: cliente + carrito */}
         <div className="lg:col-span-1 space-y-4">
           {/* Cliente */}
-          <section className="bg-surface rounded-xl border border-line p-4">
-            <h2 className="font-bold text-text mb-3 flex items-center gap-2">
-              <User size={16} className="text-brand" />
+          <section className="bg-surface rounded-2xl border border-line shadow-soft p-4">
+            <h2 className="font-bold text-text mb-3 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <User size={16} />
+              </span>
               Cliente
             </h2>
 
@@ -517,9 +525,11 @@ export default function StaffNuevaVenta() {
           </section>
 
           {/* Carrito */}
-          <section className="bg-surface rounded-xl border border-line p-4">
-            <h2 className="font-bold text-text mb-3 flex items-center gap-2">
-              <ShoppingBag size={16} className="text-brand" />
+          <section className="bg-surface rounded-2xl border border-line shadow-soft p-4 lg:sticky lg:top-4">
+            <h2 className="font-bold text-text mb-3 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <ShoppingBag size={16} />
+              </span>
               Venta actual ({cart.length})
             </h2>
 
@@ -620,7 +630,7 @@ export default function StaffNuevaVenta() {
                   <button
                     onClick={requestConfirm}
                     disabled={isProcessing || cart.length === 0 || !customer}
-                    className="w-full px-4 py-3 bg-brand hover:bg-brand-hover text-white font-bold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full px-4 py-3 bg-brand hover:bg-brand-hover active:scale-[0.99] text-white font-bold rounded-lg shadow-brand disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all"
                   >
                     {isProcessing ? 'Procesando...' : `Confirmar venta · S/ ${subtotal.toFixed(2)}`}
                   </button>

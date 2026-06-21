@@ -25,10 +25,10 @@ interface BadgeConfig {
 }
 
 const STATUS_CONFIG: Record<OrderState, BadgeConfig> = {
-  pendiente:   { color: '#92400E', bg: '#FEF3C7', icon: Clock,        label: 'Pendiente' },
-  'en proceso':{ color: '#1E40AF', bg: '#DBEAFE', icon: Truck,        label: 'En proceso' },
-  entregado:   { color: '#065F46', bg: '#D1FAE5', icon: CheckCircle2, label: 'Entregado' },
-  cancelado:   { color: '#991B1B', bg: '#FEE2E2', icon: XCircle,      label: 'Cancelado' },
+  pendiente:   { color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', icon: Clock,        label: 'Pendiente' },
+  'en proceso':{ color: 'var(--color-info)',    bg: 'var(--color-info-soft)',    icon: Truck,        label: 'En proceso' },
+  entregado:   { color: 'var(--color-success)', bg: 'var(--color-success-soft)', icon: CheckCircle2, label: 'Entregado' },
+  cancelado:   { color: 'var(--color-error)',   bg: 'var(--color-error-soft)',   icon: XCircle,      label: 'Cancelado' },
 };
 
 function StatusBadge({ state }: { state: OrderState }) {
@@ -106,8 +106,8 @@ export function DetallePedidoCustomer() {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <div className="inline-block w-12 h-12 border-4 border-[#F15A29] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[#4A5260] mt-4">Cargando detalle...</p>
+        <div className="inline-block w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        <p className="text-muted mt-4">Cargando detalle...</p>
       </div>
     );
   }
@@ -144,7 +144,7 @@ export function DetallePedidoCustomer() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <Link
         to="/mis-pedidos"
-        className="inline-flex items-center gap-2 text-[#4A5260] hover:text-[#F15A29] text-sm mb-4"
+        className="inline-flex items-center gap-2 text-muted hover:text-brand text-sm mb-4"
       >
         <ArrowLeft size={16} />
         Volver a Mis pedidos
@@ -152,34 +152,34 @@ export function DetallePedidoCustomer() {
 
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-[#1A1F2E]">Pedido #{order.order_id}</h1>
-          <p className="text-sm text-[#4A5260] mt-1">Realizado el {dateStr}</p>
+          <h1 className="text-3xl font-bold text-text">Pedido #{order.order_id}</h1>
+          <p className="text-sm text-muted mt-1">Realizado el {dateStr}</p>
         </div>
         <StatusBadge state={order.order_state} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <Package size={18} className="text-[#F15A29]" />
+          <section className="bg-surface rounded-xl border border-line p-6">
+            <h2 className="font-bold text-text mb-4 flex items-center gap-2">
+              <Package size={18} className="text-brand" />
               Productos ({order.details?.length || 0})
             </h2>
             <div className="space-y-3">
               {order.details?.map((d, idx) => (
                 <div
                   key={d.detail_id ?? idx}
-                  className="flex justify-between items-start py-2 border-b border-[#E5E7EB] last:border-0"
+                  className="flex justify-between items-start py-2 border-b border-line last:border-0"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-[#1A1F2E]">
+                    <p className="font-medium text-text">
                       {d.product_name || `Producto #${d.product_id}`}
                     </p>
-                    <p className="text-sm text-[#4A5260]">
+                    <p className="text-sm text-muted">
                       {d.amount} × S/ {Number(d.unit_price).toFixed(2)}
                     </p>
                   </div>
-                  <p className="font-semibold text-[#1A1F2E]">
+                  <p className="font-semibold text-text">
                     S/ {Number(d.sub_total_price).toFixed(2)}
                   </p>
                 </div>
@@ -187,12 +187,12 @@ export function DetallePedidoCustomer() {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <MapPin size={18} className="text-[#F15A29]" />
+          <section className="bg-surface rounded-xl border border-line p-6">
+            <h2 className="font-bold text-text mb-4 flex items-center gap-2">
+              <MapPin size={18} className="text-brand" />
               Entrega
             </h2>
-            <p className="font-medium text-[#1A1F2E] mb-1">
+            <p className="font-medium text-text mb-1">
               {order.delivery_type === 'delivery'
                 ? 'Delivery a domicilio'
                 : order.delivery_type === 'pickup'
@@ -200,15 +200,15 @@ export function DetallePedidoCustomer() {
                 : 'Sin especificar'}
             </p>
             {order.location_name && (
-              <p className="text-sm text-[#4A5260]">Sede: {order.location_name}</p>
+              <p className="text-sm text-muted">Sede: {order.location_name}</p>
             )}
           </section>
 
           {paymentMethod === 'tarjeta' &&
             ['pendiente', 'en proceso'].includes(order.order_state) && (
-              <div className="bg-[#FEF3C7] border border-[#F59E0B] rounded-xl p-4 flex items-start gap-3">
-                <AlertTriangle className="text-[#F59E0B] flex-shrink-0 mt-0.5" size={20} />
-                <div className="text-sm text-[#92400E]">
+              <div className="bg-warning-soft border border-warning rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle className="text-warning flex-shrink-0 mt-0.5" size={20} />
+                <div className="text-sm text-warning">
                   <p className="font-semibold mb-1">¿Necesitas cancelar este pedido?</p>
                   <p>
                     Como pagaste con tarjeta, la cancelación requiere procesar una devolución
@@ -222,42 +222,42 @@ export function DetallePedidoCustomer() {
         </div>
 
         <div className="lg:col-span-1 space-y-4">
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
-            <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <CreditCard size={18} className="text-[#F15A29]" />
+          <section className="bg-surface rounded-xl border border-line p-6">
+            <h2 className="font-bold text-text mb-4 flex items-center gap-2">
+              <CreditCard size={18} className="text-brand" />
               Pago
             </h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Método</span>
+                <span className="text-muted">Método</span>
                 <span className="font-medium">
                   {paymentMethod ? PAYMENT_LABELS[paymentMethod] || paymentMethod : 'N/A'}
                 </span>
               </div>
               {order.payment?.voucher_type && (
                 <div className="flex justify-between">
-                  <span className="text-[#4A5260]">Comprobante</span>
+                  <span className="text-muted">Comprobante</span>
                   <span className="font-medium capitalize">{order.payment.voucher_type}</span>
                 </div>
               )}
-              <div className="border-t border-[#E5E7EB] pt-2 mt-2 space-y-1">
+              <div className="border-t border-line pt-2 mt-2 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-[#4A5260]">Subtotal</span>
+                  <span className="text-muted">Subtotal</span>
                   <span>S/ {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#4A5260]">Envío</span>
+                  <span className="text-muted">Envío</span>
                   <span>
                     {shipping === 0 ? (
-                      <span className="text-[#10B981]">Gratis</span>
+                      <span className="text-success">Gratis</span>
                     ) : (
                       `S/ ${shipping.toFixed(2)}`
                     )}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-[#E5E7EB] pt-2 mt-2">
+                <div className="flex justify-between border-t border-line pt-2 mt-2">
                   <span className="font-bold">Total</span>
-                  <span className="font-bold text-[#F15A29] text-lg">
+                  <span className="font-bold text-brand text-lg">
                     S/ {Number(order.total_price).toFixed(2)}
                   </span>
                 </div>
@@ -270,30 +270,30 @@ export function DetallePedidoCustomer() {
               {!showConfirmCancel ? (
                 <button
                   onClick={() => setShowConfirmCancel(true)}
-                  className="w-full px-4 py-3 border-2 border-[#DC2626] text-[#DC2626] hover:bg-[#FEE2E2] font-medium rounded-md transition-colors"
+                  className="w-full px-4 py-3 border-2 border-error text-error hover:bg-error-soft font-medium rounded-md transition-colors"
                 >
                   Cancelar pedido
                 </button>
               ) : (
-                <div className="bg-[#FEE2E2] border-2 border-[#DC2626] rounded-xl p-4 space-y-3">
-                  <p className="text-sm text-[#991B1B] font-medium">
+                <div className="bg-error-soft border-2 border-error rounded-xl p-4 space-y-3">
+                  <p className="text-sm text-error font-medium">
                     ¿Seguro que quieres cancelar?
                   </p>
-                  <p className="text-xs text-[#991B1B]">
+                  <p className="text-xs text-error">
                     Esta acción no se puede deshacer. El stock será devuelto al inventario.
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={handleCancel}
                       disabled={isCancelling}
-                      className="flex-1 px-3 py-2 bg-[#DC2626] hover:bg-[#991B1B] text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+                      className="flex-1 px-3 py-2 bg-error hover:bg-error/90 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
                     >
                       {isCancelling ? 'Cancelando...' : 'Sí, cancelar'}
                     </button>
                     <button
                       onClick={() => setShowConfirmCancel(false)}
                       disabled={isCancelling}
-                      className="flex-1 px-3 py-2 border border-[#4A5260] text-[#4A5260] text-sm font-medium rounded-md disabled:opacity-50"
+                      className="flex-1 px-3 py-2 border border-muted text-muted text-sm font-medium rounded-md disabled:opacity-50"
                     >
                       No, mantener
                     </button>
@@ -304,7 +304,7 @@ export function DetallePedidoCustomer() {
           )}
 
           {!canCancel && cantCancelReason && order.order_state !== 'cancelado' && (
-            <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl p-4 text-sm text-[#4A5260]">
+            <div className="bg-page border border-line rounded-xl p-4 text-sm text-muted">
               {cantCancelReason}
             </div>
           )}

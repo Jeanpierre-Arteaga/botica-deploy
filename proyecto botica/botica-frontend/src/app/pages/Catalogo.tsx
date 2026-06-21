@@ -172,13 +172,13 @@ export function Catalogo() {
   const FiltersPanel = ({ onApply }: { onApply?: () => void }) => (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <SlidersHorizontal className="w-5 h-5 text-[#F15A29]" />
-        <h3 className="font-bold text-lg text-[#1A1F2E]">Filtrar productos</h3>
+        <SlidersHorizontal className="w-5 h-5 text-brand" />
+        <h3 className="font-bold text-lg text-text">Filtrar productos</h3>
       </div>
 
       {/* Categoría */}
       <div>
-        <label className="block font-semibold mb-3 text-sm text-[#1A1F2E]">
+        <label className="block font-semibold mb-3 text-sm text-text">
           Categoría
         </label>
         <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
@@ -188,9 +188,9 @@ export function Catalogo() {
               name="cat"
               checked={filters.category_id === undefined}
               onChange={() => updateParam("category_id", null)}
-              className="accent-[#F15A29]"
+              className="accent-brand"
             />
-            <span className="text-[#4A5260]">Todas las categorías</span>
+            <span className="text-muted">Todas las categorías</span>
           </label>
           {categorias.map((c) => (
             <label
@@ -204,9 +204,9 @@ export function Catalogo() {
                 onChange={() =>
                   updateParam("category_id", String(c.category_id))
                 }
-                className="accent-[#F15A29]"
+                className="accent-brand"
               />
-              <span className="text-[#1A1F2E]">{c.category_name}</span>
+              <span className="text-text">{c.category_name}</span>
             </label>
           ))}
         </div>
@@ -214,7 +214,7 @@ export function Catalogo() {
 
       {/* Laboratorio */}
       <div>
-        <label className="block font-semibold mb-3 text-sm text-[#1A1F2E]">
+        <label className="block font-semibold mb-3 text-sm text-text">
           Laboratorio
         </label>
         <select
@@ -225,7 +225,7 @@ export function Catalogo() {
               e.target.value === "" ? null : e.target.value,
             )
           }
-          className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] text-sm bg-white text-[#1A1F2E]"
+          className="w-full px-3 py-2.5 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand text-sm bg-surface text-text"
         >
           <option value="">Todos los laboratorios</option>
           {laboratorios.map((l) => (
@@ -245,9 +245,9 @@ export function Catalogo() {
             onChange={(e) =>
               updateParam("is_offer", e.target.checked ? "true" : null)
             }
-            className="accent-[#F15A29] w-4 h-4"
+            className="accent-brand w-4 h-4"
           />
-          <span className="text-sm font-medium text-[#1A1F2E]">
+          <span className="text-sm font-medium text-text">
             Solo productos en oferta
           </span>
         </label>
@@ -260,15 +260,15 @@ export function Catalogo() {
             type="checkbox"
             checked={onlyInStock}
             onChange={(e) => setOnlyInStock(e.target.checked)}
-            className="accent-[#F15A29] w-4 h-4"
+            className="accent-brand w-4 h-4"
           />
-          <span className="text-sm font-medium text-[#1A1F2E]">
+          <span className="text-sm font-medium text-text">
             Solo con stock disponible
           </span>
         </label>
       </div>
 
-      <div className="flex flex-col gap-2 pt-2 border-t border-[#E5E7EB]">
+      <div className="flex flex-col gap-2 pt-2 border-t border-line">
         {hasActiveFilters && (
           <button
             type="button"
@@ -276,7 +276,7 @@ export function Catalogo() {
               clearFilters();
               onApply?.();
             }}
-            className="w-full text-[#4A5260] text-sm font-medium underline hover:text-[#F15A29] transition-colors"
+            className="w-full text-muted text-sm font-medium underline hover:text-brand transition-colors"
           >
             Limpiar filtros
           </button>
@@ -285,7 +285,7 @@ export function Catalogo() {
           <button
             type="button"
             onClick={onApply}
-            className="w-full bg-[#F15A29] text-white py-2.5 rounded-lg font-semibold hover:bg-[#D94E1F] transition-colors"
+            className="w-full bg-brand text-white py-2.5 rounded-lg font-semibold hover:bg-brand-hover transition-colors"
           >
             Aplicar
           </button>
@@ -295,19 +295,19 @@ export function Catalogo() {
   );
 
   return (
-    <div className="bg-[#F9FAFB] min-h-screen">
+    <div className="bg-page min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-[#4A5260] mb-5">
-          <Link to="/" className="hover:text-[#F15A29]">
+        <div className="flex items-center gap-2 text-sm text-muted mb-5">
+          <Link to="/" className="hover:text-brand">
             Inicio
           </Link>
           <ChevronRight className="w-4 h-4" />
-          <span className="text-[#1A1F2E] font-medium">Catálogo</span>
+          <span className="text-text font-medium">Catálogo</span>
           {activeCategory && (
             <>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-[#1A1F2E] font-medium">
+              <span className="text-text font-medium">
                 {activeCategory.category_name}
               </span>
             </>
@@ -316,26 +316,26 @@ export function Catalogo() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1A1F2E]">
+          <h1 className="text-2xl md:text-3xl font-bold text-text">
             Catálogo
             {selectedLocation && (
-              <span className="text-base font-normal text-[#9CA3AF] ml-2">
+              <span className="text-base font-normal text-faint ml-2">
                 · Sede{" "}
                 {selectedLocation.district || selectedLocation.location_name}
               </span>
             )}
           </h1>
           {filters.nombre && (
-            <p className="text-sm text-[#4A5260] mt-1">
+            <p className="text-sm text-muted mt-1">
               Resultados para “
-              <span className="font-medium text-[#1A1F2E]">
+              <span className="font-medium text-text">
                 {filters.nombre}
               </span>
               ”
               <button
                 type="button"
                 onClick={() => updateParam("nombre", null)}
-                className="ml-2 text-[#F15A29] hover:underline"
+                className="ml-2 text-brand hover:underline"
               >
                 quitar
               </button>
@@ -347,52 +347,52 @@ export function Catalogo() {
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-5">
             {activeCategory && (
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-surface border border-line text-text text-xs font-medium px-3 py-1.5 rounded-full">
                 {activeCategory.category_name}
                 <button
                   type="button"
                   onClick={() => updateParam("category_id", null)}
                   aria-label="Quitar filtro categoría"
-                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                  className="text-faint hover:text-error"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {activeLab && (
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-surface border border-line text-text text-xs font-medium px-3 py-1.5 rounded-full">
                 {activeLab.laboratory_name}
                 <button
                   type="button"
                   onClick={() => updateParam("laboratory_id", null)}
                   aria-label="Quitar filtro laboratorio"
-                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                  className="text-faint hover:text-error"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.is_offer && (
-              <span className="inline-flex items-center gap-1.5 bg-[#FFF4EE] border border-[#F15A29] text-[#F15A29] text-xs font-semibold px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-brand-soft border border-brand text-brand text-xs font-semibold px-3 py-1.5 rounded-full">
                 En oferta
                 <button
                   type="button"
                   onClick={() => updateParam("is_offer", null)}
                   aria-label="Quitar filtro oferta"
-                  className="hover:text-[#D94E1F]"
+                  className="hover:text-brand-hover"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {onlyInStock && (
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#1A1F2E] text-xs font-medium px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-surface border border-line text-text text-xs font-medium px-3 py-1.5 rounded-full">
                 Con stock
                 <button
                   type="button"
                   onClick={() => setOnlyInStock(false)}
                   aria-label="Quitar filtro stock"
-                  className="text-[#9CA3AF] hover:text-[#DC2626]"
+                  className="text-faint hover:text-error"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -401,7 +401,7 @@ export function Catalogo() {
             <button
               type="button"
               onClick={clearFilters}
-              className="text-xs text-[#4A5260] hover:text-[#F15A29] underline"
+              className="text-xs text-muted hover:text-brand underline"
             >
               Limpiar todos
             </button>
@@ -411,7 +411,7 @@ export function Catalogo() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar Desktop */}
           <aside className="hidden lg:block lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+            <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
               <FiltersPanel />
             </div>
           </aside>
@@ -419,31 +419,31 @@ export function Catalogo() {
           {/* Content */}
           <div className="lg:col-span-3">
             {/* Top bar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-surface rounded-2xl shadow-sm border border-line p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden inline-flex items-center gap-2 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm font-medium text-[#1A1F2E] hover:bg-[#F9FAFB]"
+                  className="lg:hidden inline-flex items-center gap-2 px-3 py-2 border border-line rounded-lg text-sm font-medium text-text hover:bg-page"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
                   Filtros
                 </button>
-                <span className="text-sm text-[#4A5260]">
+                <span className="text-sm text-muted">
                   {isLoadingProducts
                     ? "Cargando..."
                     : `${productosVisibles.length} ${productosVisibles.length === 1 ? "producto encontrado" : "productos encontrados"}`}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <label htmlFor="sort" className="text-sm text-[#4A5260]">
+                <label htmlFor="sort" className="text-sm text-muted">
                   Ordenar
                 </label>
                 <select
                   id="sort"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] text-sm bg-white"
+                  className="px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand text-sm bg-surface"
                 >
                   <option value="relevance">Relevancia</option>
                   <option value="price-asc">Precio: menor a mayor</option>
@@ -455,16 +455,16 @@ export function Catalogo() {
 
             {/* Grid */}
             {productsError ? (
-              <div className="bg-white border border-[#FECACA] rounded-2xl p-10 text-center">
-                <AlertCircle className="w-10 h-10 text-[#DC2626] mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-[#1A1F2E] mb-2">
+              <div className="bg-surface border border-error/30 rounded-2xl p-10 text-center">
+                <AlertCircle className="w-10 h-10 text-error mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-text mb-2">
                   No pudimos cargar el catálogo
                 </h3>
-                <p className="text-sm text-[#4A5260] mb-4">{productsError}</p>
+                <p className="text-sm text-muted mb-4">{productsError}</p>
                 <button
                   type="button"
                   onClick={() => setReloadKey((k) => k + 1)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F15A29] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-lg font-semibold text-sm hover:bg-brand-hover transition-colors"
                 >
                   Reintentar
                 </button>
@@ -476,16 +476,16 @@ export function Catalogo() {
                 ))}
               </div>
             ) : productosVisibles.length === 0 ? (
-              <div className="bg-white border border-[#E5E7EB] rounded-2xl p-12 text-center">
+              <div className="bg-surface border border-line rounded-2xl p-12 text-center">
                 {filters.nombre ? (
-                  <Search className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                  <Search className="w-12 h-12 text-faint mx-auto mb-3" />
                 ) : (
-                  <PackageX className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                  <PackageX className="w-12 h-12 text-faint mx-auto mb-3" />
                 )}
-                <h3 className="text-lg font-semibold text-[#1A1F2E] mb-2">
+                <h3 className="text-lg font-semibold text-text mb-2">
                   No se encontraron productos
                 </h3>
-                <p className="text-sm text-[#4A5260] mb-5">
+                <p className="text-sm text-muted mb-5">
                   {hasActiveFilters
                     ? "Prueba ajustando los filtros o cambiando de sede."
                     : "Aún no hay productos disponibles en esta sede."}
@@ -494,7 +494,7 @@ export function Catalogo() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F15A29] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-lg font-semibold text-sm hover:bg-brand-hover transition-colors"
                   >
                     Limpiar filtros
                   </button>
@@ -519,14 +519,14 @@ export function Catalogo() {
             onClick={() => setMobileFiltersOpen(false)}
             aria-hidden
           />
-          <div className="w-[85%] max-w-sm bg-white h-full overflow-y-auto p-6 shadow-xl">
+          <div className="w-[85%] max-w-sm bg-surface h-full overflow-y-auto p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-semibold text-[#1A1F2E]">Filtros</span>
+              <span className="font-semibold text-text">Filtros</span>
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(false)}
                 aria-label="Cerrar filtros"
-                className="p-2 text-[#4A5260] hover:bg-[#F9FAFB] rounded-lg"
+                className="p-2 text-muted hover:bg-page rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
