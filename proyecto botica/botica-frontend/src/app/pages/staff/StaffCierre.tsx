@@ -15,6 +15,7 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../lib/AuthContext';
 import { toast } from 'sonner';
 import type { ShiftSummary } from '../../lib/types';
+import { Button, Card, PageHeader, SectionTitle } from '../../components/ui/kit';
 
 const PAYMENT_LABELS: Record<string, string> = {
   efectivo: 'Efectivo',
@@ -58,15 +59,12 @@ export default function StaffCierre() {
 
   if (!summary) {
     return (
-      <div className="max-w-4xl mx-auto bg-surface rounded-xl border border-line p-12 text-center">
+      <Card className="max-w-md mx-auto text-center p-10">
         <p className="text-muted mb-4">No se pudo cargar el resumen del turno.</p>
-        <button
-          onClick={loadSummary}
-          className="px-4 py-2 bg-brand hover:bg-brand-hover text-white rounded-md text-sm"
-        >
-          Reintentar
-        </button>
-      </div>
+        <Button onClick={loadSummary}>
+          <RefreshCw size={14} /> Reintentar
+        </Button>
+      </Card>
     );
   }
 
@@ -74,86 +72,69 @@ export default function StaffCierre() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
+  const operatorName = summary.full_name || user?.full_name || 'Operador';
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-2 print:hidden">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-text">Cierre de turno</h1>
-          <p className="text-sm text-muted capitalize">{today}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={loadSummary}
-            className="px-3.5 py-2.5 border border-line hover:border-brand text-text rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw size={14} /> Actualizar
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="px-3.5 py-2.5 bg-ink hover:bg-ink-2 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <Printer size={14} /> Imprimir
-          </button>
+    <div>
+      <PageHeader
+        title="Cierre de turno"
+        subtitle={<span className="capitalize">{today}</span>}
+        className="print:hidden"
+        actions={
+          <>
+            <Button variant="secondary" onClick={loadSummary}>
+              <RefreshCw size={14} /> Actualizar
+            </Button>
+            <Button variant="dark" onClick={() => window.print()}>
+              <Printer size={14} /> Imprimir
+            </Button>
+          </>
+        }
+      />
+
+      {/* Membrete del reporte: operador + métricas clave */}
+      <div className="relative overflow-hidden rounded-2xl border border-line shadow-soft bg-ink-2 text-white mb-5">
+        <div
+          className="absolute -right-12 -top-14 w-60 h-60 rounded-full opacity-20 blur-2xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, #F15A29, transparent 70%)' }}
+        />
+        <div className="relative p-5 sm:p-6 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center font-bold text-lg shrink-0 shadow-brand">
+              {operatorName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55">
+                Reporte de cierre · Operador
+              </p>
+              <p className="font-bold text-lg truncate">{operatorName}</p>
+              <p className="text-xs text-white/65 capitalize">
+                {user?.role === 'admin' ? 'Administrador' : 'Empleado'} · {today}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <BannerStat
+              icon={TrendingUp}
+              label="Ventas totales"
+              value={`S/ ${Number(summary.total_sales).toFixed(2)}`}
+            />
+            <BannerStat
+              icon={ShoppingBag}
+              label="Pedidos atendidos"
+              value={String(summary.total_transactions)}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="bg-surface rounded-2xl border border-line shadow-card overflow-hidden mb-4">
-        {/* Cabecera formal del reporte */}
-        <div className="relative bg-ink-2 px-6 py-5 text-white overflow-hidden">
-          <div
-            className="absolute -right-10 -top-12 w-48 h-48 rounded-full opacity-20 blur-2xl"
-            style={{ background: 'radial-gradient(circle, #F15A29, transparent 70%)' }}
-          />
-          <div className="relative flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center font-bold text-lg shrink-0 shadow-brand">
-                {(summary.full_name || user?.full_name || 'U').charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55">
-                  Reporte de cierre · Operador
-                </p>
-                <p className="font-bold text-lg truncate">{summary.full_name || user?.full_name}</p>
-                <p className="text-xs text-white/65 capitalize">
-                  {user?.role === 'admin' ? 'Administrador' : 'Empleado'}
-                </p>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55">Fecha</p>
-              <p className="text-sm font-medium capitalize">{today}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Cuerpo */}
-        <div className="p-6">
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <SummaryStat
-            icon={TrendingUp}
-            label="Ventas totales"
-            value={`S/ ${Number(summary.total_sales).toFixed(2)}`}
-            accent="#F15A29"
-          />
-          <SummaryStat
-            icon={ShoppingBag}
-            label="Pedidos atendidos"
-            value={String(summary.total_transactions)}
-            accent="#4C82A8"
-          />
-        </div>
-
-        {/* Desglose por método de pago */}
-        <div className="border-t border-line pt-5 mb-5">
-          <h2 className="font-bold text-text mb-3 flex items-center gap-2">
-            <CreditCard size={16} className="text-brand" />
-            Desglose por método
-          </h2>
+      {/* Detalle: desglose por método + top productos */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card>
+          <SectionTitle icon={CreditCard} className="mb-4">Desglose por método</SectionTitle>
           {summary.by_payment_method.length === 0 ? (
-            <div className="text-center py-6 bg-page border border-dashed border-line rounded-xl">
-              <p className="text-sm font-medium text-muted">Sin ventas hoy</p>
-              <p className="text-xs text-faint mt-0.5">Aún no hay movimientos registrados</p>
-            </div>
+            <EmptyBlock />
           ) : (
             <div className="space-y-2">
               {summary.by_payment_method.map((m) => (
@@ -174,19 +155,12 @@ export default function StaffCierre() {
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Top productos */}
-        <div className="border-t border-line pt-5">
-          <h2 className="font-bold text-text mb-3 flex items-center gap-2">
-            <Award size={16} className="text-brand" />
-            Top 3 productos
-          </h2>
+        <Card>
+          <SectionTitle icon={Award} className="mb-4">Top 3 productos</SectionTitle>
           {summary.top_products.length === 0 ? (
-            <div className="text-center py-6 bg-page border border-dashed border-line rounded-xl">
-              <p className="text-sm font-medium text-muted">Sin ventas hoy</p>
-              <p className="text-xs text-faint mt-0.5">Aún no hay movimientos registrados</p>
-            </div>
+            <EmptyBlock />
           ) : (
             <div className="space-y-2">
               {summary.top_products.map((p, idx) => (
@@ -212,35 +186,36 @@ export default function StaffCierre() {
               ))}
             </div>
           )}
-        </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
 }
 
-function SummaryStat({
-  icon: Icon, label, value, accent,
+/** Métrica embebida en el membrete navy (alto contraste sobre fondo oscuro). */
+function BannerStat({
+  icon: Icon, label, value,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   value: string;
-  accent: string;
 }) {
   return (
-    <div className="relative overflow-hidden bg-page border border-line rounded-2xl p-5">
-      <span
-        className="absolute left-0 top-0 h-full w-1 rounded-r"
-        style={{ backgroundColor: accent }}
-      />
-      <div
-        className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${accent}1A`, color: accent }}
-      >
-        <Icon size={22} />
+    <div className="rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3 min-w-[140px]">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1.5">
+        <Icon size={13} className="text-brand" /> {label}
       </div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted mb-1.5">{label}</p>
-      <p className="text-2xl lg:text-3xl leading-none font-bold text-text tabular-nums">{value}</p>
+      <p className="text-2xl font-bold tabular-nums leading-none">{value}</p>
+    </div>
+  );
+}
+
+/** Estado vacío reutilizado en ambas tarjetas de detalle. */
+function EmptyBlock() {
+  return (
+    <div className="text-center py-6 bg-page border border-dashed border-line rounded-xl">
+      <p className="text-sm font-medium text-muted">Sin ventas hoy</p>
+      <p className="text-xs text-faint mt-0.5">Aún no hay movimientos registrados</p>
     </div>
   );
 }
