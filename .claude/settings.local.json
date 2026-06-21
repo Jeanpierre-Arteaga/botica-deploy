@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(node --check src/models/productModel.js)",
-      "Bash(node --check src/controllers/productController.js)"
+      "Bash(node --check src/controllers/productController.js)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(npm ls *)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft/Edge/Application/**)"
     ]
   }
 }

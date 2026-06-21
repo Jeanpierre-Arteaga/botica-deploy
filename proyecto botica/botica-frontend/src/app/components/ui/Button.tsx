@@ -34,18 +34,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        "bg-[#F26430] text-white hover:bg-[#D94E1F] active:scale-[0.98] shadow-sm hover:shadow-md",
+        "bg-brand text-white hover:bg-brand-hover active:scale-[0.98] shadow-soft hover:shadow-[var(--shadow-brand)]",
       secondary:
-        "border-2 border-[#1E4D8C] text-[#1E4D8C] hover:bg-[#EFF4FB] active:scale-[0.98]",
-      ghost: "text-[#4A5260] hover:bg-[#F9FAFB] active:scale-[0.98]",
+        "border border-line text-ink-2 bg-surface hover:bg-[#F8FAFC] hover:border-[#CBD5E1] active:scale-[0.98]",
+      ghost: "text-muted hover:bg-[#F1F5F9] hover:text-ink-2 active:scale-[0.98]",
       danger:
-        "bg-[#DC2626] text-white hover:bg-[#B91C1C] active:scale-[0.98] shadow-sm hover:shadow-md",
+        "bg-error text-white hover:bg-[#B91C1C] active:scale-[0.98] shadow-soft hover:shadow-md",
     };
 
     const sizeStyles = {
       sm: "h-8 px-3 text-sm rounded-[10px]",
-      md: "h-10 px-4 text-sm rounded-[10px]",
-      lg: "h-12 px-6 text-base rounded-[10px]",
+      md: "h-10 px-4 text-sm rounded-xl",
+      lg: "h-12 px-6 text-base rounded-xl",
     };
 
     const iconSizes = {

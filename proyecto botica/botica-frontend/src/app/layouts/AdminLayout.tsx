@@ -3,6 +3,7 @@ import { Home, Package, Warehouse, ShoppingBag, Users, BarChart3, Bell } from "l
 import { useState } from "react";
 import { NotificationPanel } from "../components/NotificationPanel";
 import { UserMenu } from "../components/UserMenu";
+import { AccessibilityMenu } from "../components/AccessibilityMenu";
 import { useAuth } from "../lib/AuthContext";
 
 export function AdminLayout() {
@@ -100,11 +101,11 @@ export function AdminLayout() {
   const dateStr = `${days[today.getDay()]} ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
 
   return (
-    <div className="flex h-screen bg-[#F1F5F9]">
+    <div className="flex h-screen bg-page">
       {/* Left Sidebar */}
-      <aside className="w-[260px] bg-[#0F172A] flex flex-col">
+      <aside className="w-[276px] bg-ink flex flex-col border-r border-white/5 shadow-[8px_0_32px_-16px_rgba(15,23,42,0.45)]">
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="px-6 py-6 border-b border-white/[0.07]">
           <img
             src="/src/imports/Gemini_Generated_Image_o2t61no2t61no2t6-1.png"
             alt="Boticas Central"
@@ -113,32 +114,33 @@ export function AdminLayout() {
         </div>
 
         {/* Owner Info */}
-        <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-full bg-[#FF6633] flex items-center justify-center text-white font-bold text-lg">
+        <div className="px-5 py-5 border-b border-white/[0.07]">
+          <div className="flex items-center gap-3 mb-3.5">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center text-white font-bold text-lg shadow-[0_4px_14px_-2px_rgba(241,90,41,0.5)] ring-2 ring-white/10">
               {getInitial()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-bold text-sm truncate">
+              <p className="text-white font-semibold text-sm truncate leading-tight">
                 {user?.full_name ?? '—'}
               </p>
+              <p className="text-slate-400 text-xs mt-0.5">Panel administrativo</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="text-xs bg-[#FF6633] text-white px-2.5 py-1 rounded-full font-medium">
+            <span className="text-[11px] bg-brand/15 text-brand border border-brand/25 px-2.5 py-1 rounded-full font-semibold">
               Administrador
             </span>
-            <span className="text-xs bg-[#3AAB4A] text-white px-2.5 py-1 rounded-full font-medium">
+            <span className="text-[11px] bg-success/15 text-emerald-300 border border-success/25 px-2.5 py-1 rounded-full font-semibold">
               Ambas sedes
             </span>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
+        <nav className="flex-1 px-3.5 py-5 overflow-y-auto scroll-navy">
           {menuSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="mb-6">
-              <p className="text-gray-400 text-xs font-semibold mb-2 px-3 uppercase tracking-wider">
+            <div key={sectionIndex} className="mb-7">
+              <p className="text-slate-500 text-[10px] font-bold mb-2.5 px-3.5 uppercase tracking-[0.14em]">
                 {section.label}
               </p>
               <div className="space-y-1">
@@ -149,14 +151,23 @@ export function AdminLayout() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? 'bg-[#1E293B] text-white border-l-4 border-[#FF6633] pl-3'
-                          : 'text-gray-300 hover:bg-[#1E293B] hover:text-white'
+                          ? 'bg-gradient-to-r from-brand/[0.18] via-brand/[0.06] to-transparent text-white'
+                          : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'
                       }`}
                     >
-                      <Icon className="w-5 h-5 flex-shrink-0" />
-                      <span className="text-sm font-medium">{item.label}</span>
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-brand shadow-[0_0_12px_rgba(241,90,41,0.7)]" />
+                      )}
+                      <Icon
+                        className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
+                          isActive ? 'text-brand' : 'text-slate-400 group-hover:text-white'
+                        }`}
+                      />
+                      <span className={`text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -166,8 +177,8 @@ export function AdminLayout() {
         </nav>
 
         {/* Bottom Section */}
-        <div className="p-4 border-t border-white/10">
-          <p className="text-gray-400 text-xs">Última sesión: 20 Abr · 09:00 AM</p>
+        <div className="px-5 py-4 border-t border-white/[0.07]">
+          <p className="text-slate-500 text-xs">Última sesión: 20 Abr · 09:00 AM</p>
         </div>
       </aside>
 
@@ -213,6 +224,9 @@ export function AdminLayout() {
                 Santa Anita
               </button>
             </div>
+
+            {/* Accesibilidad */}
+            <AccessibilityMenu variant="dark" />
 
             {/* Notifications */}
             <button

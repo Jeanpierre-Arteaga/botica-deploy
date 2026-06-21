@@ -61,7 +61,7 @@ export default function StaffDashboard() {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-12 h-12 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <div className="inline-block w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -73,10 +73,10 @@ export default function StaffDashboard() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">
+        <h1 className="text-2xl lg:text-3xl font-bold text-text">
           Hola, {user?.full_name?.split(' ')[0] || 'Usuario'}
         </h1>
-        <p className="text-sm text-[#4A5260] capitalize">{today}</p>
+        <p className="text-sm text-muted capitalize">{today}</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -111,20 +111,20 @@ export default function StaffDashboard() {
         />
       </div>
 
-      <section className="bg-white rounded-xl border border-[#E5E7EB] p-6 mb-6">
+      <section className="bg-surface rounded-xl border border-line p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-[#1A1F2E]">Pedidos pendientes</h2>
+          <h2 className="font-bold text-text">Pedidos pendientes</h2>
           <Link
             to="/staff/pedidos?state=pendiente"
-            className="text-sm text-[#F26430] hover:underline flex items-center gap-1"
+            className="text-sm text-brand hover:underline flex items-center gap-1"
           >
             Ver todos <ArrowRight size={14} />
           </Link>
         </div>
 
         {recentOrders.length === 0 ? (
-          <div className="text-center py-8 text-[#4A5260]">
-            <CheckCircle2 size={48} className="mx-auto text-[#10B981] mb-2" />
+          <div className="text-center py-8 text-muted">
+            <CheckCircle2 size={48} className="mx-auto text-success mb-2" />
             <p>¡No hay pedidos pendientes!</p>
           </div>
         ) : (
@@ -133,20 +133,20 @@ export default function StaffDashboard() {
               <Link
                 key={order.order_id}
                 to={`/staff/pedidos/${order.order_id}`}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-[#F9FAFB] border border-[#E5E7EB] transition-colors"
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-page border border-line transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-[#1A1F2E]">Pedido #{order.order_id}</p>
-                  <p className="text-xs text-[#4A5260] truncate">
+                  <p className="font-medium text-text">Pedido #{order.order_id}</p>
+                  <p className="text-xs text-muted truncate">
                     {order.customer_name || 'Cliente'} ·{' '}
                     {order.payment?.payment_method || 'sin pago'}
                   </p>
                 </div>
                 <div className="text-right shrink-0 ml-3">
-                  <p className="font-semibold text-[#F26430]">
+                  <p className="font-semibold text-brand">
                     S/ {Number(order.total_price).toFixed(2)}
                   </p>
-                  <p className="text-xs text-[#4A5260]">
+                  <p className="text-xs text-muted">
                     {new Date(order.order_date).toLocaleTimeString('es-PE', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -162,7 +162,7 @@ export default function StaffDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           to="/staff/nueva-venta"
-          className="bg-gradient-to-br from-[#F26430] to-[#D94E1F] text-white rounded-xl p-6 hover:shadow-lg transition-shadow"
+          className="bg-gradient-to-br from-brand to-brand-hover text-white rounded-xl p-6 hover:shadow-lg transition-shadow"
         >
           <Package size={28} className="mb-2" />
           <h3 className="font-bold text-lg">Nueva venta (POS)</h3>
@@ -170,11 +170,11 @@ export default function StaffDashboard() {
         </Link>
         <Link
           to="/staff/cierre"
-          className="bg-white border-2 border-[#E5E7EB] rounded-xl p-6 hover:border-[#F26430] transition-colors"
+          className="bg-surface border-2 border-line rounded-xl p-6 hover:border-brand transition-colors"
         >
-          <ClipboardList size={28} className="mb-2 text-[#1A1F2E]" />
-          <h3 className="font-bold text-lg text-[#1A1F2E]">Cierre de turno</h3>
-          <p className="text-sm text-[#4A5260]">Resumen del día y caja</p>
+          <ClipboardList size={28} className="mb-2 text-text" />
+          <h3 className="font-bold text-lg text-text">Cierre de turno</h3>
+          <p className="text-sm text-muted">Resumen del día y caja</p>
         </Link>
       </div>
     </div>
@@ -192,15 +192,15 @@ interface KpiCardProps {
 
 function KpiCard({ icon: Icon, label, value, color, bg, link }: KpiCardProps) {
   const content = (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md transition-shadow h-full">
+    <div className="bg-surface rounded-xl border border-line p-4 hover:shadow-md transition-shadow h-full">
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center mb-2"
         style={{ backgroundColor: bg }}
       >
         <Icon size={20} style={{ color }} />
       </div>
-      <p className="text-xs text-[#4A5260]">{label}</p>
-      <p className="text-xl font-bold text-[#1A1F2E] mt-1">{value}</p>
+      <p className="text-xs text-muted">{label}</p>
+      <p className="text-xl font-bold text-text mt-1">{value}</p>
     </div>
   );
   return link ? <Link to={link}>{content}</Link> : content;

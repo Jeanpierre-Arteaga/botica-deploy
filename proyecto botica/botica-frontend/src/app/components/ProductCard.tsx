@@ -28,11 +28,30 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       to={`/producto/${product.product_id}`}
-      className="bg-white rounded-[16px] border border-[#E5E7EB] overflow-hidden flex flex-col h-full group hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+      className="group rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1"
+      style={{
+        backgroundColor: "var(--c-surface)",
+        border: "1px solid var(--c-line)",
+        boxShadow: "var(--elev-xs)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "var(--elev-card)";
+        e.currentTarget.style.borderColor = "var(--c-line)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "var(--elev-xs)";
+        e.currentTarget.style.borderColor = "var(--c-line)";
+      }}
     >
       <div className="relative">
-        <div className={`bg-[#FFF4EE] p-4 ${!hasStock ? 'opacity-60' : ''}`}>
-          <div className="aspect-square flex items-center justify-center overflow-hidden rounded-[16px] bg-white">
+        <div
+          className={`p-4 ${!hasStock ? "opacity-60" : ""}`}
+          style={{ backgroundColor: "var(--c-brand-soft)" }}
+        >
+          <div
+            className="aspect-square flex items-center justify-center overflow-hidden rounded-xl"
+            style={{ backgroundColor: "var(--c-surface)" }}
+          >
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -41,7 +60,13 @@ export function ProductCard({ product }: ProductCardProps) {
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-[#FFF4EE] flex flex-col items-center justify-center gap-2 text-[#9CA3AF]">
+              <div
+                className="w-full h-full flex flex-col items-center justify-center gap-2"
+                style={{
+                  backgroundColor: "var(--c-brand-soft)",
+                  color: "var(--c-faint)",
+                }}
+              >
                 <Pill className="w-10 h-10" />
                 <span className="text-xs">Sin imagen</span>
               </div>
@@ -50,45 +75,64 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {product.is_offer && (
-          <div className="absolute top-3 left-3 bg-[#F26430] text-white px-2 py-1 rounded-[6px] text-xs font-bold shadow-sm">
+          <div
+            className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-sm"
+            style={{ backgroundColor: "var(--c-brand)" }}
+          >
             Oferta
           </div>
         )}
         {lowStock && hasStock && (
-          <div className="absolute top-3 right-3 bg-[#F59E0B] text-white px-2 py-1 rounded-[6px] text-[11px] font-semibold shadow-sm">
+          <div
+            className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white shadow-sm"
+            style={{ backgroundColor: "var(--c-warning)" }}
+          >
             Pocas unidades
           </div>
         )}
       </div>
 
       <div className="p-4 flex flex-col flex-1 gap-2">
-        <h3 className="text-sm font-normal leading-snug text-[#1A1F2E] line-clamp-2 group-hover:text-[#F26430] transition-colors min-h-[2.5rem]">
+        <h3
+          className="text-sm font-normal leading-snug line-clamp-2 transition-colors min-h-[2.5rem]"
+          style={{ color: "var(--c-text)" }}
+        >
           {product.product_name}
         </h3>
 
         {(product.laboratory_name || product.active_ingredient) && (
-          <p className="text-xs text-[#9CA3AF] line-clamp-1">
+          <p className="text-xs line-clamp-1" style={{ color: "var(--c-faint)" }}>
             {product.laboratory_name || product.active_ingredient}
           </p>
         )}
 
-        {typeof product.current_stock === 'number' && (
-          product.current_stock === 0 ? (
-            <p className="text-xs font-semibold text-[#DC2626]">Agotado</p>
+        {typeof product.current_stock === "number" &&
+          (product.current_stock === 0 ? (
+            <p
+              className="text-xs font-semibold"
+              style={{ color: "var(--c-error)" }}
+            >
+              Agotado
+            </p>
           ) : product.current_stock <= 5 ? (
-            <p className="text-xs font-medium text-[#F59E0B]">
+            <p
+              className="text-xs font-medium"
+              style={{ color: "var(--c-warning)" }}
+            >
               Pocas unidades ({product.current_stock})
             </p>
           ) : (
-            <p className="text-xs text-[#4A5260]">
+            <p className="text-xs" style={{ color: "var(--c-muted)" }}>
               Stock disponible: {product.current_stock}
             </p>
-          )
-        )}
+          ))}
 
         <div className="mt-auto space-y-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-[#F26430] font-semibold text-xl leading-none">
+            <span
+              className="font-semibold text-xl leading-none"
+              style={{ color: "var(--c-brand)" }}
+            >
               S/ {Number(product.product_price).toFixed(2)}
             </span>
           </div>
@@ -102,7 +146,7 @@ export function ProductCard({ product }: ProductCardProps) {
             iconLeft={ShoppingCart}
             onClick={handleAdd}
           >
-            {hasStock ? 'Agregar' : 'Agotado'}
+            {hasStock ? "Agregar" : "Agotado"}
           </Button>
         </div>
       </div>

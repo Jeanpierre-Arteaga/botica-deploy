@@ -90,9 +90,9 @@ export function GestionProductos() {
 
   const getStockStatus = (product: Product) => {
     const total = getTotalStock(product);
-    if (total === 0) return { color: "text-red-600", bg: "bg-red-50", label: "Sin stock" };
-    if (total < product.minStock) return { color: "text-amber-600", bg: "bg-amber-50", label: "Stock bajo" };
-    return { color: "text-green-600", bg: "bg-green-50", label: "Stock OK" };
+    if (total === 0) return { color: "text-error", bg: "bg-error-soft", label: "Sin stock" };
+    if (total < product.minStock) return { color: "text-warning", bg: "bg-warning-soft", label: "Stock bajo" };
+    return { color: "text-success", bg: "bg-success-soft", label: "Stock OK" };
   };
 
   const filteredProducts = products.filter(p =>
@@ -106,12 +106,12 @@ export function GestionProductos() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">Gestión de Productos</h1>
-          <p className="text-sm text-gray-600">Administra el catálogo completo de medicamentos y productos</p>
+          <h1 className="text-2xl font-bold text-text mb-1">Gestión de Productos</h1>
+          <p className="text-sm text-muted">Administra el catálogo completo de medicamentos y productos</p>
         </div>
         <button
           onClick={handleAddNew}
-          className="flex items-center gap-2 bg-[#FF6633] text-white px-5 py-3 rounded-lg font-semibold hover:bg-[#E85522] transition-colors"
+          className="flex items-center gap-2 bg-brand text-white px-5 py-3 rounded-lg font-semibold hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nuevo Producto
@@ -119,26 +119,26 @@ export function GestionProductos() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+      <div className="bg-surface rounded-xl shadow-sm border border-line p-5 mb-6">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por nombre, código o categoría..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+              className="w-full pl-12 pr-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
-          <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]">
+          <select className="px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
             <option>Todas las categorías</option>
             <option>Analgésicos</option>
             <option>Antibióticos</option>
             <option>Vitaminas</option>
             <option>Gastroenterología</option>
           </select>
-          <select className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]">
+          <select className="px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
             <option>Todos los estados</option>
             <option>Activos</option>
             <option>Inactivos</option>
@@ -148,72 +148,72 @@ export function GestionProductos() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <p className="text-xs text-gray-600 mb-1">Total productos</p>
-          <p className="text-2xl font-bold text-[#FF6633]">{products.length}</p>
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
+          <p className="text-xs text-muted mb-1">Total productos</p>
+          <p className="text-2xl font-bold text-brand">{products.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <p className="text-xs text-gray-600 mb-1">Productos activos</p>
-          <p className="text-2xl font-bold text-[#3AAB4A]">{products.filter(p => p.status === "active").length}</p>
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
+          <p className="text-xs text-muted mb-1">Productos activos</p>
+          <p className="text-2xl font-bold text-success">{products.filter(p => p.status === "active").length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <p className="text-xs text-gray-600 mb-1">Con stock bajo</p>
-          <p className="text-2xl font-bold text-[#F59E0B]">{products.filter(p => getTotalStock(p) < p.minStock).length}</p>
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
+          <p className="text-xs text-muted mb-1">Con stock bajo</p>
+          <p className="text-2xl font-bold text-warning">{products.filter(p => getTotalStock(p) < p.minStock).length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <p className="text-xs text-gray-600 mb-1">Requieren receta</p>
-          <p className="text-2xl font-bold text-[#2B7DBF]">{products.filter(p => p.requiresPrescription).length}</p>
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-4">
+          <p className="text-xs text-muted mb-1">Requieren receta</p>
+          <p className="text-2xl font-bold text-cool">{products.filter(p => p.requiresPrescription).length}</p>
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-surface rounded-xl shadow-sm border border-line overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-page border-b border-line">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Código</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Producto</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Categoría</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Precio</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Stock Ate</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Stock S.A.</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Total</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Estado</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Acciones</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Código</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Producto</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Categoría</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Precio</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Stock Ate</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Stock S.A.</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Total</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Estado</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.map((product) => {
                 const status = getStockStatus(product);
                 return (
-                  <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-mono text-gray-600">{product.id}</td>
+                  <tr key={product.id} className="border-b border-line-2 hover:bg-page transition-colors">
+                    <td className="px-6 py-4 text-sm font-mono text-muted">{product.id}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#FFCCAA] rounded-lg flex items-center justify-center">
-                          <Package className="w-5 h-5 text-[#FF6633]" />
+                        <div className="w-10 h-10 bg-brand-soft rounded-lg flex items-center justify-center">
+                          <Package className="w-5 h-5 text-brand" />
                         </div>
                         <div>
-                          <p className="font-semibold text-sm text-gray-800">{product.name}</p>
+                          <p className="font-semibold text-sm text-text">{product.name}</p>
                           {product.requiresPrescription && (
                             <p className="text-xs text-purple-600 font-medium">Requiere receta</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
-                    <td className="px-6 py-4 text-sm font-bold text-gray-800">S/ {product.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm text-muted">{product.category}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-text">S/ {product.price.toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm text-center">
                       <span className={`px-2 py-1 rounded-full ${
-                        product.stockAte < product.minStock / 2 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+                        product.stockAte < product.minStock / 2 ? "bg-error-soft text-error" : "bg-line-2 text-muted"
                       } font-medium`}>
                         {product.stockAte}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-center">
                       <span className={`px-2 py-1 rounded-full ${
-                        product.stockSantaAnita < product.minStock / 2 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+                        product.stockSantaAnita < product.minStock / 2 ? "bg-error-soft text-error" : "bg-line-2 text-muted"
                       } font-medium`}>
                         {product.stockSantaAnita}
                       </span>
@@ -229,8 +229,8 @@ export function GestionProductos() {
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         product.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
+                          ? "bg-success-soft text-success"
+                          : "bg-line-2 text-muted"
                       }`}>
                         {product.status === "active" ? "Activo" : "Inactivo"}
                       </span>
@@ -239,12 +239,12 @@ export function GestionProductos() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(product)}
-                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors group"
+                          className="p-2 hover:bg-info-soft rounded-lg transition-colors group"
                         >
-                          <Edit2 className="w-4 h-4 text-gray-600 group-hover:text-[#2B7DBF]" />
+                          <Edit2 className="w-4 h-4 text-muted group-hover:text-cool" />
                         </button>
-                        <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group">
-                          <Trash2 className="w-4 h-4 text-gray-600 group-hover:text-red-600" />
+                        <button className="p-2 hover:bg-error-soft rounded-lg transition-colors group">
+                          <Trash2 className="w-4 h-4 text-muted group-hover:text-error" />
                         </button>
                       </div>
                     </td>
@@ -259,7 +259,7 @@ export function GestionProductos() {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6">
               {editingProduct ? "Editar Producto" : "Nuevo Producto"}
             </h2>
@@ -267,19 +267,19 @@ export function GestionProductos() {
             <form className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Nombre del producto</label>
+                  <label className="block text-sm font-semibold mb-2 text-muted">Nombre del producto</label>
                   <input
                     type="text"
                     defaultValue={editingProduct?.name}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                     placeholder="Ej: Paracetamol 500mg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Categoría</label>
+                  <label className="block text-sm font-semibold mb-2 text-muted">Categoría</label>
                   <select
                     defaultValue={editingProduct?.category}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option>Analgésicos</option>
                     <option>Antibióticos</option>
@@ -291,38 +291,38 @@ export function GestionProductos() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Precio (S/)</label>
+                  <label className="block text-sm font-semibold mb-2 text-muted">Precio (S/)</label>
                   <input
                     type="number"
                     step="0.01"
                     defaultValue={editingProduct?.price}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Stock Ate</label>
+                  <label className="block text-sm font-semibold mb-2 text-muted">Stock Ate</label>
                   <input
                     type="number"
                     defaultValue={editingProduct?.stockAte}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Stock S.A.</label>
+                  <label className="block text-sm font-semibold mb-2 text-muted">Stock S.A.</label>
                   <input
                     type="number"
                     defaultValue={editingProduct?.stockSantaAnita}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Stock mínimo</label>
+                <label className="block text-sm font-semibold mb-2 text-muted">Stock mínimo</label>
                 <input
                   type="number"
                   defaultValue={editingProduct?.minStock}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
 
@@ -331,9 +331,9 @@ export function GestionProductos() {
                   type="checkbox"
                   id="requiresPrescription"
                   defaultChecked={editingProduct?.requiresPrescription}
-                  className="w-5 h-5 rounded border-gray-300 text-[#FF6633] focus:ring-[#FF6633]"
+                  className="w-5 h-5 rounded border-line text-brand focus:ring-brand"
                 />
-                <label htmlFor="requiresPrescription" className="text-sm font-semibold text-gray-700">
+                <label htmlFor="requiresPrescription" className="text-sm font-semibold text-muted">
                   Requiere receta médica
                 </label>
               </div>
@@ -342,14 +342,14 @@ export function GestionProductos() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 bg-[#FF6633] text-white py-3 rounded-lg font-semibold hover:bg-[#E85522] transition-colors"
+                  className="flex-1 bg-brand text-white py-3 rounded-lg font-semibold hover:bg-brand-hover transition-colors"
                 >
                   {editingProduct ? "Guardar cambios" : "Crear producto"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  className="flex-1 bg-line text-muted py-3 rounded-lg font-semibold hover:bg-line-2 transition-colors"
                 >
                   Cancelar
                 </button>

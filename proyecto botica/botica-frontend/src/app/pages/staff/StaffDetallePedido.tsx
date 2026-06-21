@@ -71,7 +71,7 @@ export default function StaffDetallePedido() {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block w-10 h-10 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <div className="inline-block w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -79,9 +79,9 @@ export default function StaffDetallePedido() {
   if (!order) {
     return (
       <div className="text-center py-12">
-        <AlertCircle size={48} className="mx-auto text-[#DC2626] mb-3" />
-        <p className="font-medium text-[#1A1F2E]">Pedido no encontrado</p>
-        <Link to="/staff/pedidos" className="text-sm text-[#F26430] hover:underline mt-2 inline-block">
+        <AlertCircle size={48} className="mx-auto text-error mb-3" />
+        <p className="font-medium text-text">Pedido no encontrado</p>
+        <Link to="/staff/pedidos" className="text-sm text-brand hover:underline mt-2 inline-block">
           ← Volver a pedidos
         </Link>
       </div>
@@ -111,18 +111,18 @@ export default function StaffDetallePedido() {
     <div>
       <Link
         to="/staff/pedidos"
-        className="inline-flex items-center gap-1 text-sm text-[#4A5260] hover:text-[#F26430] mb-4"
+        className="inline-flex items-center gap-1 text-sm text-muted hover:text-brand mb-4"
       >
         <ArrowLeft size={16} /> Volver a pedidos
       </Link>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">
+        <h1 className="text-2xl lg:text-3xl font-bold text-text">
           Pedido #{order.order_id}
         </h1>
         <StatusBadge state={state} />
       </div>
-      <p className="text-sm text-[#4A5260] -mt-4 mb-6">
+      <p className="text-sm text-muted -mt-4 mb-6">
         {orderDate.toLocaleString('es-PE', {
           weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
           hour: '2-digit', minute: '2-digit',
@@ -156,18 +156,18 @@ export default function StaffDetallePedido() {
           </Section>
 
           <Section title="Productos" icon={Package}>
-            <div className="divide-y divide-[#E5E7EB]">
+            <div className="divide-y divide-line">
               {(order.details || []).map((d, idx) => (
                 <div key={d.detail_id || idx} className="py-3 flex justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[#1A1F2E] truncate">
+                    <p className="text-sm font-medium text-text truncate">
                       {d.product_name || `Producto #${d.product_id}`}
                     </p>
-                    <p className="text-xs text-[#4A5260]">
+                    <p className="text-xs text-muted">
                       {d.amount} × S/ {Number(d.unit_price).toFixed(2)}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold text-[#1A1F2E] shrink-0">
+                  <p className="text-sm font-semibold text-text shrink-0">
                     S/ {Number(d.sub_total_price).toFixed(2)}
                   </p>
                 </div>
@@ -176,7 +176,7 @@ export default function StaffDetallePedido() {
           </Section>
 
           {state === 'cancelado' && (
-            <Section title="Cancelación" icon={AlertCircle} accent="#DC2626">
+            <Section title="Cancelación" icon={AlertCircle} accent="var(--c-error)">
               {order.cancelled_at && (
                 <Row
                   label="Fecha"
@@ -209,9 +209,9 @@ export default function StaffDetallePedido() {
             {method === 'tarjeta' && order.payment?.mp_status && (
               <Row label="MP estado" value={order.payment.mp_status} />
             )}
-            <div className="mt-3 pt-3 border-t border-[#E5E7EB] flex justify-between">
-              <span className="font-medium text-[#1A1F2E]">Total</span>
-              <span className="text-xl font-bold text-[#F26430]">
+            <div className="mt-3 pt-3 border-t border-line flex justify-between">
+              <span className="font-medium text-text">Total</span>
+              <span className="text-xl font-bold text-brand">
                 S/ {Number(order.total_price).toFixed(2)}
               </span>
             </div>
@@ -224,7 +224,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => runAction('validate')}
-                    className="w-full bg-[#3B82F6] hover:bg-[#2563EB] disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-info hover:bg-info disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
                   >
                     Validar pago manual
                   </button>
@@ -233,7 +233,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => runAction('deliver')}
-                    className="w-full bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-success hover:bg-success disabled:opacity-50 text-white font-medium py-2.5 rounded-md text-sm"
                   >
                     Marcar como entregado
                   </button>
@@ -242,7 +242,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => setModal('cancel')}
-                    className="w-full bg-white hover:bg-[#FEE2E2] disabled:opacity-50 text-[#DC2626] border border-[#DC2626] font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-surface hover:bg-error-soft disabled:opacity-50 text-error border border-error font-medium py-2.5 rounded-md text-sm"
                   >
                     Cancelar pedido
                   </button>
@@ -251,7 +251,7 @@ export default function StaffDetallePedido() {
                   <button
                     disabled={busy}
                     onClick={() => setModal('cancel-refund')}
-                    className="w-full bg-white hover:bg-[#FEE2E2] disabled:opacity-50 text-[#DC2626] border border-[#DC2626] font-medium py-2.5 rounded-md text-sm"
+                    className="w-full bg-surface hover:bg-error-soft disabled:opacity-50 text-error border border-error font-medium py-2.5 rounded-md text-sm"
                   >
                     Cancelar con refund manual
                   </button>
@@ -300,11 +300,11 @@ function Section({
 }) {
   return (
     <div
-      className="bg-white rounded-xl border p-4"
-      style={accent ? { borderColor: accent } : { borderColor: '#E5E7EB' }}
+      className="bg-surface rounded-xl border p-4"
+      style={accent ? { borderColor: accent } : { borderColor: 'var(--c-line)' }}
     >
-      <h2 className="flex items-center gap-2 font-bold text-[#1A1F2E] mb-3 text-sm">
-        {Icon && <Icon size={16} className={accent ? '' : 'text-[#F26430]'} />}
+      <h2 className="flex items-center gap-2 font-bold text-text mb-3 text-sm">
+        {Icon && <Icon size={16} className={accent ? '' : 'text-brand'} />}
         {title}
       </h2>
       {children}
@@ -315,8 +315,8 @@ function Section({
 function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-3 py-1 text-sm">
-      <span className="text-[#4A5260]">{label}</span>
-      <span className={`text-right text-[#1A1F2E] ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
+      <span className="text-muted">{label}</span>
+      <span className={`text-right text-text ${mono ? 'font-mono text-xs' : ''}`}>{value}</span>
     </div>
   );
 }
@@ -333,31 +333,31 @@ function CancelModal({
 
   return (
     <ModalShell onClose={onClose} title="Cancelar pedido">
-      <p className="text-sm text-[#4A5260] mb-3">
+      <p className="text-sm text-muted mb-3">
         Indica el motivo de la cancelación. El stock se restaurará automáticamente.
       </p>
-      <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
+      <label className="block text-sm font-medium text-text mb-1">
         Razón (mín. 5 caracteres)
       </label>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={3}
-        className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+        className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
         placeholder="Ej. Cliente solicitó cancelación por error en el pedido"
       />
       <div className="mt-4 flex gap-2 justify-end">
         <button
           onClick={onClose}
           disabled={busy}
-          className="px-4 py-2 text-sm text-[#4A5260] hover:bg-[#F9FAFB] rounded-md"
+          className="px-4 py-2 text-sm text-muted hover:bg-page rounded-md"
         >
           Cancelar
         </button>
         <button
           disabled={!valid || busy}
           onClick={() => onConfirm(reason.trim())}
-          className="px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-50 text-white font-medium text-sm rounded-md"
+          className="px-4 py-2 bg-error hover:bg-error disabled:opacity-50 text-white font-medium text-sm rounded-md"
         >
           {busy ? 'Procesando...' : 'Cancelar pedido'}
         </button>
@@ -390,7 +390,7 @@ function CancelWithRefundModal({
 
   return (
     <ModalShell onClose={onClose} title="Cancelar con refund manual">
-      <div className="bg-[#FEF3C7] border border-[#F59E0B] rounded-md p-3 mb-4 text-sm text-[#92400E]">
+      <div className="bg-warning-soft border border-warning rounded-md p-3 mb-4 text-sm text-warning">
         <p className="font-medium mb-1">Pasos a seguir:</p>
         <ol className="list-decimal list-inside space-y-1 text-xs">
           <li>Abre MercadoPago y busca el pago por su ID.</li>
@@ -400,15 +400,15 @@ function CancelWithRefundModal({
       </div>
 
       <div className="mb-3">
-        <label className="block text-xs text-[#4A5260] mb-1">MP Payment ID</label>
+        <label className="block text-xs text-muted mb-1">MP Payment ID</label>
         <div className="flex items-center gap-2">
-          <code className="flex-1 px-3 py-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md text-xs font-mono text-[#1A1F2E] truncate">
+          <code className="flex-1 px-3 py-2 bg-page border border-line rounded-md text-xs font-mono text-text truncate">
             {mpPaymentId || '—'}
           </code>
           <button
             onClick={copyMpId}
             disabled={!mpPaymentId}
-            className="px-3 py-2 border border-[#E5E7EB] rounded-md hover:bg-[#F9FAFB] disabled:opacity-50"
+            className="px-3 py-2 border border-line rounded-md hover:bg-page disabled:opacity-50"
             title="Copiar"
           >
             <Copy size={14} />
@@ -418,25 +418,25 @@ function CancelWithRefundModal({
           href="https://www.mercadopago.com.pe/activities"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-[#F26430] hover:underline mt-2"
+          className="inline-flex items-center gap-1 text-xs text-brand hover:underline mt-2"
         >
           Abrir MercadoPago <ExternalLink size={12} />
         </a>
       </div>
 
-      <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
+      <label className="block text-sm font-medium text-text mb-1">
         Razón (mín. 5 caracteres)
       </label>
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         rows={3}
-        className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430] mb-3"
+        className="w-full px-3 py-2 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand mb-3"
         placeholder="Motivo de la cancelación"
       />
 
       {requireForce && (
-        <div className={`text-xs p-2 rounded-md mb-3 ${canForce ? 'bg-[#FEF3C7] text-[#92400E]' : 'bg-[#FEE2E2] text-[#991B1B]'}`}>
+        <div className={`text-xs p-2 rounded-md mb-3 ${canForce ? 'bg-warning-soft text-warning' : 'bg-error-soft text-error'}`}>
           {canForce ? (
             <label className="flex items-start gap-2 cursor-pointer">
               <input
@@ -464,7 +464,7 @@ function CancelWithRefundModal({
           onChange={(e) => setConfirmed(e.target.checked)}
           className="mt-0.5"
         />
-        <span className="text-sm text-[#1A1F2E]">
+        <span className="text-sm text-text">
           Confirmo que ya procesé el refund en MercadoPago
         </span>
       </label>
@@ -473,7 +473,7 @@ function CancelWithRefundModal({
         <button
           onClick={onClose}
           disabled={busy}
-          className="px-4 py-2 text-sm text-[#4A5260] hover:bg-[#F9FAFB] rounded-md"
+          className="px-4 py-2 text-sm text-muted hover:bg-page rounded-md"
         >
           Cancelar
         </button>
@@ -486,7 +486,7 @@ function CancelWithRefundModal({
               ...(requireForce && force ? { force: true } : {}),
             })
           }
-          className="inline-flex items-center gap-1 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-50 text-white font-medium text-sm rounded-md"
+          className="inline-flex items-center gap-1 px-4 py-2 bg-error hover:bg-error disabled:opacity-50 text-white font-medium text-sm rounded-md"
         >
           <CheckCircle2 size={14} />
           {busy ? 'Procesando...' : 'Cancelar y restaurar stock'}
@@ -509,12 +509,12 @@ function ModalShell({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[#E5E7EB]">
-          <h2 className="font-bold text-[#1A1F2E]">{title}</h2>
-          <button onClick={onClose} className="text-[#4A5260] hover:text-[#1A1F2E]">
+        <div className="flex items-center justify-between p-4 border-b border-line">
+          <h2 className="font-bold text-text">{title}</h2>
+          <button onClick={onClose} className="text-muted hover:text-text">
             <X size={20} />
           </button>
         </div>

@@ -7,6 +7,7 @@ import { useAuth } from "../lib/AuthContext";
 import { useCart } from "../lib/CartContext";
 import { useLocations } from "../lib/LocationContext";
 import { UserMenu } from "./UserMenu";
+import { AccessibilityMenu } from "./AccessibilityMenu";
 
 export function Navbar() {
   const { user, isCheckingSession, logout } = useAuth();
@@ -72,11 +73,11 @@ export function Navbar() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Busca medicamentos, vitaminas, cuidado personal..."
-                className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F26430]/20 focus:border-[#F26430] transition-all bg-white text-sm"
+                className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F15A29]/20 focus:border-[#F15A29] transition-all bg-white text-sm"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F26430] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F15A29] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
                 aria-label="Buscar"
               >
                 <Search className="w-4 h-4" />
@@ -86,6 +87,9 @@ export function Navbar() {
 
           {/* Right Actions - Desktop */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Accesibilidad */}
+            <AccessibilityMenu variant="light" />
+
             {/* Branch Selector (dropdown) */}
             <div ref={locationDropdownRef} className="relative">
               <button
@@ -126,7 +130,7 @@ export function Navbar() {
                       >
                         <MapPin
                           className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                            isSelected ? 'text-[#F26430]' : 'text-[#9CA3AF]'
+                            isSelected ? 'text-[#F15A29]' : 'text-[#9CA3AF]'
                           }`}
                         />
                         <div className="flex-1 min-w-0">
@@ -140,7 +144,7 @@ export function Navbar() {
                           )}
                         </div>
                         {isSelected && (
-                          <Check className="w-4 h-4 text-[#F26430] flex-shrink-0" />
+                          <Check className="w-4 h-4 text-[#F15A29] flex-shrink-0" />
                         )}
                       </button>
                     );
@@ -153,7 +157,7 @@ export function Navbar() {
             {user?.role === 'cust' && (
               <Link
                 to="/mis-pedidos"
-                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F26430] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F15A29] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
               >
                 <Package className="w-4 h-4" />
                 <span className="hidden lg:inline">Mis Pedidos</span>
@@ -168,7 +172,7 @@ export function Navbar() {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F26430] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F15A29] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
               >
                 <User className="w-4 h-4" />
                 <span className="hidden lg:inline">Ingresar</span>
@@ -178,7 +182,7 @@ export function Navbar() {
             {/* Cart */}
             <Link
               to="/carrito"
-              className="relative flex items-center gap-2 px-4 py-2.5 bg-[#F26430] text-white rounded-lg hover:bg-[#D94E1F] transition-colors shadow-sm font-semibold text-sm"
+              className="relative flex items-center gap-2 px-4 py-2.5 bg-[#F15A29] text-white rounded-lg hover:bg-[#D94E1F] transition-colors shadow-sm font-semibold text-sm"
             >
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden lg:inline">Carrito</span>
@@ -191,9 +195,10 @@ export function Navbar() {
           </div>
 
           {/* Mobile Actions */}
-          <div className="flex md:hidden items-center gap-3">
+          <div className="flex md:hidden items-center gap-2">
+            <AccessibilityMenu variant="light" />
             <Link to="/carrito" className="relative" aria-label="Ir al carrito">
-              <div className="p-2 bg-[#F26430] text-white rounded-lg shadow-sm">
+              <div className="p-2 bg-[#F15A29] text-white rounded-lg shadow-sm">
                 <ShoppingCart className="w-5 h-5" />
                 {itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#1E4D8C] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -220,11 +225,11 @@ export function Navbar() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar medicamentos..."
-              className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F26430]/20 focus:border-[#F26430] transition-all bg-white text-sm"
+              className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F15A29]/20 focus:border-[#F15A29] transition-all bg-white text-sm"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F26430] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F15A29] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
               aria-label="Buscar"
             >
               <Search className="w-3.5 h-3.5" />
@@ -288,7 +293,7 @@ export function Navbar() {
               ) : user ? (
                 <>
                   <div className="flex items-center gap-3 px-4 py-3 text-[#1A1A2E]">
-                    <div className="w-9 h-9 rounded-full bg-[#F26430] text-white flex items-center justify-center font-semibold text-sm">
+                    <div className="w-9 h-9 rounded-full bg-[#F15A29] text-white flex items-center justify-center font-semibold text-sm">
                       {user.full_name.trim().charAt(0).toUpperCase() || '?'}
                     </div>
                     <span className="font-medium text-sm truncate">{user.full_name}</span>

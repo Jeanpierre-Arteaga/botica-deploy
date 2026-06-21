@@ -274,29 +274,29 @@ export default function StaffNuevaVenta() {
   if (successOrder) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 bg-[#D1FAE5] rounded-full flex items-center justify-center">
-            <CheckCircle2 className="text-[#10B981]" size={48} />
+        <div className="bg-surface rounded-2xl border border-line p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-success-soft rounded-full flex items-center justify-center">
+            <CheckCircle2 className="text-success" size={48} />
           </div>
-          <h1 className="text-3xl font-bold text-[#1A1F2E] mb-2">¡Venta registrada!</h1>
-          <p className="text-[#4A5260] mb-6">Pedido #{successOrder.order_id}</p>
+          <h1 className="text-3xl font-bold text-text mb-2">¡Venta registrada!</h1>
+          <p className="text-muted mb-6">Pedido #{successOrder.order_id}</p>
 
-          <div className="bg-[#FFF4EE] rounded-xl p-6 mb-6 text-left max-w-md mx-auto">
+          <div className="bg-brand-soft rounded-xl p-6 mb-6 text-left max-w-md mx-auto">
             <div className="flex justify-between mb-2">
-              <span className="text-[#4A5260]">Cliente:</span>
+              <span className="text-muted">Cliente:</span>
               <span className="font-medium">{successOrder.customer_name || 'N/A'}</span>
             </div>
             <div className="flex justify-between mb-2">
-              <span className="text-[#4A5260]">Método:</span>
+              <span className="text-muted">Método:</span>
               <span className="font-medium capitalize">{successOrder.payment?.payment_method}</span>
             </div>
             <div className="flex justify-between mb-2">
-              <span className="text-[#4A5260]">Comprobante:</span>
+              <span className="text-muted">Comprobante:</span>
               <span className="font-medium capitalize">{successOrder.payment?.voucher_type}</span>
             </div>
-            <div className="flex justify-between pt-2 border-t border-[#FFD4BC]">
+            <div className="flex justify-between pt-2 border-t border-line">
               <span className="font-bold">Total cobrado:</span>
-              <span className="font-bold text-[#F26430] text-xl">
+              <span className="font-bold text-brand text-xl">
                 S/ {Number(successOrder.total_price).toFixed(2)}
               </span>
             </div>
@@ -304,7 +304,7 @@ export default function StaffNuevaVenta() {
 
           <button
             onClick={() => setSuccessOrder(null)}
-            className="px-8 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+            className="px-8 py-3 bg-brand hover:bg-brand-hover text-white font-medium rounded-md transition-colors"
           >
             Nueva venta
           </button>
@@ -317,8 +317,8 @@ export default function StaffNuevaVenta() {
     <div>
       <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">Nueva venta</h1>
-          <p className="text-sm text-[#4A5260]">
+          <h1 className="text-2xl lg:text-3xl font-bold text-text">Nueva venta</h1>
+          <p className="text-sm text-muted">
             Sede: {sedeName || `#${locationId}`}
             {user?.role === 'admin' && ' (por defecto)'}
           </p>
@@ -328,15 +328,15 @@ export default function StaffNuevaVenta() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* IZQUIERDA: productos */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+          <div className="bg-surface rounded-xl border border-line p-4">
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5260]" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar producto por nombre..."
-                className="w-full pl-10 pr-3 py-2.5 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+                className="w-full pl-10 pr-3 py-2.5 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               />
             </div>
 
@@ -358,10 +358,10 @@ export default function StaffNuevaVenta() {
 
           {isLoadingProducts ? (
             <div className="text-center py-12">
-              <div className="inline-block w-10 h-10 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+              <div className="inline-block w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="bg-white rounded-xl border border-[#E5E7EB] p-12 text-center text-[#4A5260]">
+            <div className="bg-surface rounded-xl border border-line p-12 text-center text-muted">
               {searchQuery
                 ? `No se encontraron productos para "${searchQuery}"`
                 : 'No hay productos en esta sede'}
@@ -374,15 +374,15 @@ export default function StaffNuevaVenta() {
                 return (
                   <div
                     key={p.product_id}
-                    className={`bg-white rounded-xl border-2 p-3 flex flex-col transition-all ${
+                    className={`bg-surface rounded-xl border-2 p-3 flex flex-col transition-all ${
                       stock === 0
-                        ? 'opacity-50 border-[#E5E7EB]'
+                        ? 'opacity-50 border-line'
                         : inCart
-                          ? 'border-[#F26430] shadow-md'
-                          : 'border-[#E5E7EB] hover:border-[#F26430] hover:shadow-md'
+                          ? 'border-brand shadow-md'
+                          : 'border-line hover:border-brand hover:shadow-md'
                     }`}
                   >
-                    <div className="aspect-square bg-[#FFF4EE] rounded-lg mb-2 overflow-hidden flex items-center justify-center">
+                    <div className="aspect-square bg-brand-soft rounded-lg mb-2 overflow-hidden flex items-center justify-center">
                       {p.image_url ? (
                         <img
                           src={p.image_url}
@@ -391,21 +391,21 @@ export default function StaffNuevaVenta() {
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       ) : (
-                        <Package size={40} className="text-[#F26430]" />
+                        <Package size={40} className="text-brand" />
                       )}
                     </div>
 
-                    <p className="font-medium text-xs text-[#1A1F2E] line-clamp-2 mb-1 min-h-[2rem]">
+                    <p className="font-medium text-xs text-text line-clamp-2 mb-1 min-h-[2rem]">
                       {p.product_name}
                     </p>
 
                     <p className={`text-xs mb-1 ${
-                      stock > 10 ? 'text-[#16A34A]' : stock > 0 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
+                      stock > 10 ? 'text-success' : stock > 0 ? 'text-warning' : 'text-error'
                     }`}>
                       {stock > 0 ? `Stock: ${stock}` : 'Sin stock'}
                     </p>
 
-                    <p className="text-[#F26430] font-bold text-sm mb-2">
+                    <p className="text-brand font-bold text-sm mb-2">
                       S/ {Number(p.product_price).toFixed(2)}
                     </p>
 
@@ -414,10 +414,10 @@ export default function StaffNuevaVenta() {
                       disabled={stock === 0}
                       className={`mt-auto w-full px-3 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
                         stock === 0
-                          ? 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
+                          ? 'bg-line text-faint cursor-not-allowed'
                           : inCart
-                            ? 'bg-[#F26430] text-white hover:bg-[#D94E1F]'
-                            : 'bg-[#1A1F2E] text-white hover:bg-[#F26430]'
+                            ? 'bg-brand text-white hover:bg-brand-hover'
+                            : 'bg-ink text-white hover:bg-brand'
                       }`}
                     >
                       <Plus size={14} />
@@ -433,9 +433,9 @@ export default function StaffNuevaVenta() {
         {/* DERECHA: cliente + carrito */}
         <div className="lg:col-span-1 space-y-4">
           {/* Cliente */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-            <h2 className="font-bold text-[#1A1F2E] mb-3 flex items-center gap-2">
-              <User size={16} className="text-[#F26430]" />
+          <section className="bg-surface rounded-xl border border-line p-4">
+            <h2 className="font-bold text-text mb-3 flex items-center gap-2">
+              <User size={16} className="text-brand" />
               Cliente
             </h2>
 
@@ -449,30 +449,30 @@ export default function StaffNuevaVenta() {
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearchCustomer(); }}
                   placeholder="DNI (8 dígitos)"
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+                  className="w-full px-3 py-2 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
                 <button
                   onClick={handleSearchCustomer}
                   disabled={dni.length !== 8 || isSearchingCustomer}
-                  className="w-full px-3 py-2 bg-[#1E4D8C] hover:bg-[#16407a] text-white font-medium rounded-md text-sm disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-cool hover:bg-cool/90 text-white font-medium rounded-md text-sm disabled:opacity-50"
                 >
                   {isSearchingCustomer ? 'Buscando...' : 'Buscar cliente'}
                 </button>
-                <p className="text-xs text-[#4A5260]">
+                <p className="text-xs text-muted">
                   DNI obligatorio para emitir comprobante
                 </p>
               </div>
             )}
 
             {showCreateCustomer && (
-              <div className="space-y-2 bg-[#FEF3C7] rounded-md p-3">
-                <p className="text-xs text-[#92400E] font-medium">Cliente nuevo · DNI: {dni}</p>
+              <div className="space-y-2 bg-warning-soft rounded-md p-3">
+                <p className="text-xs text-warning font-medium">Cliente nuevo · DNI: {dni}</p>
                 <input
                   type="text"
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
                   placeholder="Nombre completo *"
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+                  className="w-full px-3 py-2 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
                 <input
                   type="text"
@@ -481,19 +481,19 @@ export default function StaffNuevaVenta() {
                   value={newCustomerPhone}
                   onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="Teléfono (opcional)"
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+                  className="w-full px-3 py-2 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleCreateCustomer}
                     disabled={isCreatingCustomer}
-                    className="flex-1 px-3 py-2 bg-[#16A34A] hover:bg-[#15803d] text-white font-medium rounded-md text-sm disabled:opacity-50"
+                    className="flex-1 px-3 py-2 bg-success hover:bg-success/90 text-white font-medium rounded-md text-sm disabled:opacity-50"
                   >
                     {isCreatingCustomer ? 'Creando...' : 'Crear cliente'}
                   </button>
                   <button
                     onClick={clearCustomer}
-                    className="px-3 py-2 border border-[#4A5260] text-[#4A5260] rounded-md text-sm"
+                    className="px-3 py-2 border border-muted text-muted rounded-md text-sm"
                   >
                     Cancelar
                   </button>
@@ -502,13 +502,13 @@ export default function StaffNuevaVenta() {
             )}
 
             {customer && (
-              <div className="bg-[#D1FAE5] border border-[#16A34A] rounded-md p-3">
-                <p className="font-medium text-[#065F46] text-sm">{customer.full_name}</p>
-                <p className="text-xs text-[#065F46]">DNI: {customer.dni || '—'}</p>
-                {customer.phone && <p className="text-xs text-[#065F46]">Tel: {customer.phone}</p>}
+              <div className="bg-success-soft border border-success rounded-md p-3">
+                <p className="font-medium text-success text-sm">{customer.full_name}</p>
+                <p className="text-xs text-success">DNI: {customer.dni || '—'}</p>
+                {customer.phone && <p className="text-xs text-success">Tel: {customer.phone}</p>}
                 <button
                   onClick={clearCustomer}
-                  className="mt-2 text-xs text-[#065F46] underline"
+                  className="mt-2 text-xs text-success underline"
                 >
                   Cambiar cliente
                 </button>
@@ -517,29 +517,29 @@ export default function StaffNuevaVenta() {
           </section>
 
           {/* Carrito */}
-          <section className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-            <h2 className="font-bold text-[#1A1F2E] mb-3 flex items-center gap-2">
-              <ShoppingBag size={16} className="text-[#F26430]" />
+          <section className="bg-surface rounded-xl border border-line p-4">
+            <h2 className="font-bold text-text mb-3 flex items-center gap-2">
+              <ShoppingBag size={16} className="text-brand" />
               Venta actual ({cart.length})
             </h2>
 
             {cart.length === 0 ? (
-              <div className="text-center py-8 text-[#4A5260]">
-                <ShoppingBag size={32} className="mx-auto text-[#E5E7EB] mb-2" />
+              <div className="text-center py-8 text-muted">
+                <ShoppingBag size={32} className="mx-auto text-line mb-2" />
                 <p className="text-sm">No hay productos</p>
               </div>
             ) : (
               <>
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {cart.map((item) => (
-                    <div key={item.product_id} className="bg-[#F9FAFB] rounded-md p-2">
+                    <div key={item.product_id} className="bg-page rounded-md p-2">
                       <div className="flex justify-between items-start mb-1">
-                        <p className="font-medium text-xs text-[#1A1F2E] line-clamp-2 flex-1">
+                        <p className="font-medium text-xs text-text line-clamp-2 flex-1">
                           {item.product_name}
                         </p>
                         <button
                           onClick={() => removeFromCart(item.product_id)}
-                          className="text-[#DC2626] hover:text-[#991B1B] ml-1"
+                          className="text-error hover:text-error ml-1"
                           aria-label="Quitar producto"
                         >
                           <Trash2 size={14} />
@@ -549,7 +549,7 @@ export default function StaffNuevaVenta() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => updateAmount(item.product_id, -1)}
-                            className="w-6 h-6 border border-[#E5E7EB] rounded flex items-center justify-center hover:bg-white"
+                            className="w-6 h-6 border border-line rounded flex items-center justify-center hover:bg-surface"
                             aria-label="Restar"
                           >
                             <Minus size={10} />
@@ -557,13 +557,13 @@ export default function StaffNuevaVenta() {
                           <span className="w-8 text-center text-sm font-semibold">{item.amount}</span>
                           <button
                             onClick={() => updateAmount(item.product_id, 1)}
-                            className="w-6 h-6 border border-[#E5E7EB] rounded flex items-center justify-center hover:bg-white"
+                            className="w-6 h-6 border border-line rounded flex items-center justify-center hover:bg-surface"
                             aria-label="Sumar"
                           >
                             <Plus size={10} />
                           </button>
                         </div>
-                        <p className="text-sm font-bold text-[#F26430]">
+                        <p className="text-sm font-bold text-brand">
                           S/ {(item.unit_price * item.amount).toFixed(2)}
                         </p>
                       </div>
@@ -571,16 +571,16 @@ export default function StaffNuevaVenta() {
                   ))}
                 </div>
 
-                <div className="border-t border-[#E5E7EB] pt-3 space-y-3">
+                <div className="border-t border-line pt-3 space-y-3">
                   <div className="flex justify-between">
                     <span className="font-bold">Total:</span>
-                    <span className="font-bold text-[#F26430] text-xl">
+                    <span className="font-bold text-brand text-xl">
                       S/ {subtotal.toFixed(2)}
                     </span>
                   </div>
 
                   <div>
-                    <p className="text-xs font-medium text-[#1A1F2E] mb-2">Método de pago</p>
+                    <p className="text-xs font-medium text-text mb-2">Método de pago</p>
                     <div className="grid grid-cols-2 gap-2">
                       {POS_PAYMENT_METHODS.map((m) => (
                         <button
@@ -588,8 +588,8 @@ export default function StaffNuevaVenta() {
                           onClick={() => setPaymentMethod(m)}
                           className={`px-2 py-2 rounded-md text-xs font-medium capitalize transition-colors ${
                             paymentMethod === m
-                              ? 'bg-[#F26430] text-white'
-                              : 'bg-[#F9FAFB] text-[#4A5260] hover:bg-[#E5E7EB]'
+                              ? 'bg-brand text-white'
+                              : 'bg-page text-muted hover:bg-line-2'
                           }`}
                         >
                           {m}
@@ -599,7 +599,7 @@ export default function StaffNuevaVenta() {
                   </div>
 
                   <div>
-                    <p className="text-xs font-medium text-[#1A1F2E] mb-2">Comprobante</p>
+                    <p className="text-xs font-medium text-text mb-2">Comprobante</p>
                     <div className="grid grid-cols-3 gap-2">
                       {POS_VOUCHER_TYPES.map((v) => (
                         <button
@@ -607,8 +607,8 @@ export default function StaffNuevaVenta() {
                           onClick={() => setVoucherType(v)}
                           className={`px-2 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
                             voucherType === v
-                              ? 'bg-[#1A1F2E] text-white'
-                              : 'bg-[#F9FAFB] text-[#4A5260] hover:bg-[#E5E7EB]'
+                              ? 'bg-ink text-white'
+                              : 'bg-page text-muted hover:bg-line-2'
                           }`}
                         >
                           {v}
@@ -620,13 +620,13 @@ export default function StaffNuevaVenta() {
                   <button
                     onClick={requestConfirm}
                     disabled={isProcessing || cart.length === 0 || !customer}
-                    className="w-full px-4 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-bold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full px-4 py-3 bg-brand hover:bg-brand-hover text-white font-bold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {isProcessing ? 'Procesando...' : `Confirmar venta · S/ ${subtotal.toFixed(2)}`}
                   </button>
 
                   {!customer && cart.length > 0 && (
-                    <p className="text-xs text-[#DC2626] text-center flex items-center justify-center gap-1">
+                    <p className="text-xs text-error text-center flex items-center justify-center gap-1">
                       <AlertCircle size={12} />
                       Identifica al cliente primero
                     </p>
@@ -641,42 +641,42 @@ export default function StaffNuevaVenta() {
       {/* Modal de confirmación de venta (sin confirm() nativo) */}
       {showConfirm && customer && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h2 className="text-lg font-bold text-[#1A1F2E] mb-4">Confirmar venta</h2>
+          <div className="bg-surface rounded-xl p-6 max-w-sm w-full">
+            <h2 className="text-lg font-bold text-text mb-4">Confirmar venta</h2>
             <div className="space-y-2 text-sm mb-6">
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Cliente:</span>
+                <span className="text-muted">Cliente:</span>
                 <span className="font-medium">{customer.full_name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Productos:</span>
+                <span className="text-muted">Productos:</span>
                 <span className="font-medium">{cart.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Método:</span>
+                <span className="text-muted">Método:</span>
                 <span className="font-medium capitalize">{paymentMethod}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#4A5260]">Comprobante:</span>
+                <span className="text-muted">Comprobante:</span>
                 <span className="font-medium capitalize">{voucherType}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-[#E5E7EB]">
+              <div className="flex justify-between pt-2 border-t border-line">
                 <span className="font-bold">Total:</span>
-                <span className="font-bold text-[#F26430] text-lg">S/ {subtotal.toFixed(2)}</span>
+                <span className="font-bold text-brand text-lg">S/ {subtotal.toFixed(2)}</span>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleConfirmSale}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-2.5 bg-[#F26430] hover:bg-[#D94E1F] text-white font-bold rounded-md disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 bg-brand hover:bg-brand-hover text-white font-bold rounded-md disabled:opacity-50"
               >
                 {isProcessing ? 'Procesando...' : 'Confirmar'}
               </button>
               <button
                 onClick={() => setShowConfirm(false)}
                 disabled={isProcessing}
-                className="px-4 py-2.5 border border-[#E5E7EB] text-[#4A5260] rounded-md hover:bg-[#F9FAFB] disabled:opacity-50"
+                className="px-4 py-2.5 border border-line text-muted rounded-md hover:bg-page disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -700,8 +700,8 @@ function CategoryChip({
       onClick={onClick}
       className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
         active
-          ? 'bg-[#F26430] text-white'
-          : 'bg-[#F9FAFB] text-[#4A5260] hover:bg-[#E5E7EB]'
+          ? 'bg-brand text-white'
+          : 'bg-page text-muted hover:bg-line-2'
       }`}
     >
       {children}

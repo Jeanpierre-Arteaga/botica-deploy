@@ -40,30 +40,30 @@ export function Reportes() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">Reportes de Ventas y Rotación</h1>
-          <p className="text-sm text-gray-600">Análisis de rendimiento y estadísticas de ventas</p>
+          <h1 className="text-2xl font-bold text-text mb-1">Reportes de Ventas y Rotación</h1>
+          <p className="text-sm text-muted">Análisis de rendimiento y estadísticas de ventas</p>
         </div>
-        <button className="flex items-center gap-2 bg-[#FF6633] text-white px-5 py-3 rounded-lg font-semibold hover:bg-[#E85522] transition-colors">
+        <button className="flex items-center gap-2 bg-brand text-white px-5 py-3 rounded-lg font-semibold hover:bg-brand-hover transition-colors">
           <Download className="w-5 h-5" />
           Exportar Reporte
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+      <div className="bg-surface rounded-xl shadow-sm border border-line p-5 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-600" />
-              <span className="text-sm font-semibold text-gray-700">Periodo:</span>
+              <Calendar className="w-5 h-5 text-muted" />
+              <span className="text-sm font-semibold text-muted">Periodo:</span>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setDateRange("today")}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   dateRange === "today"
-                    ? "bg-[#FF6633] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-brand text-white"
+                    : "bg-line-2 text-muted hover:bg-line"
                 }`}
               >
                 Hoy
@@ -72,8 +72,8 @@ export function Reportes() {
                 onClick={() => setDateRange("week")}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   dateRange === "week"
-                    ? "bg-[#FF6633] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-brand text-white"
+                    : "bg-line-2 text-muted hover:bg-line"
                 }`}
               >
                 Semana
@@ -82,8 +82,8 @@ export function Reportes() {
                 onClick={() => setDateRange("month")}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   dateRange === "month"
-                    ? "bg-[#FF6633] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-brand text-white"
+                    : "bg-line-2 text-muted hover:bg-line"
                 }`}
               >
                 Mes
@@ -92,8 +92,8 @@ export function Reportes() {
                 onClick={() => setDateRange("custom")}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   dateRange === "custom"
-                    ? "bg-[#FF6633] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-brand text-white"
+                    : "bg-line-2 text-muted hover:bg-line"
                 }`}
               >
                 Personalizado
@@ -102,11 +102,11 @@ export function Reportes() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-gray-700">Sede:</span>
+            <span className="text-sm font-semibold text-muted">Sede:</span>
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6633]"
+              className="px-4 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="both">Ambas sedes</option>
               <option value="ate">Ate</option>
@@ -118,72 +118,72 @@ export function Reportes() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Ventas totales</p>
-            <DollarSign className="w-5 h-5 text-[#FF6633]" />
+            <p className="text-xs text-muted font-medium uppercase tracking-wide">Ventas totales</p>
+            <DollarSign className="w-5 h-5 text-brand" />
           </div>
-          <p className="text-2xl font-bold text-[#FF6633] mb-2">S/ {totalWeekSales.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-brand mb-2">S/ {totalWeekSales.toFixed(2)}</p>
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-600" />
-            <span className="text-xs font-semibold text-green-600">+18%</span>
-            <span className="text-xs text-gray-500">vs. anterior</span>
+            <TrendingUp className="w-3 h-3 text-success" />
+            <span className="text-xs font-semibold text-success">+18%</span>
+            <span className="text-xs text-muted">vs. anterior</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Promedio diario</p>
-            <DollarSign className="w-5 h-5 text-[#2B7DBF]" />
+            <p className="text-xs text-muted font-medium uppercase tracking-wide">Promedio diario</p>
+            <DollarSign className="w-5 h-5 text-cool" />
           </div>
-          <p className="text-2xl font-bold text-[#2B7DBF] mb-2">S/ {avgDailySales.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-cool mb-2">S/ {avgDailySales.toFixed(2)}</p>
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-600" />
-            <span className="text-xs font-semibold text-green-600">+12%</span>
-            <span className="text-xs text-gray-500">vs. anterior</span>
+            <TrendingUp className="w-3 h-3 text-success" />
+            <span className="text-xs font-semibold text-success">+12%</span>
+            <span className="text-xs text-muted">vs. anterior</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Productos vendidos</p>
-            <Package className="w-5 h-5 text-[#3AAB4A]" />
+            <p className="text-xs text-muted font-medium uppercase tracking-wide">Productos vendidos</p>
+            <Package className="w-5 h-5 text-success" />
           </div>
-          <p className="text-2xl font-bold text-[#3AAB4A] mb-2">471</p>
+          <p className="text-2xl font-bold text-success mb-2">471</p>
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-600" />
-            <span className="text-xs font-semibold text-green-600">+8%</span>
-            <span className="text-xs text-gray-500">vs. anterior</span>
+            <TrendingUp className="w-3 h-3 text-success" />
+            <span className="text-xs font-semibold text-success">+8%</span>
+            <span className="text-xs text-muted">vs. anterior</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Ticket promedio</p>
-            <DollarSign className="w-5 h-5 text-[#F59E0B]" />
+            <p className="text-xs text-muted font-medium uppercase tracking-wide">Ticket promedio</p>
+            <DollarSign className="w-5 h-5 text-warning" />
           </div>
-          <p className="text-2xl font-bold text-[#F59E0B] mb-2">S/ 45.30</p>
+          <p className="text-2xl font-bold text-warning mb-2">S/ 45.30</p>
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-600" />
-            <span className="text-xs font-semibold text-green-600">+5%</span>
-            <span className="text-xs text-gray-500">vs. anterior</span>
+            <TrendingUp className="w-3 h-3 text-success" />
+            <span className="text-xs font-semibold text-success">+5%</span>
+            <span className="text-xs text-muted">vs. anterior</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
         {/* Sales Chart - 2/3 width */}
-        <div className="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="col-span-2 bg-surface rounded-xl shadow-sm border border-line p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-bold text-lg">Evolución de Ventas — Última Semana</h2>
             <div className="flex items-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF6633]"></div>
-                <span className="text-gray-600">Ate</span>
+                <div className="w-3 h-3 rounded-full bg-brand"></div>
+                <span className="text-muted">Ate</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#2B7DBF]"></div>
-                <span className="text-gray-600">Santa Anita</span>
+                <div className="w-3 h-3 rounded-full bg-cool"></div>
+                <span className="text-muted">Santa Anita</span>
               </div>
             </div>
           </div>
@@ -193,31 +193,31 @@ export function Reportes() {
               <div key={index} className="flex-1 flex flex-col items-center gap-3">
                 <div className="w-full flex gap-1 items-end h-56">
                   <div
-                    className="flex-1 bg-[#FF6633] rounded-t-lg relative group cursor-pointer hover:bg-[#E85522] transition-colors"
+                    className="flex-1 bg-brand rounded-t-lg relative group cursor-pointer hover:bg-brand-hover transition-colors"
                     style={{ height: `${(data.ate / maxSales) * 100}%` }}
                   >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink-2 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       S/ {data.ate}
                     </div>
                   </div>
                   <div
-                    className="flex-1 bg-[#2B7DBF] rounded-t-lg relative group cursor-pointer hover:bg-[#1E5A8F] transition-colors"
+                    className="flex-1 bg-cool rounded-t-lg relative group cursor-pointer hover:bg-cool transition-colors"
                     style={{ height: `${(data.santaAnita / maxSales) * 100}%` }}
                   >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-ink-2 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                       S/ {data.santaAnita}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs text-gray-600 font-medium">{data.day}</span>
-                <span className="text-xs font-bold text-gray-800">S/ {data.total}</span>
+                <span className="text-xs text-muted font-medium">{data.day}</span>
+                <span className="text-xs font-bold text-text">S/ {data.total}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Category Performance - 1/3 width */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
           <h2 className="font-bold text-lg mb-6">Ventas por Categoría</h2>
           <div className="space-y-4">
             {categoryPerformance.map((cat, index) => (
@@ -228,11 +228,11 @@ export function Reportes() {
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: cat.color }}
                     ></div>
-                    <span className="text-sm font-medium text-gray-700">{cat.category}</span>
+                    <span className="text-sm font-medium text-muted">{cat.category}</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-800">S/ {cat.sales}</span>
+                  <span className="text-sm font-bold text-text">S/ {cat.sales}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="w-full bg-line rounded-full h-2.5">
                   <div
                     className="h-2.5 rounded-full transition-all"
                     style={{
@@ -242,7 +242,7 @@ export function Reportes() {
                   ></div>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-xs text-gray-500">{cat.percentage}%</span>
+                  <span className="text-xs text-muted">{cat.percentage}%</span>
                 </div>
               </div>
             ))}
@@ -251,49 +251,49 @@ export function Reportes() {
       </div>
 
       {/* Top Products Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mt-6 overflow-hidden">
-        <div className="p-5 border-b border-gray-200">
+      <div className="bg-surface rounded-xl shadow-sm border border-line mt-6 overflow-hidden">
+        <div className="p-5 border-b border-line">
           <h2 className="font-bold text-lg">Productos Más Vendidos</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-page border-b border-line">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">#</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Producto</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Categoría</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600">Unidades vendidas</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Ingresos</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">Tendencia</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">#</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Producto</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Categoría</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-muted">Unidades vendidas</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Ingresos</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted">Tendencia</th>
               </tr>
             </thead>
             <tbody>
               {topProducts.map((product, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <tr key={index} className="border-b border-line hover:bg-page transition-colors">
                   <td className="px-6 py-4">
-                    <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
+                    <span className="text-lg font-bold text-faint">#{index + 1}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="font-semibold text-sm text-gray-800">{product.name}</p>
+                    <p className="font-semibold text-sm text-text">{product.name}</p>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
+                  <td className="px-6 py-4 text-sm text-muted">{product.category}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-lg font-bold text-gray-800">{product.sold}</span>
+                    <span className="text-lg font-bold text-text">{product.sold}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-[#FF6633]">S/ {product.revenue.toFixed(2)}</span>
+                    <span className="text-sm font-bold text-brand">S/ {product.revenue.toFixed(2)}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
                       {product.trend.startsWith("+") ? (
                         <>
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-semibold text-green-600">{product.trend}</span>
+                          <TrendingUp className="w-4 h-4 text-success" />
+                          <span className="text-sm font-semibold text-success">{product.trend}</span>
                         </>
                       ) : (
                         <>
-                          <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />
-                          <span className="text-sm font-semibold text-red-600">{product.trend}</span>
+                          <TrendingUp className="w-4 h-4 text-error rotate-180" />
+                          <span className="text-sm font-semibold text-error">{product.trend}</span>
                         </>
                       )}
                     </div>

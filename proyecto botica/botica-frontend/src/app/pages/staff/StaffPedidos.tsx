@@ -81,22 +81,22 @@ export default function StaffPedidos() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1F2E]">Pedidos</h1>
-        <p className="text-sm text-[#4A5260]">
+        <h1 className="text-2xl lg:text-3xl font-bold text-text">Pedidos</h1>
+        <p className="text-sm text-muted">
           {isAdmin ? 'Gestiona los pedidos de todas las sedes' : 'Gestiona los pedidos de tu sede'}
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+      <div className="bg-surface rounded-xl border border-line p-4 mb-4">
         {isAdmin && (
           <div className="mb-3">
-            <label className="text-xs text-[#4A5260] mb-1 block">Filtrar por sede</label>
+            <label className="text-xs text-muted mb-1 block">Filtrar por sede</label>
             <select
               value={selectedLocationId ?? 'all'}
               onChange={(e) =>
                 setSelectedLocationId(e.target.value === 'all' ? null : parseInt(e.target.value, 10))
               }
-              className="w-full md:w-64 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+              className="w-full md:w-64 px-3 py-2 border border-line rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="all">Todas las sedes</option>
               {locations.map((l) => (
@@ -109,13 +109,13 @@ export default function StaffPedidos() {
         )}
 
         <div className="relative mb-3">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por # de pedido o nombre del cliente"
-            className="w-full pl-10 pr-3 py-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+            className="w-full pl-10 pr-3 py-2.5 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
 
@@ -128,8 +128,8 @@ export default function StaffPedidos() {
                 onClick={() => setFilter(f.value)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                   active
-                    ? 'bg-[#F26430] text-white border-[#F26430]'
-                    : 'bg-white text-[#4A5260] border-[#E5E7EB] hover:border-[#F26430]'
+                    ? 'bg-brand text-white border-brand'
+                    : 'bg-surface text-muted border-line hover:border-brand'
                 }`}
               >
                 {f.label}
@@ -141,12 +141,12 @@ export default function StaffPedidos() {
 
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-10 h-10 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-12 text-center text-[#4A5260]">
-          <Inbox size={48} className="mx-auto mb-3 text-[#9CA3AF]" />
-          <p className="font-medium text-[#1A1F2E]">No hay pedidos</p>
+        <div className="bg-surface rounded-xl border border-line p-12 text-center text-muted">
+          <Inbox size={48} className="mx-auto mb-3 text-faint" />
+          <p className="font-medium text-text">No hay pedidos</p>
           <p className="text-sm">
             {query
               ? 'Prueba con otro término de búsqueda'
@@ -168,18 +168,18 @@ function OrderRow({ order, basePath }: { order: Order; basePath: string }) {
   return (
     <Link
       to={`${basePath}/${order.order_id}`}
-      className="block bg-white rounded-xl border border-[#E5E7EB] p-4 hover:border-[#F26430] hover:shadow-sm transition-all"
+      className="block bg-surface rounded-xl border border-line p-4 hover:border-brand hover:shadow-sm transition-all"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold text-[#1A1F2E]">#{order.order_id}</span>
+            <span className="font-bold text-text">#{order.order_id}</span>
             <StatusBadge state={order.order_state} />
           </div>
-          <p className="text-sm text-[#1A1F2E] truncate">
+          <p className="text-sm text-text truncate">
             {order.customer_name || 'Cliente sin nombre'}
           </p>
-          <p className="text-xs text-[#4A5260]">
+          <p className="text-xs text-muted">
             {new Date(order.order_date).toLocaleString('es-PE', {
               day: '2-digit', month: '2-digit', year: 'numeric',
               hour: '2-digit', minute: '2-digit',
@@ -191,10 +191,10 @@ function OrderRow({ order, basePath }: { order: Order; basePath: string }) {
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="font-bold text-[#F26430]">
+          <p className="font-bold text-brand">
             S/ {Number(order.total_price).toFixed(2)}
           </p>
-          <ChevronRight size={18} className="inline text-[#9CA3AF] mt-1" />
+          <ChevronRight size={18} className="inline text-faint mt-1" />
         </div>
       </div>
     </Link>

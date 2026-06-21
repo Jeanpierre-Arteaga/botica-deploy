@@ -8,12 +8,12 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 export function Badge({ variant = "default", className = "", children, ...props }: BadgeProps) {
   const variantStyles = {
-    pending: "bg-[#FEF3C7] text-[#F59E0B] border-[#FDE68A]",
-    processing: "bg-[#DBEAFE] text-[#2563EB] border-[#BFDBFE]",
-    ready: "bg-[#D1FAE5] text-[#16A34A] border-[#A7F3D0]",
-    delivered: "bg-[#D1FAE5] text-[#16A34A] border-[#A7F3D0]",
-    cancelled: "bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]",
-    default: "bg-[#F9FAFB] text-[#4A5260] border-[#E5E7EB]",
+    pending: "bg-warning-soft text-[#B45309] border-[#FDE68A]",
+    processing: "bg-info-soft text-[#1D4ED8] border-[#BFDBFE]",
+    ready: "bg-success-soft text-[#15803D] border-[#A7F3D0]",
+    delivered: "bg-success-soft text-[#15803D] border-[#A7F3D0]",
+    cancelled: "bg-error-soft text-[#B91C1C] border-[#FECACA]",
+    default: "bg-[#F1F5F9] text-muted border-line",
   };
 
   return (

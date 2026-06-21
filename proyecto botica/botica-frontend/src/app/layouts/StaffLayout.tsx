@@ -5,6 +5,7 @@ import {
   LogOut, Menu, X, Building2,
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
+import { AccessibilityMenu } from '../components/AccessibilityMenu';
 
 const navItems = [
   { to: '/staff/dashboard',   label: 'Dashboard',    icon: LayoutDashboard },
@@ -24,22 +25,23 @@ export default function StaffLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex">
+    <div className="min-h-screen bg-page flex">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-[#1A1F2E] text-white">
-        <div className="p-6 border-b border-[#2A2F3E]">
-          <Link to="/staff/dashboard" className="flex items-center gap-2">
-            <Building2 className="text-[#F26430]" size={24} />
-            <div>
-              <p className="font-bold text-lg leading-tight">Botica Central</p>
+      <aside className="hidden lg:flex flex-col w-64 bg-ink text-white">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between gap-2">
+          <Link to="/staff/dashboard" className="flex items-center gap-2 min-w-0">
+            <Building2 className="text-brand flex-shrink-0" size={24} />
+            <div className="min-w-0">
+              <p className="font-bold text-lg leading-tight truncate">Botica Central</p>
               <p className="text-xs text-gray-400">Panel staff</p>
             </div>
           </Link>
+          <AccessibilityMenu variant="dark" />
         </div>
 
-        <div className="p-4 border-b border-[#2A2F3E]">
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#F26430] flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center font-bold">
               {user?.full_name?.[0]?.toUpperCase() || 'U'}
             </div>
             <div className="flex-1 min-w-0">
@@ -61,8 +63,8 @@ export default function StaffLayout() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
                     isActive
-                      ? 'bg-[#F26430] text-white font-medium'
-                      : 'text-gray-300 hover:bg-[#2A2F3E] hover:text-white'
+                      ? 'bg-brand text-white font-medium'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
                   }`
                 }
               >
@@ -73,10 +75,10 @@ export default function StaffLayout() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-[#2A2F3E]">
+        <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-gray-300 hover:bg-[#2A2F3E] hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
           >
             <LogOut size={18} />
             Cerrar sesión
@@ -85,14 +87,17 @@ export default function StaffLayout() {
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#1A1F2E] text-white px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-ink text-white px-4 py-3 flex items-center justify-between">
         <Link to="/staff/dashboard" className="flex items-center gap-2">
-          <Building2 className="text-[#F26430]" size={20} />
+          <Building2 className="text-brand" size={20} />
           <span className="font-bold">Botica Central</span>
         </Link>
-        <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
-          <Menu size={24} />
-        </button>
+        <div className="flex items-center gap-1">
+          <AccessibilityMenu variant="dark" />
+          <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
+            <Menu size={24} />
+          </button>
+        </div>
       </div>
 
       {sidebarOpen && (
@@ -101,10 +106,10 @@ export default function StaffLayout() {
           onClick={() => setSidebarOpen(false)}
         >
           <aside
-            className="w-64 h-full bg-[#1A1F2E] text-white"
+            className="w-64 h-full bg-ink text-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-[#2A2F3E] flex items-center justify-between">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
               <span className="font-bold">Menú</span>
               <button onClick={() => setSidebarOpen(false)} aria-label="Cerrar menú">
                 <X size={24} />
@@ -120,7 +125,7 @@ export default function StaffLayout() {
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm ${
-                        isActive ? 'bg-[#F26430] text-white font-medium' : 'text-gray-300'
+                        isActive ? 'bg-brand text-white font-medium' : 'text-slate-300'
                       }`
                     }
                   >
@@ -131,7 +136,7 @@ export default function StaffLayout() {
               })}
               <button
                 onClick={() => { setSidebarOpen(false); handleLogout(); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-gray-300"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-slate-300"
               >
                 <LogOut size={18} />
                 Cerrar sesión

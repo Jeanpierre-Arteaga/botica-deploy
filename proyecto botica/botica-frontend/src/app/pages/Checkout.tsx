@@ -174,7 +174,7 @@ export function Checkout() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="text-sm text-[#4A5260] mb-4">
-        <Link to="/carrito" className="hover:text-[#F26430]">Carrito</Link>
+        <Link to="/carrito" className="hover:text-[#F15A29]">Carrito</Link>
         <span className="mx-2">›</span>
         <span className="text-[#1A1F2E] font-medium">Checkout</span>
       </div>
@@ -255,9 +255,9 @@ export function Checkout() {
                       <h3 className="font-bold text-[#1A1F2E]">
                         Instrucciones de pago — {paymentMethod === 'yape' ? 'Yape' : 'Plin'}
                       </h3>
-                      <div className="bg-[#FFF4EE] border border-[#F26430] rounded-lg p-4 space-y-2">
+                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4 space-y-2">
                         <p className="font-semibold text-[#1A1F2E]">Realiza el pago a:</p>
-                        <p className="text-2xl font-bold text-[#F26430]">987 654 321</p>
+                        <p className="text-2xl font-bold text-[#F15A29]">987 654 321</p>
                         <p className="text-sm text-[#4A5260]">Botica Central S.A.C.</p>
                         <p className="text-sm text-[#4A5260]">
                           Monto: <strong>S/ {total.toFixed(2)}</strong>
@@ -270,7 +270,7 @@ export function Checkout() {
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting
                           ? 'Procesando...'
@@ -282,7 +282,7 @@ export function Checkout() {
                   {paymentMethod === 'efectivo' && (
                     <div className="space-y-4">
                       <h3 className="font-bold text-[#1A1F2E]">Pago en efectivo contra entrega</h3>
-                      <div className="bg-[#FFF4EE] border border-[#F26430] rounded-lg p-4">
+                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4">
                         <p className="text-sm text-[#1A1F2E]">
                           Pagarás <strong>S/ {total.toFixed(2)}</strong> en efectivo cuando recibas
                           tu pedido.
@@ -294,7 +294,7 @@ export function Checkout() {
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting ? 'Procesando...' : 'Confirmar pedido (pago contra entrega)'}
                       </button>
@@ -304,7 +304,7 @@ export function Checkout() {
                   {paymentMethod === 'transferencia' && (
                     <div className="space-y-4">
                       <h3 className="font-bold text-[#1A1F2E]">Transferencia bancaria</h3>
-                      <div className="bg-[#FFF4EE] border border-[#F26430] rounded-lg p-4 space-y-2 text-sm">
+                      <div className="bg-[#FFF4EE] border border-[#F15A29] rounded-lg p-4 space-y-2 text-sm">
                         <p><strong>Banco:</strong> BCP</p>
                         <p><strong>Cuenta:</strong> 191-1234567890-0-12</p>
                         <p><strong>CCI:</strong> 002-191-001234567890-12</p>
@@ -319,7 +319,7 @@ export function Checkout() {
                       <button
                         onClick={handleManualPaymentSubmit}
                         disabled={isSubmitting}
-                        className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
+                        className="w-full bg-[#F15A29] hover:bg-[#D94E1F] disabled:opacity-60 text-white font-medium py-3 rounded-md"
                       >
                         {isSubmitting ? 'Procesando...' : 'Confirmar pedido (transferencia)'}
                       </button>
@@ -342,7 +342,7 @@ export function Checkout() {
             {currentStep < 3 && (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
               >
                 Siguiente
                 <ArrowRight size={18} />
@@ -371,7 +371,7 @@ export function Checkout() {
               </div>
               <div className="border-t border-[#E5E7EB] pt-2 mt-2 flex justify-between items-baseline">
                 <span className="font-bold">Total</span>
-                <span className="font-bold text-[#F26430] text-lg">
+                <span className="font-bold text-[#F15A29] text-lg">
                   S/ {total.toFixed(2)}
                 </span>
               </div>
@@ -410,11 +410,11 @@ function StepDatos(props: StepDatosProps) {
           onClick={() => setDeliveryType('delivery')}
           className={`p-4 rounded-lg border-2 text-left transition-colors ${
             deliveryType === 'delivery'
-              ? 'border-[#F26430] bg-[#FFF4EE]'
+              ? 'border-[#F15A29] bg-[#FFF4EE]'
               : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
           }`}
         >
-          <Truck className="mb-2 text-[#F26430]" size={24} />
+          <Truck className="mb-2 text-[#F15A29]" size={24} />
           <p className="font-semibold text-[#1A1F2E]">Delivery</p>
           <p className="text-xs text-[#4A5260]">Recibe en tu domicilio</p>
         </button>
@@ -423,11 +423,11 @@ function StepDatos(props: StepDatosProps) {
           onClick={() => setDeliveryType('pickup')}
           className={`p-4 rounded-lg border-2 text-left transition-colors ${
             deliveryType === 'pickup'
-              ? 'border-[#F26430] bg-[#FFF4EE]'
+              ? 'border-[#F15A29] bg-[#FFF4EE]'
               : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
           }`}
         >
-          <Store className="mb-2 text-[#F26430]" size={24} />
+          <Store className="mb-2 text-[#F15A29]" size={24} />
           <p className="font-semibold text-[#1A1F2E]">Recojo en tienda</p>
           <p className="text-xs text-[#4A5260]">Gratis, en la sede</p>
         </button>
@@ -444,7 +444,7 @@ function StepDatos(props: StepDatosProps) {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Ej: Av. Javier Prado 123, San Isidro"
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29]"
             />
           </div>
         )}
@@ -459,7 +459,7 @@ function StepDatos(props: StepDatosProps) {
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
             placeholder="987654321"
             maxLength={9}
-            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
+            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29]"
           />
         </div>
 
@@ -472,7 +472,7 @@ function StepDatos(props: StepDatosProps) {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Referencias del lugar, instrucciones especiales..."
             rows={3}
-            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430] resize-none"
+            className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F15A29] resize-none"
           />
         </div>
       </div>
@@ -514,17 +514,17 @@ function StepPago(props: StepPagoProps) {
               onClick={() => setPaymentMethod(m.id)}
               className={`w-full p-4 rounded-lg border-2 text-left transition-colors flex items-center gap-3 ${
                 active
-                  ? 'border-[#F26430] bg-[#FFF4EE]'
+                  ? 'border-[#F15A29] bg-[#FFF4EE]'
                   : 'border-[#E5E7EB] hover:border-[#FFD4BC]'
               }`}
             >
-              <Icon size={24} className={active ? 'text-[#F26430]' : 'text-[#4A5260]'} />
+              <Icon size={24} className={active ? 'text-[#F15A29]' : 'text-[#4A5260]'} />
               <div className="flex-1">
                 <p className="font-semibold text-[#1A1F2E]">{m.label}</p>
                 <p className="text-xs text-[#4A5260]">{m.desc}</p>
               </div>
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-[#F26430]' : 'border-[#E5E7EB]'}`}>
-                {active && <div className="w-2.5 h-2.5 bg-[#F26430] rounded-full" />}
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-[#F15A29]' : 'border-[#E5E7EB]'}`}>
+                {active && <div className="w-2.5 h-2.5 bg-[#F15A29] rounded-full" />}
               </div>
             </button>
           );
@@ -539,7 +539,7 @@ function StepPago(props: StepPagoProps) {
             onClick={() => setVoucherType(v)}
             className={`p-2 rounded-md border-2 text-sm font-medium capitalize transition-colors ${
               voucherType === v
-                ? 'border-[#F26430] bg-[#FFF4EE] text-[#F26430]'
+                ? 'border-[#F15A29] bg-[#FFF4EE] text-[#F15A29]'
                 : 'border-[#E5E7EB] text-[#4A5260] hover:border-[#FFD4BC]'
             }`}
           >

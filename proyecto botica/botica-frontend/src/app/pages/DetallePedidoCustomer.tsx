@@ -106,7 +106,7 @@ export function DetallePedidoCustomer() {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <div className="inline-block w-12 h-12 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <div className="inline-block w-12 h-12 border-4 border-[#F15A29] border-t-transparent rounded-full animate-spin" />
         <p className="text-[#4A5260] mt-4">Cargando detalle...</p>
       </div>
     );
@@ -144,7 +144,7 @@ export function DetallePedidoCustomer() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <Link
         to="/mis-pedidos"
-        className="inline-flex items-center gap-2 text-[#4A5260] hover:text-[#F26430] text-sm mb-4"
+        className="inline-flex items-center gap-2 text-[#4A5260] hover:text-[#F15A29] text-sm mb-4"
       >
         <ArrowLeft size={16} />
         Volver a Mis pedidos
@@ -162,7 +162,7 @@ export function DetallePedidoCustomer() {
         <div className="lg:col-span-2 space-y-4">
           <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
             <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <Package size={18} className="text-[#F26430]" />
+              <Package size={18} className="text-[#F15A29]" />
               Productos ({order.details?.length || 0})
             </h2>
             <div className="space-y-3">
@@ -189,7 +189,7 @@ export function DetallePedidoCustomer() {
 
           <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
             <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <MapPin size={18} className="text-[#F26430]" />
+              <MapPin size={18} className="text-[#F15A29]" />
               Entrega
             </h2>
             <p className="font-medium text-[#1A1F2E] mb-1">
@@ -224,7 +224,7 @@ export function DetallePedidoCustomer() {
         <div className="lg:col-span-1 space-y-4">
           <section className="bg-white rounded-xl border border-[#E5E7EB] p-6">
             <h2 className="font-bold text-[#1A1F2E] mb-4 flex items-center gap-2">
-              <CreditCard size={18} className="text-[#F26430]" />
+              <CreditCard size={18} className="text-[#F15A29]" />
               Pago
             </h2>
             <div className="space-y-2 text-sm">
@@ -257,7 +257,7 @@ export function DetallePedidoCustomer() {
                 </div>
                 <div className="flex justify-between border-t border-[#E5E7EB] pt-2 mt-2">
                   <span className="font-bold">Total</span>
-                  <span className="font-bold text-[#F26430] text-lg">
+                  <span className="font-bold text-[#F15A29] text-lg">
                     S/ {Number(order.total_price).toFixed(2)}
                   </span>
                 </div>

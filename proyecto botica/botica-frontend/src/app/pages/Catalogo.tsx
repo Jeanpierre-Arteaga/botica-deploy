@@ -172,7 +172,7 @@ export function Catalogo() {
   const FiltersPanel = ({ onApply }: { onApply?: () => void }) => (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <SlidersHorizontal className="w-5 h-5 text-[#F26430]" />
+        <SlidersHorizontal className="w-5 h-5 text-[#F15A29]" />
         <h3 className="font-bold text-lg text-[#1A1F2E]">Filtrar productos</h3>
       </div>
 
@@ -188,7 +188,7 @@ export function Catalogo() {
               name="cat"
               checked={filters.category_id === undefined}
               onChange={() => updateParam("category_id", null)}
-              className="accent-[#F26430]"
+              className="accent-[#F15A29]"
             />
             <span className="text-[#4A5260]">Todas las categorías</span>
           </label>
@@ -204,7 +204,7 @@ export function Catalogo() {
                 onChange={() =>
                   updateParam("category_id", String(c.category_id))
                 }
-                className="accent-[#F26430]"
+                className="accent-[#F15A29]"
               />
               <span className="text-[#1A1F2E]">{c.category_name}</span>
             </label>
@@ -225,7 +225,7 @@ export function Catalogo() {
               e.target.value === "" ? null : e.target.value,
             )
           }
-          className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F26430]/30 focus:border-[#F26430] text-sm bg-white text-[#1A1F2E]"
+          className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] text-sm bg-white text-[#1A1F2E]"
         >
           <option value="">Todos los laboratorios</option>
           {laboratorios.map((l) => (
@@ -245,7 +245,7 @@ export function Catalogo() {
             onChange={(e) =>
               updateParam("is_offer", e.target.checked ? "true" : null)
             }
-            className="accent-[#F26430] w-4 h-4"
+            className="accent-[#F15A29] w-4 h-4"
           />
           <span className="text-sm font-medium text-[#1A1F2E]">
             Solo productos en oferta
@@ -260,7 +260,7 @@ export function Catalogo() {
             type="checkbox"
             checked={onlyInStock}
             onChange={(e) => setOnlyInStock(e.target.checked)}
-            className="accent-[#F26430] w-4 h-4"
+            className="accent-[#F15A29] w-4 h-4"
           />
           <span className="text-sm font-medium text-[#1A1F2E]">
             Solo con stock disponible
@@ -276,7 +276,7 @@ export function Catalogo() {
               clearFilters();
               onApply?.();
             }}
-            className="w-full text-[#4A5260] text-sm font-medium underline hover:text-[#F26430] transition-colors"
+            className="w-full text-[#4A5260] text-sm font-medium underline hover:text-[#F15A29] transition-colors"
           >
             Limpiar filtros
           </button>
@@ -285,7 +285,7 @@ export function Catalogo() {
           <button
             type="button"
             onClick={onApply}
-            className="w-full bg-[#F26430] text-white py-2.5 rounded-lg font-semibold hover:bg-[#D94E1F] transition-colors"
+            className="w-full bg-[#F15A29] text-white py-2.5 rounded-lg font-semibold hover:bg-[#D94E1F] transition-colors"
           >
             Aplicar
           </button>
@@ -299,7 +299,7 @@ export function Catalogo() {
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-[#4A5260] mb-5">
-          <Link to="/" className="hover:text-[#F26430]">
+          <Link to="/" className="hover:text-[#F15A29]">
             Inicio
           </Link>
           <ChevronRight className="w-4 h-4" />
@@ -335,7 +335,7 @@ export function Catalogo() {
               <button
                 type="button"
                 onClick={() => updateParam("nombre", null)}
-                className="ml-2 text-[#F26430] hover:underline"
+                className="ml-2 text-[#F15A29] hover:underline"
               >
                 quitar
               </button>
@@ -373,7 +373,7 @@ export function Catalogo() {
               </span>
             )}
             {filters.is_offer && (
-              <span className="inline-flex items-center gap-1.5 bg-[#FFF4EE] border border-[#F26430] text-[#F26430] text-xs font-semibold px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-[#FFF4EE] border border-[#F15A29] text-[#F15A29] text-xs font-semibold px-3 py-1.5 rounded-full">
                 En oferta
                 <button
                   type="button"
@@ -401,7 +401,7 @@ export function Catalogo() {
             <button
               type="button"
               onClick={clearFilters}
-              className="text-xs text-[#4A5260] hover:text-[#F26430] underline"
+              className="text-xs text-[#4A5260] hover:text-[#F15A29] underline"
             >
               Limpiar todos
             </button>
@@ -443,7 +443,7 @@ export function Catalogo() {
                   id="sort"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F26430]/30 focus:border-[#F26430] text-sm bg-white"
+                  className="px-3 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] text-sm bg-white"
                 >
                   <option value="relevance">Relevancia</option>
                   <option value="price-asc">Precio: menor a mayor</option>
@@ -464,7 +464,7 @@ export function Catalogo() {
                 <button
                   type="button"
                   onClick={() => setReloadKey((k) => k + 1)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F26430] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F15A29] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
                 >
                   Reintentar
                 </button>
@@ -494,7 +494,7 @@ export function Catalogo() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F26430] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F15A29] text-white rounded-lg font-semibold text-sm hover:bg-[#D94E1F] transition-colors"
                   >
                     Limpiar filtros
                   </button>

@@ -1,8 +1,15 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { AlertCircle, Store, Package, ClipboardList } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
+import {
+  AuthLayout,
+  AuthField,
+  AuthSubmit,
+  authInputClass,
+} from '../components/AuthLayout';
 
 export function StaffLogin() {
   const { loginStaff, isLoading } = useAuth();
@@ -40,65 +47,67 @@ export function StaffLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF4EE] to-white px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-[#1A1F2E]">Acceso Personal</h1>
-            <p className="text-sm text-[#4A5260] mt-2">
-              Ingresa con tu código de trabajador
-            </p>
+    <AuthLayout
+      tone="staff"
+      badge="Panel del personal"
+      brandHeadline={
+        <>
+          Atiende a tus clientes
+          <br />
+          con todo en un solo lugar
+        </>
+      }
+      brandSubtext="Registra ventas en mostrador, gestiona los pedidos de tu sede y cierra tu turno. Todo desde el panel de personal de Boticas Central."
+      trust={[
+        { icon: Store, text: 'Ventas en mostrador (POS) rápidas y guiadas' },
+        { icon: Package, text: 'Pedidos web de tu sede al instante' },
+        { icon: ClipboardList, text: 'Cierre de turno con resumen de caja' },
+      ]}
+      title="Acceso Personal"
+      subtitle="Ingresa con tu código de trabajador"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField label="Código de usuario" htmlFor="userCode">
+          <input
+            id="userCode"
+            type="text"
+            value={userCode}
+            onChange={(e) => setUserCode(e.target.value)}
+            className={authInputClass}
+            placeholder="TRAB01"
+            autoFocus
+          />
+        </AuthField>
+
+        <AuthField label="Contraseña" htmlFor="password">
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={authInputClass}
+            placeholder="••••••••"
+          />
+        </AuthField>
+
+        {error && (
+          <div
+            className="flex items-start gap-2.5 rounded-xl border p-3 text-sm"
+            style={{
+              backgroundColor: 'var(--c-error-soft)',
+              borderColor: 'var(--c-error)',
+              color: 'var(--c-error)',
+            }}
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Código de usuario
-              </label>
-              <input
-                type="text"
-                value={userCode}
-                onChange={(e) => setUserCode(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="TRAB01"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-[#FEE2E2] border border-[#DC2626] text-[#DC2626] text-sm p-3 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-50 text-white font-medium py-2.5 rounded-md transition-colors"
-            >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-          </form>
-
-          <div className="text-center mt-6">
-            <Link to="/" className="text-xs text-[#4A5260] hover:text-[#F26430]">
-              ← Volver al inicio
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+        <AuthSubmit disabled={isLoading} loading={isLoading}>
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+        </AuthSubmit>
+      </form>
+    </AuthLayout>
   );
 }

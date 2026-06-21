@@ -201,11 +201,11 @@ export function ProductoDetalle() {
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-[#4A5260] mb-5 flex-wrap">
-          <Link to="/" className="hover:text-[#F26430]">
+          <Link to="/" className="hover:text-[#F15A29]">
             Inicio
           </Link>
           <ChevronRight className="w-4 h-4" />
-          <Link to="/catalogo" className="hover:text-[#F26430]">
+          <Link to="/catalogo" className="hover:text-[#F15A29]">
             Catálogo
           </Link>
           {product.category_name && product.category_id != null && (
@@ -213,7 +213,7 @@ export function ProductoDetalle() {
               <ChevronRight className="w-4 h-4" />
               <Link
                 to={`/catalogo?category_id=${product.category_id}`}
-                className="hover:text-[#F26430]"
+                className="hover:text-[#F15A29]"
               >
                 {product.category_name}
               </Link>
@@ -231,7 +231,7 @@ export function ProductoDetalle() {
           <div className="bg-white rounded-2xl shadow-sm border border-[#E5E7EB] p-6 md:p-8">
             <div className="aspect-square bg-[#FFF4EE] rounded-xl overflow-hidden flex items-center justify-center relative">
               {product.is_offer && (
-                <div className="absolute top-4 left-4 bg-[#F26430] text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm z-10">
+                <div className="absolute top-4 left-4 bg-[#F15A29] text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm z-10">
                   Oferta
                 </div>
               )}
@@ -286,7 +286,7 @@ export function ProductoDetalle() {
             )}
 
             <div className="flex items-baseline gap-3 mb-5">
-              <span className="text-4xl md:text-5xl font-bold text-[#F26430]">
+              <span className="text-4xl md:text-5xl font-bold text-[#F15A29]">
                 S/ {Number(product.product_price).toFixed(2)}
               </span>
             </div>
@@ -345,7 +345,7 @@ export function ProductoDetalle() {
                     }
                   }}
                   disabled={!hasStock}
-                  className="w-20 h-11 text-center border border-[#E5E7EB] rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#F26430]/30 focus:border-[#F26430] disabled:bg-[#F9FAFB]"
+                  className="w-20 h-11 text-center border border-[#E5E7EB] rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#F15A29]/30 focus:border-[#F15A29] disabled:bg-[#F9FAFB]"
                 />
                 <button
                   type="button"
@@ -502,7 +502,7 @@ function TabButton({
       onClick={onClick}
       className={`pb-3 text-sm md:text-base font-semibold transition-colors whitespace-nowrap ${
         active
-          ? "text-[#F26430] border-b-2 border-[#F26430]"
+          ? "text-[#F15A29] border-b-2 border-[#F15A29]"
           : "text-[#4A5260] hover:text-[#1A1F2E]"
       }`}
     >

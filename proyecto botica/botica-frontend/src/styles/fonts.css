@@ -1,1 +1,8 @@
+/* Sora — títulos / display (geométrica con personalidad) */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&display=swap');
+
+/* Inter — cuerpo / UI (legible, profesional) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* Poppins — legacy (mantener por si algún componente admin/staff lo usa) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');

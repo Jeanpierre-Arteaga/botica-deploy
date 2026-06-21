@@ -10,6 +10,12 @@ import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
+import {
+  AuthLayout,
+  AuthField,
+  AuthSubmit,
+  authInputClass,
+} from '../components/AuthLayout';
 
 export function Registro() {
   const { registerCustomer, isLoading } = useAuth();
@@ -87,163 +93,139 @@ export function Registro() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF4EE] to-white px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-[#1A1F2E]">Crear cuenta</h1>
-            <p className="text-sm text-[#4A5260] mt-2">
-              Regístrate para comprar en Botica Central
-            </p>
-          </div>
+    <AuthLayout
+      width="wide"
+      tone="client"
+      badge="Crea tu cuenta gratis"
+      brandHeadline={
+        <>
+          Únete a Boticas Central
+          <br />
+          y compra en minutos
+        </>
+      }
+      brandSubtext="Crea tu cuenta para comprar medicamentos certificados, guardar tus direcciones y seguir tus pedidos en todo momento."
+      title="Crear cuenta"
+      subtitle="Regístrate para comprar en Boticas Central"
+      footer={
+        <p className="text-center text-sm" style={{ color: 'var(--c-muted)' }}>
+          ¿Ya tienes cuenta?{' '}
+          <Link
+            to="/login"
+            className="font-semibold hover:underline"
+            style={{ color: 'var(--c-brand)' }}
+          >
+            Inicia sesión
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField label="Nombre completo" htmlFor="full_name" required error={errors.full_name}>
+          <input
+            id="full_name"
+            type="text"
+            value={form.full_name}
+            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            className={authInputClass}
+            placeholder="Tu nombre completo"
+          />
+        </AuthField>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nombre completo */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Nombre completo <span className="text-[#DC2626]">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="Tu nombre completo"
-              />
-              {errors.full_name && (
-                <p className="text-xs text-[#DC2626] mt-1">{errors.full_name}</p>
-              )}
-            </div>
+        <AuthField label="Email" htmlFor="email" required error={errors.email}>
+          <input
+            id="email"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className={authInputClass}
+            placeholder="tu@email.com"
+          />
+        </AuthField>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Email <span className="text-[#DC2626]">*</span>
-              </label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="tu@email.com"
-              />
-              {errors.email && (
-                <p className="text-xs text-[#DC2626] mt-1">{errors.email}</p>
-              )}
-            </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <AuthField
+            label="Contraseña"
+            htmlFor="password"
+            required
+            error={errors.customer_password}
+          >
+            <input
+              id="password"
+              type="password"
+              value={form.customer_password}
+              onChange={(e) =>
+                setForm({ ...form, customer_password: e.target.value })
+              }
+              className={authInputClass}
+              placeholder="Mínimo 6 caracteres"
+            />
+          </AuthField>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Contraseña <span className="text-[#DC2626]">*</span>
-              </label>
-              <input
-                type="password"
-                value={form.customer_password}
-                onChange={(e) =>
-                  setForm({ ...form, customer_password: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="Mínimo 6 caracteres"
-              />
-              {errors.customer_password && (
-                <p className="text-xs text-[#DC2626] mt-1">
-                  {errors.customer_password}
-                </p>
-              )}
-            </div>
-
-            {/* Confirmar password */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Confirmar contraseña <span className="text-[#DC2626]">*</span>
-              </label>
-              <input
-                type="password"
-                value={form.confirm_password}
-                onChange={(e) =>
-                  setForm({ ...form, confirm_password: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-              />
-              {errors.confirm_password && (
-                <p className="text-xs text-[#DC2626] mt-1">
-                  {errors.confirm_password}
-                </p>
-              )}
-            </div>
-
-            {/* DNI (opcional) */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                DNI <span className="text-[#9CA3AF] text-xs">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={form.dni}
-                onChange={(e) =>
-                  setForm({ ...form, dni: e.target.value.replace(/\D/g, '') })
-                }
-                maxLength={8}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="12345678"
-              />
-              {errors.dni && (
-                <p className="text-xs text-[#DC2626] mt-1">{errors.dni}</p>
-              )}
-            </div>
-
-            {/* Teléfono (opcional) */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Teléfono <span className="text-[#9CA3AF] text-xs">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={form.phone}
-                onChange={(e) =>
-                  setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })
-                }
-                maxLength={9}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="987654321"
-              />
-              {errors.phone && (
-                <p className="text-xs text-[#DC2626] mt-1">{errors.phone}</p>
-              )}
-            </div>
-
-            {/* Dirección (opcional) */}
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Dirección <span className="text-[#9CA3AF] text-xs">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="Av. Principal 123"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-50 text-white font-medium py-2.5 rounded-md transition-colors"
-            >
-              {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-[#4A5260] mt-6">
-            ¿Ya tienes cuenta?{' '}
-            <Link to="/login" className="text-[#F26430] font-medium hover:underline">
-              Inicia sesión
-            </Link>
-          </p>
+          <AuthField
+            label="Confirmar contraseña"
+            htmlFor="confirm_password"
+            required
+            error={errors.confirm_password}
+          >
+            <input
+              id="confirm_password"
+              type="password"
+              value={form.confirm_password}
+              onChange={(e) =>
+                setForm({ ...form, confirm_password: e.target.value })
+              }
+              className={authInputClass}
+              placeholder="••••••••"
+            />
+          </AuthField>
         </div>
-      </div>
-    </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <AuthField label="DNI" htmlFor="dni" hint="(opcional)" error={errors.dni}>
+            <input
+              id="dni"
+              type="text"
+              value={form.dni}
+              onChange={(e) =>
+                setForm({ ...form, dni: e.target.value.replace(/\D/g, '') })
+              }
+              maxLength={8}
+              className={authInputClass}
+              placeholder="12345678"
+            />
+          </AuthField>
+
+          <AuthField label="Teléfono" htmlFor="phone" hint="(opcional)" error={errors.phone}>
+            <input
+              id="phone"
+              type="text"
+              value={form.phone}
+              onChange={(e) =>
+                setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })
+              }
+              maxLength={9}
+              className={authInputClass}
+              placeholder="987654321"
+            />
+          </AuthField>
+        </div>
+
+        <AuthField label="Dirección" htmlFor="address" hint="(opcional)">
+          <input
+            id="address"
+            type="text"
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            className={authInputClass}
+            placeholder="Av. Principal 123"
+          />
+        </AuthField>
+
+        <AuthSubmit disabled={isLoading} loading={isLoading}>
+          {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+        </AuthSubmit>
+      </form>
+    </AuthLayout>
   );
 }

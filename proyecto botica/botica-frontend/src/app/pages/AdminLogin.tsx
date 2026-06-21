@@ -1,8 +1,15 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { AlertCircle, LayoutDashboard, BarChart3, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
+import {
+  AuthLayout,
+  AuthField,
+  AuthSubmit,
+  authInputClass,
+} from '../components/AuthLayout';
 
 export function AdminLogin() {
   const { loginStaff, isLoading } = useAuth();
@@ -40,65 +47,67 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF4EE] to-white px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-[#1A1F2E]">Acceso Administrador</h1>
-            <p className="text-sm text-[#4A5260] mt-2">
-              Ingresa con tus credenciales de administrador
-            </p>
+    <AuthLayout
+      tone="admin"
+      badge="Panel administrativo"
+      brandHeadline={
+        <>
+          Controla toda tu botica
+          <br />
+          desde un solo panel
+        </>
+      }
+      brandSubtext="Gestiona el catálogo, el stock entre sedes, los pedidos web y a tu equipo. Reportes de ventas y rotación en tiempo real."
+      trust={[
+        { icon: LayoutDashboard, text: 'Dashboard con ventas y alertas de stock' },
+        { icon: BarChart3, text: 'Reportes de ventas y rotación' },
+        { icon: ShieldCheck, text: 'Acceso restringido a administradores' },
+      ]}
+      title="Acceso Administrador"
+      subtitle="Ingresa con tus credenciales de administrador"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField label="Código de usuario" htmlFor="userCode">
+          <input
+            id="userCode"
+            type="text"
+            value={userCode}
+            onChange={(e) => setUserCode(e.target.value)}
+            className={authInputClass}
+            placeholder="ADMIN01"
+            autoFocus
+          />
+        </AuthField>
+
+        <AuthField label="Contraseña" htmlFor="password">
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={authInputClass}
+            placeholder="••••••••"
+          />
+        </AuthField>
+
+        {error && (
+          <div
+            className="flex items-start gap-2.5 rounded-xl border p-3 text-sm"
+            style={{
+              backgroundColor: 'var(--c-error-soft)',
+              borderColor: 'var(--c-error)',
+              color: 'var(--c-error)',
+            }}
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Código de usuario
-              </label>
-              <input
-                type="text"
-                value={userCode}
-                onChange={(e) => setUserCode(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="ADMIN01"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-[#FEE2E2] border border-[#DC2626] text-[#DC2626] text-sm p-3 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-50 text-white font-medium py-2.5 rounded-md transition-colors"
-            >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-          </form>
-
-          <div className="text-center mt-6">
-            <Link to="/" className="text-xs text-[#4A5260] hover:text-[#F26430]">
-              ← Volver al inicio
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+        <AuthSubmit disabled={isLoading} loading={isLoading}>
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+        </AuthSubmit>
+      </form>
+    </AuthLayout>
   );
 }

@@ -40,7 +40,7 @@ export function Carrito() {
           </p>
           <Link
             to="/catalogo"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
           >
             <ArrowLeft size={18} />
             Ir al catálogo
@@ -53,7 +53,7 @@ export function Carrito() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-sm text-[#4A5260] mb-2">
-        <Link to="/" className="hover:text-[#F26430]">Inicio</Link>
+        <Link to="/" className="hover:text-[#F15A29]">Inicio</Link>
         <span className="mx-2">›</span>
         <span className="text-[#1A1F2E] font-medium">Carrito</span>
       </div>
@@ -78,7 +78,7 @@ export function Carrito() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#F26430]">
+                  <div className="w-full h-full flex items-center justify-center text-[#F15A29]">
                     <ShoppingCart size={32} />
                   </div>
                 )}
@@ -89,7 +89,7 @@ export function Carrito() {
                   <h3 className="font-semibold text-[#1A1F2E] line-clamp-2 mb-1">
                     {item.product_name}
                   </h3>
-                  <p className="text-sm text-[#F26430] font-medium">
+                  <p className="text-sm text-[#F15A29] font-medium">
                     S/ {item.unit_price.toFixed(2)} c/u
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export function Carrito() {
 
           <Link
             to="/catalogo"
-            className="inline-flex items-center gap-2 text-[#F26430] hover:underline text-sm font-medium"
+            className="inline-flex items-center gap-2 text-[#F15A29] hover:underline text-sm font-medium"
           >
             <ArrowLeft size={16} />
             Seguir comprando
@@ -170,7 +170,7 @@ export function Carrito() {
               <div className="border-t border-[#E5E7EB] pt-2 mt-2">
                 <div className="flex justify-between items-baseline">
                   <span className="font-bold text-[#1A1F2E]">Total</span>
-                  <span className="font-bold text-[#F26430] text-xl">
+                  <span className="font-bold text-[#F15A29] text-xl">
                     S/ {total.toFixed(2)}
                   </span>
                 </div>
@@ -179,7 +179,7 @@ export function Carrito() {
 
             <button
               onClick={handleCheckout}
-              className="w-full mt-6 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium py-3 rounded-md transition-colors"
+              className="w-full mt-6 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium py-3 rounded-md transition-colors"
             >
               Continuar al pago
             </button>

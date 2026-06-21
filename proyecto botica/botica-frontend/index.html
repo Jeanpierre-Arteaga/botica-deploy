@@ -1,11 +1,21 @@
 
   <!DOCTYPE html>
-  <html lang="en">
+  <html lang="es">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>dayana web</title>
+      <title>Botica Central</title>
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <script>
+        /* No-flash: aplica preferencias de accesibilidad antes del primer pintado */
+        (function () {
+          try {
+            var d = document.documentElement;
+            d.setAttribute("data-a11y-text", localStorage.getItem("a11y-text") || "normal");
+            d.setAttribute("data-theme", localStorage.getItem("theme") || "light");
+          } catch (e) {}
+        })();
+      </script>
     </head>
 
     <body>
@@ -13,4 +23,3 @@
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-  

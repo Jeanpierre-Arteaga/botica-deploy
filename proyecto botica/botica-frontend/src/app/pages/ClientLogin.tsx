@@ -1,8 +1,15 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { ApiError } from '../lib/api';
+import {
+  AuthLayout,
+  AuthField,
+  AuthSubmit,
+  authInputClass,
+} from '../components/AuthLayout';
 
 export function ClientLogin() {
   const { loginCustomer, isLoading } = useAuth();
@@ -38,72 +45,74 @@ export function ClientLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFF4EE] to-white px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-[#1A1F2E]">Iniciar sesión</h1>
-            <p className="text-sm text-[#4A5260] mt-2">
-              Accede a tu cuenta de Botica Central
-            </p>
+    <AuthLayout
+      tone="client"
+      badge="Tu botica de confianza, ahora online"
+      brandHeadline={
+        <>
+          Tu salud,
+          <br />
+          a un clic de distancia
+        </>
+      }
+      brandSubtext="Inicia sesión para comprar tus medicamentos, hacer seguimiento a tus pedidos y recibir todo en la puerta de tu casa."
+      title="Iniciar sesión"
+      subtitle="Accede a tu cuenta de Boticas Central"
+      footer={
+        <p className="text-center text-sm" style={{ color: 'var(--c-muted)' }}>
+          ¿No tienes cuenta?{' '}
+          <Link
+            to="/registro"
+            className="font-semibold hover:underline"
+            style={{ color: 'var(--c-brand)' }}
+          >
+            Regístrate
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AuthField label="Email" htmlFor="email">
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={authInputClass}
+            placeholder="tu@email.com"
+            autoFocus
+          />
+        </AuthField>
+
+        <AuthField label="Contraseña" htmlFor="password">
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={authInputClass}
+            placeholder="••••••••"
+          />
+        </AuthField>
+
+        {error && (
+          <div
+            className="flex items-start gap-2.5 rounded-xl border p-3 text-sm"
+            style={{
+              backgroundColor: 'var(--c-error-soft)',
+              borderColor: 'var(--c-error)',
+              color: 'var(--c-error)',
+            }}
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-                placeholder="tu@email.com"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#1A1F2E] mb-1">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md focus:outline-none focus:ring-2 focus:ring-[#F26430]"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-[#FEE2E2] border border-[#DC2626] text-[#DC2626] text-sm p-3 rounded-md">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#F26430] hover:bg-[#D94E1F] disabled:opacity-50 text-white font-medium py-2.5 rounded-md transition-colors"
-            >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-[#4A5260] mt-6">
-            ¿No tienes cuenta?{' '}
-            <Link to="/registro" className="text-[#F26430] font-medium hover:underline">
-              Regístrate
-            </Link>
-          </p>
-
-          <div className="text-center mt-4">
-            <Link to="/" className="text-xs text-[#4A5260] hover:text-[#F26430]">
-              ← Volver al inicio
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+        <AuthSubmit disabled={isLoading} loading={isLoading}>
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+        </AuthSubmit>
+      </form>
+    </AuthLayout>
   );
 }

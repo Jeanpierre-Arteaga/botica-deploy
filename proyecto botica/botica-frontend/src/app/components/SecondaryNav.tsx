@@ -60,7 +60,7 @@ export function SecondaryNav() {
               <button
                 ref={buttonRef}
                 onClick={() => setShowCategories(!showCategories)}
-                className="flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 text-[#4A5260] hover:text-[#F26430] transition-colors text-sm font-medium whitespace-nowrap border-b-2 border-transparent"
+                className="flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 text-[#4A5260] hover:text-[#F15A29] transition-colors text-sm font-medium whitespace-nowrap border-b-2 border-transparent"
               >
                 <ChevronDown
                   className={`w-4 h-4 transition-transform ${showCategories ? 'rotate-180' : ''}`}
@@ -74,8 +74,8 @@ export function SecondaryNav() {
               to={offersHref}
               className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
                 isActive(offersHref)
-                  ? 'text-[#F26430] border-[#F26430]'
-                  : 'text-[#F26430] hover:text-[#D94E1F] border-transparent'
+                  ? 'text-[#F15A29] border-[#F15A29]'
+                  : 'text-[#F15A29] hover:text-[#D94E1F] border-transparent'
               }`}
             >
               <Tag className="w-4 h-4" />
@@ -102,8 +102,8 @@ export function SecondaryNav() {
                     to={to}
                     className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
                       active
-                        ? 'text-[#F26430] border-[#F26430]'
-                        : 'text-[#4A5260] hover:text-[#F26430] border-transparent'
+                        ? 'text-[#F15A29] border-[#F15A29]'
+                        : 'text-[#4A5260] hover:text-[#F15A29] border-transparent'
                     }`}
                     style={!active && cat.color_hex ? { color: cat.color_hex } : undefined}
                   >
@@ -143,7 +143,7 @@ export function SecondaryNav() {
                     key={cat.category_id}
                     to={`/catalogo?category_id=${cat.category_id}`}
                     onClick={() => setShowCategories(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-[#FFF4EE] hover:text-[#F26430] transition-colors text-[#1A1F2E]"
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-[#FFF4EE] hover:text-[#F15A29] transition-colors text-[#1A1F2E]"
                   >
                     <CategoryIcon
                       name={cat.icon_name}

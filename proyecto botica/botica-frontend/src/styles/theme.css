@@ -2,10 +2,12 @@
 
 :root {
   --font-size: 16px;
-  --font-family: 'Poppins', -apple-system, sans-serif;
+  --font-display: 'Sora', 'Poppins', -apple-system, sans-serif;
+  --font-body: 'Inter', 'Poppins', -apple-system, sans-serif;
+  --font-family: var(--font-body);  /* fallback para componentes que usen este token */
 
   /* Boticas Central Design System - Paleta Unificada */
-  --primary-500: #F26430;
+  --primary-500: #F15A29;
   --primary-600: #D94E1F;
   --primary-50: #FFF4EE;
   --secondary-500: #1E4D8C;
@@ -20,6 +22,66 @@
   --warning: #F59E0B;
   --error: #DC2626;
   --info: #2563EB;
+
+  /* --- Modernización premium (aditivo, solo presentación) --- */
+  /* Navy profundo: color dominante de la nueva estética */
+  --navy-900: #0F172A;   /* fondos cinematográficos / overlays */
+  --navy-800: #1E293B;   /* navy dominante pedido */
+  --navy-700: #334155;   /* superficies elevadas sobre navy */
+  /* Secundario frío y sutil para equilibrar el naranja */
+  --cool-400: #38BDF8;   /* sky/teal de acento frío */
+  --cool-500: #0EA5E9;
+  --cool-50:  #ECFEFF;
+
+  /* ================================================================
+     SISTEMA UNIFICADO — tokens semánticos (fuente única de verdad)
+     Regla 60-30-10: bg/superficies 60% · navy 30% · naranja 10%
+     ================================================================ */
+  /* Acento (acciones, ~10%) */
+  --c-brand:       #F15A29;
+  --c-brand-hover: #D94E1F;
+  --c-brand-soft:  #FFF4EE;   /* fondos/badges suaves del acento */
+  /* Tinta / superficies oscuras (sidebars admin·staff, overlays) */
+  --c-ink:    #0F172A;   /* navy más profundo */
+  --c-ink-2:  #1E293B;   /* navy dominante / titulares */
+  --c-ink-3:  #334155;   /* superficie elevada sobre navy */
+  /* Texto — contrastes reforzados para legibilidad AA en cualquier fondo */
+  --c-text:    #16213A;  /* texto principal / titulares */
+  --c-muted:   #51607A;  /* texto secundario, placeholders (AA sobre bg claro) */
+  --c-faint:   #6B788C;  /* texto sutil, metadatos (sigue legible) */
+  /* Fondos y superficies (el 60%) */
+  --c-bg:      #FFF9F5;  /* fondo de página: crema muy claro */
+  --c-bg-2:    #FFFFFF;  /* alterna con bg para ritmo de secciones */
+  --c-surface: #FFFFFF;  /* cards, inputs */
+  --c-line:    #E2E8F0;  /* bordes y divisores */
+  --c-line-2:  #EEF2F7;  /* divisores muy sutiles */
+  /* Secundario frío (confianza, uso sutil) — sky desaturado */
+  --c-cool:      #4C82A8;
+  --c-cool-soft: #EEF4F8;
+  /* Semánticos */
+  --c-success: #16A34A;  --c-success-soft: #DCFCE7;
+  --c-warning: #F59E0B;  --c-warning-soft: #FEF3C7;
+  --c-error:   #DC2626;  --c-error-soft:   #FEE2E2;
+  --c-info:    #2563EB;  --c-info-soft:    #DBEAFE;
+
+  /* Categorías — paleta cohesiva y desaturada (misma familia, jewel tones) */
+  --cat-1: #4C82A8;  /* azul acero  - medicamentos */
+  --cat-2: #3F9D8C;  /* teal        - analgésicos */
+  --cat-3: #C77699;  /* rosa malva  - mamá & bebé */
+  --cat-4: #8B7BB8;  /* violeta     - vitaminas */
+  --cat-5: #C79A4B;  /* ámbar dorado- genéricos */
+  --cat-6: #5AA0B5;  /* cian suave  - antigripales */
+  --cat-7: #C0796A;  /* terracota   - dermatología */
+  --cat-8: #6B8FB5;  /* índigo suave- cuidado hogar */
+
+  /* Sombras suaves y difusas (nada duro).
+     Las fuentes usan prefijo --elev-* para no colisionar con el namespace
+     --shadow-* de Tailwind (evita ciclos en @theme). */
+  --shadow-brand: 0 8px 24px -8px rgba(241, 90, 41, 0.35);
+  --elev-xs:   0 1px 2px rgba(15, 23, 42, 0.04);
+  --elev-soft: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --elev-card: 0 6px 24px -8px rgba(15, 23, 42, 0.10);
+  --elev-pop:  0 16px 48px -12px rgba(15, 23, 42, 0.18);
 
   /* Typography Scale - Poppins Only */
   --text-display: 3rem;      /* 48px / 700 / 1.1 */
@@ -126,6 +188,69 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* ================================================================
+   TEMA OSCURO — toggle del menú de accesibilidad (data-theme="dark")
+   Reusa los tokens semánticos --c-* con valores oscuros y remapea
+   los tokens shadcn. Persistido en localStorage ("theme").
+   ================================================================ */
+html[data-theme="dark"] {
+  /* Semánticos en oscuro */
+  --c-brand:       #FB6B3A;   /* un punto más brillante para contraste AA */
+  --c-brand-hover: #F15A29;
+  --c-brand-soft:  #2A1810;
+  --c-ink:    #060B16;
+  --c-ink-2:  #0B1220;
+  --c-ink-3:  #1E293B;
+  --c-text:   #EAEFF7;
+  --c-muted:  #A4B2C6;   /* más claro: AA sobre superficies oscuras */
+  --c-faint:  #8190A6;   /* sube de #64748B para no perderse en el fondo */
+  --c-bg:      #0B1220;
+  --c-bg-2:    #0F172A;
+  --c-surface: #131C2E;
+  --c-line:    #233047;
+  --c-line-2:  #1A2438;
+  --c-cool:      #5AA0C4;
+  --c-cool-soft: #122230;
+  --c-success-soft: #0E2A1A;
+  --c-warning-soft: #2A2110;
+  --c-error-soft:   #2A1414;
+  --c-info-soft:    #0E1E3A;
+
+  /* Sombras un poco más marcadas sobre fondo oscuro */
+  --elev-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --elev-card: 0 8px 28px -8px rgba(0, 0, 0, 0.55);
+  --elev-pop:  0 18px 50px -12px rgba(0, 0, 0, 0.65);
+
+  /* Tokens shadcn remapeados al tema oscuro */
+  --background: var(--c-bg);
+  --foreground: var(--c-text);
+  --card: var(--c-surface);
+  --card-foreground: var(--c-text);
+  --popover: var(--c-surface);
+  --popover-foreground: var(--c-text);
+  --primary: var(--c-brand);
+  --primary-foreground: #1A0E08;
+  --muted: #1E293B;
+  --muted-foreground: var(--c-muted);
+  --accent: #1E293B;
+  --accent-foreground: var(--c-text);
+  --border: var(--c-line);
+  --input: var(--c-line);
+  --input-background: var(--c-surface);
+  --ring: var(--c-brand);
+  --neutral-50: #1E293B;   /* fondos suaves usados como bg-[#F9FAFB] migrados */
+}
+
+/* Elementos base: titulares y texto deben invertirse en dark */
+html[data-theme="dark"] body { color: var(--c-text); }
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 { color: var(--c-text); }
+html[data-theme="dark"] p { color: var(--c-muted); }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -169,6 +294,37 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Utilidades del sistema unificado: bg-brand, text-ink, border-line, etc. */
+@theme inline {
+  --color-brand: var(--c-brand);
+  --color-brand-hover: var(--c-brand-hover);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-ink: var(--c-ink);
+  --color-ink-2: var(--c-ink-2);
+  --color-ink-3: var(--c-ink-3);
+  --color-text: var(--c-text);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+  --color-page: var(--c-bg);
+  --color-page-alt: var(--c-bg-2);
+  --color-surface: var(--c-surface);
+  --color-line: var(--c-line);
+  --color-line-2: var(--c-line-2);
+  --color-cool: var(--c-cool);
+  --color-cool-soft: var(--c-cool-soft);
+  --color-success: var(--c-success);
+  --color-success-soft: var(--c-success-soft);
+  --color-warning: var(--c-warning);
+  --color-warning-soft: var(--c-warning-soft);
+  --color-error: var(--c-error);
+  --color-error-soft: var(--c-error-soft);
+  --color-info: var(--c-info);
+  --color-info-soft: var(--c-info-soft);
+  --shadow-soft: var(--elev-soft);
+  --shadow-card: var(--elev-card);
+  --shadow-pop: var(--elev-pop);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -176,15 +332,19 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-family);
+    font-family: var(--font-body);
     font-size: var(--text-body);
     font-weight: 400;
     line-height: 1.5;
     color: var(--neutral-700);
   }
 
-  h1, h2, h3, h4, h5, h6, button {
-    font-family: var(--font-family);
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+
+  button {
+    font-family: var(--font-body);
   }
 
   html {
@@ -275,5 +435,161 @@
     );
     background-size: 200% 100%;
     animation: shimmer 2s infinite linear;
+  }
+
+  /* ===== Modernización premium — animaciones y utilidades (solo CSS) ===== */
+
+  /* Entrada del hero: fade + subida suave, escalonable con delay inline */
+  @keyframes heroFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-hero-fade-up {
+    opacity: 0;
+    animation: heroFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Ken-burns sutil para el video/poster de fondo */
+  @keyframes kenburns {
+    from { transform: scale(1.08); }
+    to   { transform: scale(1.16); }
+  }
+  .animate-kenburns {
+    animation: kenburns 24s ease-in-out infinite alternate;
+  }
+
+  /* Indicador de scroll del hero */
+  @keyframes scrollHint {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50%      { transform: translateY(8px); opacity: 1; }
+  }
+  .animate-scroll-hint {
+    animation: scrollHint 1.8s ease-in-out infinite;
+  }
+
+  /* Reveal on-scroll (lo usará Home más adelante vía un mini observer) */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Barra "glass" para el header transparente->sólido (paso Navbar) */
+  .glass-nav {
+    background-color: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+  }
+
+  /* Respeta prefers-reduced-motion: sin movimiento, contenido siempre visible */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-hero-fade-up,
+    .animate-kenburns,
+    .animate-scroll-hint {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .reveal {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+    /* Hero: si el usuario pide menos movimiento, ocultamos el video
+       y queda solo el poster estático (sin JS). */
+    .hero-video {
+      display: none !important;
+    }
+  }
+
+  /* ================================================================
+     ACCESIBILIDAD — controlada por el menú del header (data-* en <html>)
+     Persistido en localStorage. Es UI cosmética, no lógica de negocio.
+     ================================================================ */
+
+  /* Tamaño de texto: escala la raíz; todo lo rem-based se adapta */
+  html[data-a11y-text="lg"] { font-size: 18px; }
+  html[data-a11y-text="xl"] { font-size: 20px; }
+
+  /* Foco visible consistente en todo el producto */
+  :focus-visible {
+    outline: 2px solid var(--c-brand);
+    outline-offset: 2px;
+  }
+
+  /* ================================================================
+     SCROLLBAR — fino, del tema y discreto (auto-difuminado).
+     Reemplaza la barra gris por defecto en claro y oscuro. Global.
+     ================================================================ */
+  * {
+    scrollbar-width: thin;                                  /* Firefox */
+    scrollbar-color: rgba(81, 96, 122, 0.28) transparent;  /* thumb / track */
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(81, 96, 122, 0.28);
+    border-radius: 9999px;
+    border: 2.5px solid transparent;   /* margen interior -> barra "fina" */
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(241, 90, 41, 0.55);  /* naranja de marca al pasar */
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Tema oscuro: thumb claro y sutil */
+  html[data-theme="dark"] * {
+    scrollbar-color: rgba(164, 178, 198, 0.26) transparent;
+  }
+  html[data-theme="dark"] *::-webkit-scrollbar-thumb {
+    background-color: rgba(164, 178, 198, 0.24);
+  }
+  html[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(251, 107, 58, 0.6);
+  }
+
+  /* Scrollbar dentro de superficies navy (sidebar admin/staff) */
+  .scroll-navy {
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+  }
+  .scroll-navy::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+  .scroll-navy::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(241, 90, 41, 0.7);
+  }
+
+  /* Entrada suave para tarjetas/paneles del panel admin */
+  @keyframes panelFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-panel {
+    opacity: 0;
+    animation: panelFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-panel { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 }

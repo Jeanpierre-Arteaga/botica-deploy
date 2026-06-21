@@ -24,9 +24,9 @@ export function Stepper({ steps, currentStep }: StepperProps) {
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ${
                   isCompleted
-                    ? 'bg-[#F26430] text-white'
+                    ? 'bg-[#F15A29] text-white'
                     : isActive
-                    ? 'bg-[#F26430] text-white ring-4 ring-[#FFF4EE]'
+                    ? 'bg-[#F15A29] text-white ring-4 ring-[#FFF4EE]'
                     : 'bg-[#E5E7EB] text-[#4A5260]'
                 }`}
               >
@@ -43,7 +43,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
             {!isLast && (
               <div
                 className={`h-0.5 w-8 sm:w-16 transition-colors ${
-                  isCompleted ? 'bg-[#F26430]' : 'bg-[#E5E7EB]'
+                  isCompleted ? 'bg-[#F15A29]' : 'bg-[#E5E7EB]'
                 }`}
               />
             )}

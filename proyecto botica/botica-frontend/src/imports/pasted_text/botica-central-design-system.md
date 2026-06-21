@@ -14,7 +14,7 @@ PARTE 1 — DESIGN TOKENS
 ═══════════════════════════════════════════════════════
 
 Paleta (basada en el logo naranja-coral de Botica Central):
-  primary-500:   #F26430   (CTA principal, acentos)
+  primary-500:   #F15A29   (CTA principal, acentos)
   primary-600:   #D94E1F   (hover de primary)
   primary-50:    #FFF4EE   (fondos suaves, hero, badges activos)
   secondary-500: #1E4D8C   (azul confianza: info, location, links)

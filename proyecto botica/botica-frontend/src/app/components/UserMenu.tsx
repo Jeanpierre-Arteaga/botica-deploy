@@ -57,7 +57,7 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
       ? 'text-white hover:bg-white/10'
       : 'text-[#1A1F2E] hover:bg-[#F9FAFB]';
   const avatarBg =
-    variant === 'dark' ? 'bg-white text-[#F26430]' : 'bg-[#F26430] text-white';
+    variant === 'dark' ? 'bg-white text-[#F15A29]' : 'bg-[#F15A29] text-white';
 
   return (
     <div ref={containerRef} className="relative">
@@ -92,7 +92,7 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
           {/* Header con nombre y rol */}
           <div className="px-4 py-3 border-b border-[#E5E7EB]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#F26430] text-white flex items-center justify-center font-semibold">
+              <div className="w-10 h-10 rounded-full bg-[#F15A29] text-white flex items-center justify-center font-semibold">
                 {getInitial()}
               </div>
               <div className="flex-1 min-w-0">

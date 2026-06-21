@@ -65,9 +65,9 @@ export function Sidebar({ items, userRole }: SidebarProps) {
               }`}
             >
               {active && (
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#F26430] rounded-r-full" />
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#F15A29] rounded-r-full" />
               )}
-              <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "" : "group-hover:text-[#F26430]"}`} />
+              <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "" : "group-hover:text-[#F15A29]"}`} />
               {!isCollapsed && (
                 <span className="text-sm font-medium">{item.label}</span>
               )}
@@ -79,7 +79,7 @@ export function Sidebar({ items, userRole }: SidebarProps) {
       {/* User Profile & Logout */}
       <div className="p-4 border-t border-[#E5E7EB]">
         <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-          <div className="w-10 h-10 rounded-full bg-[#FFF4EE] flex items-center justify-center text-[#F26430] font-semibold">
+          <div className="w-10 h-10 rounded-full bg-[#FFF4EE] flex items-center justify-center text-[#F15A29] font-semibold">
             {userRole === "admin" ? "A" : "S"}
           </div>
           {!isCollapsed && (

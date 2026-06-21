@@ -30,7 +30,7 @@ export function Confirmacion() {
   if (isLoading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="inline-block w-12 h-12 border-4 border-[#F26430] border-t-transparent rounded-full animate-spin" />
+        <div className="inline-block w-12 h-12 border-4 border-[#F15A29] border-t-transparent rounded-full animate-spin" />
         <p className="text-[#4A5260] mt-4">Cargando confirmación...</p>
       </div>
     );
@@ -42,7 +42,7 @@ export function Confirmacion() {
         <p className="text-[#DC2626] mb-4">{error || 'Pedido no encontrado'}</p>
         <Link
           to="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium rounded-md"
         >
           <Home size={18} />
           Volver al inicio
@@ -66,7 +66,7 @@ export function Confirmacion() {
 
         <div className="bg-[#FFF4EE] rounded-xl p-6 mb-6">
           <p className="text-xs text-[#4A5260] uppercase tracking-wide">Número de pedido</p>
-          <p className="text-3xl font-bold text-[#F26430] mt-1">#{order.order_id}</p>
+          <p className="text-3xl font-bold text-[#F15A29] mt-1">#{order.order_id}</p>
           <div className="border-t border-[#FFD4BC] mt-4 pt-4">
             <p className="text-xs text-[#4A5260] uppercase tracking-wide">Total</p>
             <p className="text-2xl font-bold text-[#1A1F2E]">
@@ -115,14 +115,14 @@ export function Confirmacion() {
         <div className="flex flex-col sm:flex-row gap-3 mt-6">
           <Link
             to={`/mis-pedidos/${order.order_id}`}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#F26430] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#F15A29] hover:bg-[#D94E1F] text-white font-medium rounded-md transition-colors"
           >
             <Package size={18} />
             Ver detalle del pedido
           </Link>
           <Link
             to="/catalogo"
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#E5E7EB] hover:border-[#F26430] text-[#1A1F2E] font-medium rounded-md transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#E5E7EB] hover:border-[#F15A29] text-[#1A1F2E] font-medium rounded-md transition-colors"
           >
             Seguir comprando
             <ArrowRight size={18} />
