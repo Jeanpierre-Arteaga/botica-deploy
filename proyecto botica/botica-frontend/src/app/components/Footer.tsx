@@ -1,4 +1,6 @@
 import image_botica_icono_2 from "@/imports/botica_icono-2.jpeg";
+import yape_logo from "@/imports/yape_logo.png";
+import plin_logo from "@/imports/plin_logo.png";
 import { Link } from "react-router";
 import {
   MapPin,
@@ -6,7 +8,6 @@ import {
   Phone,
   Mail,
   BookOpen,
-  ShieldCheck,
   CreditCard,
   ChevronRight,
 } from "lucide-react";
@@ -30,14 +31,17 @@ export function Footer() {
               className="leading-relaxed text-sm"
               style={{ color: "rgba(226,232,240,0.7)" }}
             >
-              Tu farmacia de confianza con medicamentos certificados y los
-              mejores precios del mercado.
+              Tu farmacia de confianza: medicamentos certificados, atención
+              profesional y los mejores precios del mercado.
             </p>
             <div
-              className="mt-5 flex items-center gap-2 text-sm"
+              className="digemid-badge mt-5 flex items-center gap-2 text-sm"
               style={{ color: "rgba(226,232,240,0.8)" }}
             >
-              <ShieldCheck className="w-4 h-4" style={{ color: "#FBBF24" }} />
+              <svg className="digemid-check digemid-check-on-dark" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" className="digemid-ring" />
+                <path d="M7 12.5l3.5 3.5L17 9" className="digemid-tick" />
+              </svg>
               <span>Certificado por DIGEMID</span>
             </div>
           </div>
@@ -178,22 +182,92 @@ export function Footer() {
                 <CreditCard className="w-4 h-4" />
                 Métodos de pago
               </div>
+
+              {/* Logos visuales de métodos de pago */}
               <div className="flex items-center gap-2 flex-wrap md:justify-end">
-                {[
-                  { label: "Efectivo", bg: "white", color: "var(--c-ink)" },
-                  { label: "Yape", bg: "#702F8A", color: "white" },
-                  { label: "Plin", bg: "#00B2E2", color: "white" },
-                  { label: "Visa", bg: "#1A1F71", color: "white" },
-                  { label: "Mastercard", bg: "#EB001B", color: "white" },
-                ].map((pm) => (
+
+                {/* ======== YAPE ========
+                    Imagen real con fondo morado a juego
+                */}
+                <div
+                  className="h-10 w-20 rounded-md flex items-center justify-center shadow-sm overflow-hidden"
+                  style={{ backgroundColor: "#702F8A" }}
+                  title="Yape"
+                >
+                  <img
+                    src={yape_logo}
+                    alt="Yape"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* ======== PLIN ========
+                    Imagen real sobre fondo blanco
+                */}
+                <div
+                  className="h-10 w-20 rounded-md flex items-center justify-center shadow-sm overflow-hidden"
+                  style={{ backgroundColor: "#FFFFFF" }}
+                  title="Plin"
+                >
+                  <img
+                    src={plin_logo}
+                    alt="Plin"
+                    className="w-full h-full object-contain p-1"
+                  />
+                </div>
+
+                {/* ======== EFECTIVO ========
+                    Verde con icono de billete + texto "Efectivo"
+                */}
+                <div
+                  className="h-10 px-3 rounded-md flex items-center justify-center gap-1.5 shadow-sm"
+                  style={{ backgroundColor: "#16A34A" }}
+                  title="Efectivo"
+                >
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="white" strokeWidth="2">
+                    <rect x="2" y="6" width="20" height="12" rx="2" />
+                    <circle cx="12" cy="12" r="2.5" />
+                    <path d="M6 10v.01M18 14v.01" />
+                  </svg>
                   <span
-                    key={pm.label}
-                    className="px-3 py-1.5 rounded-md text-xs font-bold"
-                    style={{ backgroundColor: pm.bg, color: pm.color }}
+                    className="text-white text-[11px] font-bold uppercase tracking-wide"
+                    style={{ fontFamily: "var(--font-body)" }}
                   >
-                    {pm.label}
+                    Efectivo
                   </span>
-                ))}
+                </div>
+
+                {/* ======== VISA ========
+                    Azul oficial con "VISA" en cursiva
+                */}
+                <div
+                  className="h-10 w-20 rounded-md flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: "#1A1F71" }}
+                  title="Visa"
+                >
+                  <span
+                    className="text-white font-extrabold text-base italic tracking-wider"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    VISA
+                  </span>
+                </div>
+
+                {/* ======== MASTERCARD ========
+                    Fondo blanco con círculos rojo + naranja superpuestos
+                */}
+                <div
+                  className="h-10 w-20 rounded-md flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: "#FFFFFF", border: "1px solid var(--c-line)" }}
+                  title="Mastercard"
+                >
+                  <svg viewBox="0 0 36 22" className="h-6">
+                    <circle cx="13" cy="11" r="9" fill="#EB001B" />
+                    <circle cx="23" cy="11" r="9" fill="#F79E1B" fillOpacity="0.9" />
+                    <path d="M18 4.5 a9 9 0 0 1 0 13 a9 9 0 0 1 0 -13" fill="#FF5F00" />
+                  </svg>
+                </div>
+
               </div>
             </div>
           </div>

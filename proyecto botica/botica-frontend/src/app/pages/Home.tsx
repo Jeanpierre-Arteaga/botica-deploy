@@ -26,7 +26,6 @@ import {
   Phone,
   MessageCircle,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { HeroBanner } from "../components/HeroBanner";
@@ -34,57 +33,58 @@ import { api } from "../lib/api";
 import { useLocations } from "../lib/LocationContext";
 import type { Category, Product } from "../lib/types";
 
+// Imágenes reales de categorías (fotos profesionales)
+import cat_gripe from "@/imports/cat_gripe.png";
+import cat_dolor from "@/imports/cat_dolor.png";
+import cat_alergia from "@/imports/cat_alergia.png";
+import cat_bebe from "@/imports/cat_bebe.png";
+import cat_vitaminas from "@/imports/cat_vitaminas.png";
+import cat_digestivo from "@/imports/cat_digestivo.png";
+
 /* ============================================================
    "Compra por necesidad" — chips por síntoma / condición
-   Enlaza a catálogo filtrado por nombre (búsqueda libre)
+   Cada chip ahora usa una FOTO REAL de la categoría
    ============================================================ */
 const NEEDS: Array<{
   label: string;
-  icon: LucideIcon;
+  image: string;
   query: string;
-  color: string;
   bgColor: string;
 }> = [
   {
     label: "Gripe y resfríos",
-    icon: Thermometer,
+    image: cat_gripe,
     query: "gripe",
-    color: "#4C82A8",
     bgColor: "#EEF4F8",
   },
   {
     label: "Dolor y fiebre",
-    icon: Activity,
+    image: cat_dolor,
     query: "dolor",
-    color: "#C0796A",
     bgColor: "#FDF2EF",
   },
   {
     label: "Alergias",
-    icon: Wind,
+    image: cat_alergia,
     query: "alergia",
-    color: "#3F9D8C",
     bgColor: "#EDF7F5",
   },
   {
     label: "Cuidado del bebé",
-    icon: Baby,
+    image: cat_bebe,
     query: "bebe",
-    color: "#C77699",
     bgColor: "#FBF0F4",
   },
   {
     label: "Vitaminas y energía",
-    icon: Apple,
+    image: cat_vitaminas,
     query: "vitamina",
-    color: "#8B7BB8",
     bgColor: "#F3F0FA",
   },
   {
     label: "Digestivo",
-    icon: HeartPulse,
+    image: cat_digestivo,
     query: "digestivo",
-    color: "#C79A4B",
     bgColor: "#FBF6ED",
   },
 ];
@@ -196,10 +196,13 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4 py-3.5">
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
             <span
-              className="inline-flex items-center gap-2 text-sm font-medium"
+              className="digemid-badge inline-flex items-center gap-2 text-sm font-medium"
               style={{ color: "var(--c-muted)" }}
             >
-              <Shield className="w-4 h-4" style={{ color: "var(--c-success)" }} />
+              <svg className="digemid-check" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" className="digemid-ring" />
+                <path d="M7 12.5l3.5 3.5L17 9" className="digemid-tick" />
+              </svg>
               Certificado DIGEMID
             </span>
             <span
@@ -238,49 +241,48 @@ export function Home() {
             Compra por necesidad
           </h2>
           <p className="text-base" style={{ color: "var(--c-muted)" }}>
-            Encuentra rápidamente lo que necesitas por síntoma o condición
+            Encuentra de forma rápida el tratamiento que necesitas, según tu síntoma o condición
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {NEEDS.map((need) => {
-            const Icon = need.icon;
-            return (
-              <Link
-                key={need.label}
-                to={`/catalogo?nombre=${encodeURIComponent(need.query)}`}
-                className="group flex flex-col items-center gap-3 p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  backgroundColor: need.bgColor,
-                  borderColor: "transparent",
-                  boxShadow: "var(--elev-xs)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "var(--elev-card)";
-                  e.currentTarget.style.borderColor = need.color + "40";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "var(--elev-xs)";
-                  e.currentTarget.style.borderColor = "transparent";
-                }}
+          {NEEDS.map((need) => (
+            <Link
+              key={need.label}
+              to={`/catalogo?nombre=${encodeURIComponent(need.query)}`}
+              className="group flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+              style={{
+                backgroundColor: need.bgColor,
+                borderColor: "transparent",
+                boxShadow: "var(--elev-xs)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "var(--elev-card)";
+                e.currentTarget.style.borderColor = "var(--c-line)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "var(--elev-xs)";
+                e.currentTarget.style.borderColor = "transparent";
+              }}
+            >
+              <div
+                className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center"
+                style={{ backgroundColor: "white" }}
               >
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ backgroundColor: need.color + "18" }}
-                >
-                  <Icon
-                    className="w-6 h-6"
-                    style={{ color: need.color }}
-                  />
-                </div>
-                <span
-                  className="text-sm font-semibold text-center leading-tight"
-                  style={{ color: "var(--c-text)" }}
-                >
-                  {need.label}
-                </span>
-              </Link>
-            );
-          })}
+                <img
+                  src={need.image}
+                  alt={need.label}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </div>
+              <span
+                className="text-sm font-semibold text-center leading-tight"
+                style={{ color: "var(--c-text)" }}
+              >
+                {need.label}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -557,68 +559,114 @@ export function Home() {
         </div>
       </section>
 
-      {/* ===== Asesoría de Químicos Farmacéuticos ===== */}
+      {/* ===== Asesoría de Químicos Farmacéuticos (VERSIÓN CLARA) ===== */}
       <section
         className="reveal relative overflow-hidden py-14 md:py-20"
-        style={{ backgroundColor: "var(--c-ink-2)" }}
+        style={{ backgroundColor: "var(--c-bg-2)" }}
       >
-        {/* Glow decorativo */}
+        {/* Glow decorativo sutil claro */}
         <div
           className="pointer-events-none absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full blur-[120px]"
-          style={{ backgroundColor: "rgba(241, 90, 41, 0.08)" }}
+          style={{ backgroundColor: "rgba(241, 90, 41, 0.06)" }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full blur-[120px]"
+          style={{ backgroundColor: "rgba(76, 130, 168, 0.06)" }}
         />
         <div className="relative max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <span
-                className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium tracking-wide mb-6"
+                className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide mb-6"
                 style={{
-                  borderColor: "rgba(255,255,255,0.15)",
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  color: "#38BDF8",
+                  borderColor: "var(--c-line)",
+                  backgroundColor: "var(--c-brand-soft)",
+                  color: "var(--c-brand)",
+                  fontFamily: "var(--font-body)",
                 }}
               >
                 <UserCheck className="w-3.5 h-3.5" />
                 Profesionales colegiados
               </span>
               <h2
-                className="text-2xl md:text-4xl font-bold text-white mb-5 leading-tight"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-3xl md:text-4xl font-bold mb-5 leading-tight"
+                style={{
+                  color: "var(--c-text)",
+                  fontFamily: "var(--font-display)",
+                }}
               >
-                Asesoría de químicos
-                <br />
-                <span
-                  className="bg-gradient-to-r from-[#F15A29] to-[#FB923C] bg-clip-text text-transparent"
-                >
-                  farmacéuticos
-                </span>
+                Asesoría de químicos{" "}
+                <span style={{ color: "var(--c-brand)" }}>farmacéuticos</span>
               </h2>
               <p
                 className="text-base md:text-lg leading-relaxed mb-8"
-                style={{ color: "rgba(226,232,240,0.8)" }}
+                style={{
+                  color: "var(--c-muted)",
+                  fontFamily: "var(--font-body)",
+                }}
               >
                 Nuestros químicos farmacéuticos colegiados están disponibles
                 para orientarte sobre el uso correcto de tus medicamentos,
-                posibles interacciones y alternativas genéricas equivalentes.
+                interacciones, dosis y alternativas genéricas equivalentes.
               </p>
-              <div className="flex flex-wrap gap-4">
+
+              {/* Lista de beneficios — con CHECKS ANIMADOS en cascada */}
+              <ul className="benefit-list space-y-3.5 mb-8">
+                {[
+                  "Orientación gratuita sobre uso de medicamentos",
+                  "Resolución de dudas sobre interacciones y dosis",
+                  "Recomendación de alternativas genéricas equivalentes",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 text-base font-medium"
+                    style={{
+                      color: "var(--c-text)",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    <svg className="benefit-check" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" className="benefit-ring" />
+                      <path
+                        d="M7 12.5l3.5 3.5L17 9"
+                        className="benefit-tick"
+                      />
+                    </svg>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex flex-wrap gap-3">
                 <Link
                   to="/catalogo"
-                  className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 shadow-lg active:scale-[0.98]"
-                  style={{
-                    backgroundColor: "var(--c-brand)",
-                    boxShadow: "0 8px 24px -8px rgba(241,90,41,0.35)",
-                  }}
+                  className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98]"
+                  style={{ backgroundColor: "var(--c-brand)" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "var(--c-brand-hover)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "var(--c-brand)")
+                  }
                 >
                   <MessageCircle className="w-4 h-4" />
                   Consultar ahora
                 </Link>
                 <a
                   href="tel:+5111234567"
-                  className="inline-flex items-center gap-2 rounded-xl border px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-xl border px-7 py-3.5 text-sm font-semibold transition-all duration-300 active:scale-[0.98]"
                   style={{
-                    borderColor: "rgba(255,255,255,0.2)",
-                    backgroundColor: "rgba(255,255,255,0.05)",
+                    borderColor: "var(--c-line)",
+                    backgroundColor: "var(--c-surface)",
+                    color: "var(--c-text)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--c-brand)";
+                    e.currentTarget.style.color = "var(--c-brand)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--c-line)";
+                    e.currentTarget.style.color = "var(--c-text)";
                   }}
                 >
                   <Phone className="w-4 h-4" />
@@ -626,19 +674,31 @@ export function Home() {
                 </a>
               </div>
             </div>
+
+            {/* Card visual derecha — clara y limpia */}
             <div className="flex justify-center">
               <div
-                className="w-full max-w-sm aspect-square rounded-3xl flex items-center justify-center"
+                className="relative w-full max-w-sm aspect-square rounded-3xl flex items-center justify-center overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(241,90,41,0.08) 100%)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background:
+                    "linear-gradient(135deg, var(--c-brand-soft) 0%, var(--c-cool-soft) 100%)",
+                  border: "1px solid var(--c-line)",
+                  boxShadow: "var(--elev-card)",
                 }}
               >
-                <Stethoscope
-                  className="w-24 h-24"
-                  style={{ color: "rgba(255,255,255,0.15)" }}
+                {/* Anillos decorativos */}
+                <div
+                  className="absolute inset-8 rounded-full border-2 opacity-40"
+                  style={{ borderColor: "var(--c-brand)" }}
                 />
-                {/* // TODO: reemplazar con imagen real del equipo farmacéutico */}
+                <div
+                  className="absolute inset-16 rounded-full border-2 opacity-25"
+                  style={{ borderColor: "var(--c-cool)" }}
+                />
+                <Stethoscope
+                  className="w-24 h-24 relative z-10"
+                  style={{ color: "var(--c-brand)" }}
+                />
               </div>
             </div>
           </div>
@@ -666,9 +726,9 @@ export function Home() {
               Tip de salud
             </span>
             <p className="text-sm md:text-base text-center md:text-left" style={{ color: "var(--c-text)" }}>
-              <strong>¿Sabías que?</strong> Los medicamentos genéricos tienen la misma eficacia
-              que los de marca. La diferencia está solo en el precio —
-              puedes ahorrar hasta un 70% eligiendo genéricos certificados por DIGEMID.
+              <strong>¿Sabías que?</strong> Los medicamentos genéricos contienen el mismo principio
+              activo y tienen la misma eficacia que los de marca. Eligiendo genéricos certificados
+              por DIGEMID puedes ahorrar hasta un 70%.
             </p>
           </div>
         </div>
