@@ -63,7 +63,7 @@ export interface StaffLoginResponse {
   };
 }
 
-// Lo que devuelve POST /api/auth/customer-login y customer-register
+// Lo que devuelve POST /api/auth/customer-login, customer-register y google
 export interface CustomerAuthResponse {
   token: string;
   customer: {
@@ -76,6 +76,19 @@ export interface CustomerAuthResponse {
     is_active: boolean;
     created_at: string;
   };
+}
+
+// POST /api/auth/forgot-password — respuesta SIEMPRE genérica.
+// dev_link solo aparece en desarrollo cuando no hay SMTP configurado.
+export interface ForgotPasswordResponse {
+  message: string;
+  dev_link?: string;
+}
+
+// POST /api/auth/reset-password/validate
+export interface ValidateResetResponse {
+  valid: boolean;
+  message?: string;
 }
 
 
@@ -221,6 +234,15 @@ export interface Location {
   location_address: string | null;
   district: string | null;
   location_phone: string | null;
+  /** Correo de contacto de la sede. */
+  location_email: string | null;
+  /** Horario de atención en texto libre. */
+  schedule: string | null;
+  /** Texto de búsqueda para Google Maps (fallback: location_address). */
+  maps_query: string | null;
+  /** pg serializa NUMERIC como string; opcional (futuro pin con Leaflet). */
+  latitude: string | null;
+  longitude: string | null;
   is_active: boolean;
 }
 

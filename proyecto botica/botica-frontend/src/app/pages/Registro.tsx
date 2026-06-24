@@ -96,6 +96,7 @@ export function Registro() {
     <AuthLayout
       width="wide"
       tone="client"
+      embedded
       badge="Crea tu cuenta gratis"
       brandHeadline={
         <>

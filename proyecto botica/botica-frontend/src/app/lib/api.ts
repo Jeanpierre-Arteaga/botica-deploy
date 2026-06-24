@@ -15,6 +15,8 @@ import type {
   StaffLoginResponse,
   CustomerAuthResponse,
   CustomerRegisterPayload,
+  ForgotPasswordResponse,
+  ValidateResetResponse,
   User,
   UserCreatePayload,
   UserUpdatePayload,
@@ -139,18 +141,32 @@ const TOKEN_STORAGE_KEY = 'botica_token';
 // TOKEN MANAGEMENT
 // ============================================================
 
+// El token vive en localStorage cuando la sesión es persistente
+// ("Recordarme en este dispositivo") o en sessionStorage cuando NO
+// lo es (solo dura mientras la pestaña esté abierta). Por defecto
+// persistent=true para no cambiar el comportamiento de staff/admin.
 export const tokenStorage = {
   get(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
+    return (
+      sessionStorage.getItem(TOKEN_STORAGE_KEY) ||
+      localStorage.getItem(TOKEN_STORAGE_KEY)
+    );
   },
-  set(token: string): void {
+  set(token: string, persistent = true): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    if (persistent) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
   },
   clear(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
   },
 };
 
@@ -275,15 +291,64 @@ const auth = {
     return res;
   },
 
-  /** Login para customer con email + password */
-  async loginCustomer(email: string, customer_password: string): Promise<CustomerAuthResponse> {
+  /**
+   * Login para customer con email + password.
+   * remember=true → sesión persistente (localStorage + JWT largo).
+   * remember=false → sesión de pestaña (sessionStorage + JWT corto).
+   */
+  async loginCustomer(
+    email: string,
+    customer_password: string,
+    remember = false
+  ): Promise<CustomerAuthResponse> {
     const res = await request<CustomerAuthResponse>('/auth/customer-login', {
       method: 'POST',
-      body: { email, customer_password },
+      body: { email, customer_password, remember },
       skipAuth: true,
     });
-    tokenStorage.set(res.token);
+    tokenStorage.set(res.token, remember);
     return res;
+  },
+
+  /** Login / alta con Google (el front envía el access_token de GIS) */
+  async loginWithGoogle(
+    access_token: string,
+    remember = true
+  ): Promise<CustomerAuthResponse> {
+    const res = await request<CustomerAuthResponse>('/auth/google', {
+      method: 'POST',
+      body: { access_token, remember },
+      skipAuth: true,
+    });
+    tokenStorage.set(res.token, remember);
+    return res;
+  },
+
+  /** Solicita el enlace de recuperación (respuesta genérica por seguridad) */
+  forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+    return request<ForgotPasswordResponse>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+      skipAuth: true,
+    });
+  },
+
+  /** Valida que un token de reseteo siga vigente (pantalla B) */
+  validateResetToken(token: string): Promise<ValidateResetResponse> {
+    return request<ValidateResetResponse>('/auth/reset-password/validate', {
+      method: 'POST',
+      body: { token },
+      skipAuth: true,
+    });
+  },
+
+  /** Fija la nueva contraseña usando el token del correo */
+  resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: { token, password },
+      skipAuth: true,
+    });
   },
 
   /** Registro de customer nuevo (auto-login incluido) */

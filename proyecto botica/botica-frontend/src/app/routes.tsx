@@ -5,6 +5,7 @@ import { CartProvider } from "./lib/CartContext";
 import { LocationProvider } from "./lib/LocationContext";
 import { RequireRole } from "./components/RequireRole";
 import { PublicLayout } from "./layouts/PublicLayout";
+import { StoreAuthLayout } from "./layouts/StoreAuthLayout";
 import StaffLayout from "./layouts/StaffLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { Home } from "./pages/Home";
@@ -15,6 +16,8 @@ import { Checkout } from "./pages/Checkout";
 import { Confirmacion } from "./pages/Confirmacion";
 import { ClientLogin } from "./pages/ClientLogin";
 import { Registro } from "./pages/Registro";
+import { RecuperarPassword } from "./pages/RecuperarPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { StaffLogin } from "./pages/StaffLogin";
 import { AdminLogin } from "./pages/AdminLogin";
 import { NotFound } from "./pages/NotFound";
@@ -44,7 +47,22 @@ function RootProviders() {
       <LocationProvider>
         <CartProvider>
           <Outlet />
-          <Toaster richColors position="top-right" />
+          <Toaster
+            position="bottom-right"
+            duration={2500}
+            gap={10}
+            toastOptions={{
+              style: {
+                background: "var(--c-surface)",
+                color: "var(--c-text)",
+                border: "1px solid var(--c-line)",
+                borderRadius: "14px",
+                boxShadow: "var(--elev-card)",
+                fontSize: "14px",
+                padding: "12px 14px",
+              },
+            }}
+          />
         </CartProvider>
       </LocationProvider>
     </AuthProvider>
@@ -79,8 +97,6 @@ export const router = createBrowserRouter([
               </RequireRole>
             ),
           },
-          { path: "login", Component: ClientLogin },
-          { path: "registro", Component: Registro },
           {
             path: "mis-pedidos",
             element: (
@@ -98,6 +114,18 @@ export const router = createBrowserRouter([
             ),
           },
           { path: "*", Component: NotFound },
+        ],
+      },
+      // Acceso de cliente: conserva TopBar + Navbar (conectividad del sitio),
+      // SIN la barra de categorías ni Footer. Mismas URLs (/login, /registro);
+      // solo cambia el chrome que las envuelve.
+      {
+        Component: StoreAuthLayout,
+        children: [
+          { path: "/login", Component: ClientLogin },
+          { path: "/registro", Component: Registro },
+          { path: "/recuperar-password", Component: RecuperarPassword },
+          { path: "/reset-password", Component: ResetPassword },
         ],
       },
       {

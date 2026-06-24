@@ -1,0 +1,65 @@
+/* ============================================================
+   StoreMap — overrides premium para Leaflet
+   Usa los tokens del tema para integrarse en claro y oscuro.
+   ============================================================ */
+
+.store-map .leaflet-container {
+  background: var(--c-line-2);
+  font-family: inherit;
+}
+
+/* Control de zoom: pill flotante, minimalista */
+.store-map .leaflet-control-zoom {
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--elev-soft);
+}
+
+.store-map .leaflet-control-zoom a {
+  width: 32px;
+  height: 32px;
+  line-height: 30px;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: none;
+  font-size: 18px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.store-map .leaflet-control-zoom a:first-child {
+  border-bottom: 1px solid var(--c-line);
+}
+
+.store-map .leaflet-control-zoom a:hover {
+  background: var(--c-brand-soft);
+  color: var(--c-brand);
+}
+
+/* Atribución discreta (requerida por OSM/CARTO) */
+.store-map .leaflet-control-attribution {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px 0 0 0;
+  background: rgba(255, 255, 255, 0.72);
+  color: #5b6472;
+  backdrop-filter: blur(4px);
+}
+
+.store-map .leaflet-control-attribution a {
+  color: #5b6472;
+}
+
+html[data-theme="dark"] .store-map .leaflet-control-attribution {
+  background: rgba(19, 28, 46, 0.72);
+  color: var(--c-muted);
+}
+
+html[data-theme="dark"] .store-map .leaflet-control-attribution a {
+  color: var(--c-muted);
+}
+
+/* Pin de marca: sombra suave para despegarlo del mapa */
+.store-map .store-pin {
+  filter: drop-shadow(0 4px 6px rgba(15, 23, 42, 0.28));
+}

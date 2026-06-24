@@ -25,12 +25,21 @@ import {
   UserCheck,
   Phone,
   MessageCircle,
+  Mail,
+  Navigation,
 } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { HeroBanner } from "../components/HeroBanner";
+import { StoreMap } from "../components/StoreMap";
 import { api } from "../lib/api";
 import { useLocations } from "../lib/LocationContext";
+import {
+  telHref,
+  mailtoHref,
+  mapsQueryOf,
+  mapsSearchUrl,
+} from "../lib/contact";
 import type { Category, Product } from "../lib/types";
 
 // Imágenes reales de categorías (fotos profesionales)
@@ -90,7 +99,7 @@ const NEEDS: Array<{
 ];
 
 export function Home() {
-  const { selectedLocation, isLoading: isLoadingLocation } = useLocations();
+  const { selectedLocation, isLoading: isLoadingLocation, locations } = useLocations();
 
   const [ofertas, setOfertas] = useState<Product[]>([]);
   const [destacados, setDestacados] = useState<Product[]>([]);
@@ -747,65 +756,162 @@ export function Home() {
             Atención personalizada y stock disponible
           </p>
         </div>
-        <div className="grid md:grid-cols-2 gap-6">
-          {[
-            {
-              name: "Boticas Central - Ate",
-              address: "Av. Separadora Industrial 123, Ate - Lima",
-              hours: "Lun - Dom: 8:00 AM - 10:00 PM",
-            },
-            {
-              name: "Boticas Central - Santa Anita",
-              address: "Av. Los Frutales 456, Santa Anita - Lima",
-              hours: "Lun - Dom: 8:00 AM - 10:00 PM",
-            },
-          ].map((store) => (
-            <div
-              key={store.name}
-              className="rounded-2xl p-8 border transition-all duration-200 hover:shadow-md"
-              style={{
-                backgroundColor: "var(--c-surface)",
-                borderColor: "var(--c-line)",
-                boxShadow: "var(--elev-soft)",
-              }}
-            >
-              <div className="flex items-start gap-5">
+        {isLoadingLocation ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl border h-[28rem] animate-pulse"
+                style={{ backgroundColor: "var(--c-surface)", borderColor: "var(--c-line)" }}
+              />
+            ))}
+          </div>
+        ) : locations.length === 0 ? (
+          <div
+            className="rounded-2xl p-10 border text-center"
+            style={{ backgroundColor: "var(--c-surface)", borderColor: "var(--c-line)", color: "var(--c-muted)" }}
+          >
+            <MapPin className="w-8 h-8 mx-auto mb-3" style={{ color: "var(--c-brand)" }} />
+            <p>No hay sedes disponibles por el momento.</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {locations.map((store) => {
+              const mapQuery = mapsQueryOf(store);
+              const tel = telHref(store.location_phone);
+              const mail = mailtoHref(store.location_email);
+              const addressLine = [store.location_address, store.district]
+                .filter(Boolean)
+                .join(" · ");
+              return (
                 <div
-                  className="p-4 rounded-xl flex-shrink-0"
-                  style={{ backgroundColor: "var(--c-brand-soft)" }}
+                  key={store.location_id}
+                  className="group rounded-3xl overflow-hidden border transition-all duration-300 hover:-translate-y-1 flex flex-col"
+                  style={{
+                    backgroundColor: "var(--c-surface)",
+                    borderColor: "var(--c-line)",
+                    boxShadow: "var(--elev-card)",
+                  }}
                 >
-                  <MapPin className="w-7 h-7" style={{ color: "var(--c-brand)" }} />
-                </div>
-                <div className="flex-1">
-                  <h3
-                    className="mb-2 font-semibold"
-                    style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-                  >
-                    {store.name}
-                  </h3>
-                  <p className="mb-3 text-sm" style={{ color: "var(--c-muted)" }}>
-                    {store.address}
-                  </p>
-                  <div
-                    className="flex items-center gap-2 mb-4"
-                    style={{ color: "var(--c-muted)" }}
-                  >
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm font-medium">{store.hours}</span>
+                  {mapQuery && (
+                    <StoreMap
+                      query={mapQuery}
+                      title={store.location_name}
+                      lat={store.latitude != null ? Number(store.latitude) : null}
+                      lng={store.longitude != null ? Number(store.longitude) : null}
+                      aspectRatio="16 / 9"
+                      className="border-b"
+                    />
+                  )}
+
+                  <div className="p-5 flex flex-col flex-1">
+                    {/* Sede + dirección */}
+                    <div className="flex items-start gap-3.5">
+                      <div
+                        className="p-2.5 rounded-2xl flex-shrink-0 mt-0.5"
+                        style={{ backgroundColor: "var(--c-brand-soft)" }}
+                      >
+                        <MapPin className="w-5 h-5" style={{ color: "var(--c-brand)" }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className="text-lg md:text-xl font-bold leading-tight tracking-tight"
+                          style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
+                        >
+                          {store.location_name}
+                        </h3>
+                        {addressLine && (
+                          <p
+                            className="text-sm mt-1 leading-relaxed"
+                            style={{ color: "var(--c-muted)" }}
+                          >
+                            {addressLine}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Horario */}
+                    {store.schedule && (
+                      <div
+                        className="flex items-center gap-2 mt-4"
+                        style={{ color: "var(--c-muted)" }}
+                      >
+                        <Clock className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm font-medium">{store.schedule}</span>
+                      </div>
+                    )}
+
+                    {/* Acciones: un primario + un secundario, compactas */}
+                    <div className="mt-auto pt-4 flex flex-col gap-2.5">
+                      <div className="flex gap-2.5">
+                        {tel && (
+                          <a
+                            href={tel}
+                            className="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+                            style={{
+                              backgroundColor: "var(--c-brand)",
+                              boxShadow: "var(--elev-soft)",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--c-brand-hover)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "var(--c-brand)")}
+                          >
+                            <Phone className="w-4 h-4" />
+                            Llamar
+                          </a>
+                        )}
+                        {mapQuery && (
+                          <a
+                            href={mapsSearchUrl(mapQuery)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all duration-200 active:scale-[0.98]"
+                            style={{ color: "var(--c-text)", borderColor: "var(--c-line)", backgroundColor: "var(--c-surface)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "var(--c-brand)";
+                              e.currentTarget.style.color = "var(--c-brand)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "var(--c-line)";
+                              e.currentTarget.style.color = "var(--c-text)";
+                            }}
+                          >
+                            <Navigation className="w-4 h-4" />
+                            Cómo llegar
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Enlaces sobrios, en la misma fila */}
+                      <div className="flex items-center justify-between gap-3">
+                        <Link
+                          to="/catalogo"
+                          className="inline-flex items-center gap-1.5 font-semibold text-sm transition-colors hover:gap-2.5"
+                          style={{ color: "var(--c-brand)" }}
+                        >
+                          Ver disponibilidad
+                          <ArrowRight className="w-4 h-4 transition-transform" />
+                        </Link>
+                        {mail && (
+                          <a
+                            href={mail}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+                            style={{ color: "var(--c-muted)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--c-text)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--c-muted)")}
+                          >
+                            <Mail className="w-4 h-4" />
+                            Contáctanos
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <Link
-                    to="/catalogo"
-                    className="inline-flex items-center gap-2 font-semibold transition-colors text-sm"
-                    style={{ color: "var(--c-brand)" }}
-                  >
-                    Ver disponibilidad
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

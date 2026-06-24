@@ -44,7 +44,8 @@ interface AuthContextValue {
   /** True mientras se valida el token al montar la app */
   isCheckingSession: boolean;
   loginStaff: (user_code: string, password: string, requiredRole?: 'admin' | 'emp') => Promise<void>;
-  loginCustomer: (email: string, password: string) => Promise<void>;
+  loginCustomer: (email: string, password: string, remember?: boolean) => Promise<void>;
+  loginWithGoogle: (accessToken: string, remember?: boolean) => Promise<void>;
   registerCustomer: (payload: {
     full_name: string;
     email: string;
@@ -71,7 +72,11 @@ const USER_STORAGE_KEY = 'botica_user';
 function loadUserFromStorage(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    // Lee de sessionStorage primero (sesión de pestaña) y cae a localStorage
+    // (sesión persistente "recordarme"). Mantiene el user junto al token.
+    const raw =
+      sessionStorage.getItem(USER_STORAGE_KEY) ||
+      localStorage.getItem(USER_STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as AuthUser;
   } catch {
@@ -79,11 +84,21 @@ function loadUserFromStorage(): AuthUser | null {
   }
 }
 
-function saveUserToStorage(user: AuthUser | null): void {
+// persistent=true → localStorage (recordarme); false → sessionStorage.
+// Por defecto true para no alterar staff/admin/registro.
+function saveUserToStorage(user: AuthUser | null, persistent = true): void {
   if (typeof window === 'undefined') return;
-  if (user) {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  if (!user) {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    sessionStorage.removeItem(USER_STORAGE_KEY);
+    return;
+  }
+  const raw = JSON.stringify(user);
+  if (persistent) {
+    localStorage.setItem(USER_STORAGE_KEY, raw);
+    sessionStorage.removeItem(USER_STORAGE_KEY);
   } else {
+    sessionStorage.setItem(USER_STORAGE_KEY, raw);
     localStorage.removeItem(USER_STORAGE_KEY);
   }
 }
@@ -226,26 +241,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Login para customer
-  const loginCustomer = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const res = await api.auth.loginCustomer(email, password);
-      const authUser: AuthUser = {
-        id: res.customer.customer_id,
-        role: 'cust',
-        full_name: res.customer.full_name,
-        email: res.customer.email,
-        dni: res.customer.dni,
-        phone: res.customer.phone,
-        address: res.customer.address,
-      };
-      setUser(authUser);
-      saveUserToStorage(authUser);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Login para customer. remember controla la persistencia de la sesión.
+  const loginCustomer = useCallback(
+    async (email: string, password: string, remember = false) => {
+      setIsLoading(true);
+      try {
+        const res = await api.auth.loginCustomer(email, password, remember);
+        const authUser: AuthUser = {
+          id: res.customer.customer_id,
+          role: 'cust',
+          full_name: res.customer.full_name,
+          email: res.customer.email,
+          dni: res.customer.dni,
+          phone: res.customer.phone,
+          address: res.customer.address,
+        };
+        setUser(authUser);
+        saveUserToStorage(authUser, remember);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  // Login / alta con Google
+  const loginWithGoogle = useCallback(
+    async (accessToken: string, remember = true) => {
+      setIsLoading(true);
+      try {
+        const res = await api.auth.loginWithGoogle(accessToken, remember);
+        const authUser: AuthUser = {
+          id: res.customer.customer_id,
+          role: 'cust',
+          full_name: res.customer.full_name,
+          email: res.customer.email,
+          dni: res.customer.dni,
+          phone: res.customer.phone,
+          address: res.customer.address,
+        };
+        setUser(authUser);
+        saveUserToStorage(authUser, remember);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   // Registro de customer (auto-login incluido)
   const registerCustomer = useCallback(
@@ -332,6 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isCheckingSession,
     loginStaff,
     loginCustomer,
+    loginWithGoogle,
     registerCustomer,
     logout,
     hasRole,

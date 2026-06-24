@@ -7,12 +7,24 @@ import {
   Clock,
   Phone,
   Mail,
+  MessageCircle,
+  ExternalLink,
   BookOpen,
   CreditCard,
   ChevronRight,
 } from "lucide-react";
+import { useLocations } from "../lib/LocationContext";
+import {
+  telHref,
+  whatsappHref,
+  mailtoHref,
+  mapsQueryOf,
+  mapsSearchUrl,
+} from "../lib/contact";
 
 export function Footer() {
+  const { locations } = useLocations();
+
   return (
     <footer style={{ backgroundColor: "var(--c-ink)" }}>
       {/* Main content */}
@@ -82,71 +94,82 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Columna 3: Sede Ate */}
-          <div>
-            <h3
-              className="font-bold mb-5 text-sm text-white uppercase tracking-wider"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              Sede Ate
-            </h3>
-            <ul className="space-y-3 text-sm" style={{ color: "rgba(226,232,240,0.6)" }}>
-              <li className="flex items-start gap-2.5">
-                <MapPin
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>Av. Separadora Industrial 123, Ate - Lima</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Clock
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>Lun - Dom: 8:00 AM - 10:00 PM</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Phone
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>(01) 555-1234</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Columna 4: Sede Santa Anita */}
-          <div>
-            <h3
-              className="font-bold mb-5 text-sm text-white uppercase tracking-wider"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              Sede Santa Anita
-            </h3>
-            <ul className="space-y-3 text-sm" style={{ color: "rgba(226,232,240,0.6)" }}>
-              <li className="flex items-start gap-2.5">
-                <MapPin
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>Av. Los Frutales 456, Santa Anita - Lima</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Clock
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>Lun - Dom: 8:00 AM - 10:00 PM</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Phone
-                  className="w-4 h-4 mt-0.5 flex-shrink-0"
-                  style={{ color: "var(--c-brand)" }}
-                />
-                <span>(01) 555-5678</span>
-              </li>
-            </ul>
-          </div>
+          {/* Columnas dinámicas: una por sede (datos del backend) */}
+          {locations.map((store) => {
+            const tel = telHref(store.location_phone);
+            const wa = whatsappHref(store.location_phone);
+            const mail = mailtoHref(store.location_email);
+            const mapQuery = mapsQueryOf(store);
+            return (
+              <div key={store.location_id}>
+                <h3
+                  className="font-bold mb-5 text-sm text-white uppercase tracking-wider"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {store.district || store.location_name}
+                </h3>
+                <ul className="space-y-3 text-sm" style={{ color: "rgba(226,232,240,0.6)" }}>
+                  {store.location_address && (
+                    <li className="flex items-start gap-2.5">
+                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+                      <span>{store.location_address}</span>
+                    </li>
+                  )}
+                  {store.schedule && (
+                    <li className="flex items-start gap-2.5">
+                      <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+                      <span>{store.schedule}</span>
+                    </li>
+                  )}
+                  {tel && (
+                    <li className="flex items-start gap-2.5">
+                      <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <a href={tel} className="hover:text-white transition-colors">
+                          {store.location_phone?.trim()}
+                        </a>
+                        {wa && (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-medium transition-colors"
+                            style={{ color: "var(--c-brand)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--c-brand)")}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  )}
+                  {mail && (
+                    <li className="flex items-start gap-2.5">
+                      <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+                      <a href={mail} className="hover:text-white transition-colors break-all">
+                        {store.location_email}
+                      </a>
+                    </li>
+                  )}
+                  {mapQuery && (
+                    <li className="flex items-start gap-2.5">
+                      <ExternalLink className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+                      <a
+                        href={mapsSearchUrl(mapQuery)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white transition-colors"
+                      >
+                        Ver en Google Maps
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
         {/* Libro de Reclamaciones + Métodos de pago */}

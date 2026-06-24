@@ -89,6 +89,18 @@ const CustomerModel = {
     return result.rows[0];
   },
 
+  // Actualiza solo el password (hash bcrypt). Usado por el flujo de
+  // recuperación de contraseña — fuera de la allowlist de update().
+  updatePassword: async (id, customer_password) => {
+    const result = await pool.query(
+      `UPDATE customer SET customer_password = $1
+       WHERE customer_id = $2
+       RETURNING customer_id, full_name, email`,
+      [customer_password, id]
+    );
+    return result.rows[0];
+  },
+
   delete: async (id) => {
     const result = await pool.query(
       `DELETE FROM customer WHERE customer_id = $1 RETURNING customer_id`,

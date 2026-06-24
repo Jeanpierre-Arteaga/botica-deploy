@@ -2,43 +2,49 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import logo from "@/imports/botica_icono-2.jpeg";
+import authHero from "@/imports/login_hero.png";
 
 /**
- * AuthLayout — shell presentacional minimalista para todas las pantallas de
- * autenticación (login cliente, registro, acceso staff, acceso admin).
+ * AuthLayout — shell presentacional compartido por TODAS las pantallas de
+ * autenticación (login cliente, staff y admin).
  *
  * Es 100% UI: no contiene estado, ni handlers, ni llamadas de auth. Cada
  * página mantiene su propia lógica y solo inserta su <form> como children.
  *
- * Layout dividido:
- *   · Panel media (izq, oculto en móvil): imagen/video real opcional sobre un
- *     degradado cinematográfico navy con glow de acento (ken-burns sutil).
- *     Solo logo + UNA línea corta. Sin bullets ni textos largos.
- *   · Panel de formulario (der): superficie con tokens --c-*; se adapta a
- *     tema claro/oscuro automáticamente.
+ * Modelo: imagen real a pantalla completa (ocupa algo más de la mitad por el
+ * encuadre) + scrim oscuro para contraste + TARJETA flotante superpuesta con
+ * el formulario. Sobre la imagen, solo una línea de marca minimalista. La
+ * tarjeta usa tokens --c-* y se adapta a tema claro/oscuro automáticamente.
  */
 
 type AuthTone = "client" | "staff" | "admin";
 
 interface AuthLayoutProps {
-  /** Título del formulario (panel derecho) */
+  /** Título del formulario (dentro de la tarjeta) */
   title: string;
   subtitle?: string;
   children: ReactNode;
   /** Links bajo el formulario (registro / volver, etc.) */
   footer?: ReactNode;
-  /** UNA línea corta sobre el panel media (lo único que cambia por pantalla) */
+  /** UNA línea corta sobre la imagen (lo único que cambia por pantalla) */
   brandLine: ReactNode;
   tone?: AuthTone;
-  /** Ancho del formulario: las pantallas con muchos campos usan "wide" */
+  /** Ancho de la tarjeta: las pantallas con muchos campos usan "wide" */
   width?: "narrow" | "wide";
+  /**
+   * Cuando la pantalla va DENTRO del chrome del sitio (TopBar + Navbar), el
+   * layout llena el alto restante en vez de ocupar el viewport completo, y se
+   * omite el "Volver al inicio" (la navegación del sitio ya está presente).
+   * Las pantallas standalone (staff/admin) lo dejan en false.
+   */
+  embedded?: boolean;
 }
 
-/** Glow de acento según el tono de la pantalla */
-const TONE_GLOW: Record<AuthTone, string> = {
-  client: "rgba(241, 90, 41, 0.32)",
-  staff: "rgba(56, 189, 248, 0.26)",
-  admin: "rgba(56, 189, 248, 0.22)",
+/** Sello de confianza según el tono (texto sobre la imagen, minimalista) */
+const TONE_TRUST: Record<AuthTone, string> = {
+  client: "Certificado DIGEMID · Entrega rápida y confiable",
+  staff: "Acceso seguro para el personal de botica",
+  admin: "Panel de administración · acceso restringido",
 };
 
 export function AuthLayout({
@@ -49,111 +55,126 @@ export function AuthLayout({
   brandLine,
   tone = "client",
   width = "narrow",
+  embedded = false,
 }: AuthLayoutProps) {
   return (
     <div
-      className="min-h-screen w-full lg:grid lg:grid-cols-[1.05fr_1fr]"
-      style={{ backgroundColor: "var(--c-bg)" }}
+      className={`relative isolate w-full overflow-hidden flex items-stretch justify-center lg:justify-end ${
+        embedded ? "flex-1 min-h-0" : "min-h-[100svh]"
+      }`}
+      style={{ backgroundColor: "var(--c-ink)" }}
     >
-      {/* ===== Panel media (izquierda) ===== */}
-      <aside
-        className="relative hidden lg:flex flex-col justify-between overflow-hidden p-12 xl:p-16"
+      {/* ===== Imagen de fondo a pantalla completa ===== */}
+      <img
+        src={authHero}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover object-center"
+      />
+
+      {/* ===== Velo/scrim calibrado: deja respirar la foto a la izquierda
+            (texto blanco legible) y la oscurece hacia la derecha para que la
+            tarjeta tenga base limpia. Tinte navy frío, coherente con --c-ink. ===== */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(155deg, var(--c-ink) 0%, var(--c-ink-2) 50%, #13233F 100%)",
+            "linear-gradient(100deg, rgba(8,15,30,0.48) 0%, rgba(8,15,30,0.42) 38%, rgba(8,15,30,0.72) 72%, rgba(8,15,30,0.86) 100%)",
         }}
-      >
-        {/* Media real opcional (foto/poster). Si /auth-side.jpg no existe se ve
-            solo el degradado navy y no se rompe nada. Ken-burns muy sutil. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-cover bg-center opacity-[0.20] mix-blend-luminosity animate-kenburns"
-          style={{ backgroundImage: "url('/auth-side.jpg')" }}
-        />
-        {/* Glow de acento según tono */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-28 -right-20 w-[480px] h-[480px] rounded-full blur-[140px]"
-          style={{ backgroundColor: TONE_GLOW[tone] }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-36 -left-20 w-[440px] h-[440px] rounded-full blur-[150px]"
-          style={{ backgroundColor: "rgba(30, 41, 59, 0.55)" }}
-        />
-        {/* Velo inferior para asentar la línea de marca */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(6,11,22,0.55) 0%, transparent 100%)",
-          }}
-        />
+      />
+      {/* Refuerzo inferior: asienta la línea de marca sobre la imagen. */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, transparent 42%, rgba(8,15,30,0.55) 100%)",
+        }}
+      />
+      {/* Refuerzo extra solo móvil (la tarjeta queda centrada sobre la foto) */}
+      <div
+        aria-hidden
+        className="absolute inset-0 lg:hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(8,15,30,0.30) 0%, rgba(8,15,30,0.50) 100%)",
+        }}
+      />
 
-        {/* Logo */}
-        <div className="relative">
-          <Link to="/" className="inline-flex">
-            <img
-              src={logo}
-              alt="Boticas Central"
-              className="h-14 w-auto rounded-2xl shadow-lg"
-            />
-          </Link>
-        </div>
-
-        {/* UNA línea corta */}
+      {/* ===== Texto de marca sobre la imagen (solo desktop) ===== */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden lg:flex w-[52%] flex-col justify-end p-12 xl:p-14">
+        <span
+          className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85"
+        >
+          <span
+            aria-hidden
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: "var(--c-brand)" }}
+          />
+          Boticas Central
+        </span>
         <h2
-          className="relative max-w-md text-3xl xl:text-4xl font-bold text-white leading-[1.15]"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="max-w-md text-[2rem] xl:text-[2.5rem] font-bold text-white leading-[1.12]"
+          style={{
+            fontFamily: "var(--font-display)",
+            textShadow: "0 2px 18px rgba(8,15,30,0.55)",
+          }}
         >
           {brandLine}
         </h2>
-      </aside>
+        <p className="mt-4 max-w-sm text-[13.5px] font-medium leading-relaxed text-white/80">
+          {TONE_TRUST[tone]}
+        </p>
+      </div>
 
-      {/* ===== Panel de formulario (derecha) ===== */}
-      <main className="flex flex-col px-5 py-8 sm:px-8 md:px-12 lg:py-10">
-        {/* Volver al inicio */}
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
-            style={{ color: "var(--c-muted)" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = "var(--c-brand)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "var(--c-muted)")
-            }
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al inicio
-          </Link>
-        </div>
-
+      {/* ===== Tarjeta flotante con el formulario (centrada; scroll interno
+            solo si el viewport es muy bajo, nunca scroll de página) ===== */}
+      <main className="relative z-10 flex w-full items-center justify-center overflow-y-auto px-5 py-6 sm:px-8 lg:w-[48%] lg:px-10 xl:px-14">
         <div
-          className={`flex flex-1 flex-col justify-center mx-auto w-full ${
+          className={`animate-fade-in-up my-auto w-full rounded-[1.5rem] border p-6 sm:p-8 ${
             width === "wide" ? "max-w-xl" : "max-w-md"
           }`}
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--c-surface) 95%, transparent)",
+            borderColor: "color-mix(in srgb, var(--c-line) 70%, transparent)",
+            boxShadow: "var(--elev-pop)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
         >
-          {/* Logo solo visible en móvil (panel media oculto) */}
-          <Link to="/" className="lg:hidden mb-8 inline-flex">
-            <img
-              src={logo}
-              alt="Boticas Central"
-              className="h-12 w-auto rounded-2xl"
-            />
-          </Link>
+          {/* Volver al inicio — solo standalone (staff/admin); en cliente el
+              header del sitio ya ofrece la navegación. */}
+          {!embedded && (
+            <Link
+              to="/"
+              className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+              style={{ color: "var(--c-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--c-brand)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--c-muted)")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver al inicio
+            </Link>
+          )}
 
-          <div className="mb-7">
+          {/* Logo + título */}
+          <div className="mb-6 flex flex-col items-center text-center">
+            <Link to="/" className="inline-flex">
+              <img
+                src={logo}
+                alt="Boticas Central"
+                className="h-12 w-auto rounded-2xl shadow-sm"
+              />
+            </Link>
             <h1
-              className="text-2xl sm:text-3xl font-bold"
+              className="mt-4 text-2xl sm:text-[1.7rem] font-bold leading-tight"
               style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
             >
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-2 text-[15px]" style={{ color: "var(--c-muted)" }}>
+              <p className="mt-1.5 text-sm" style={{ color: "var(--c-muted)" }}>
                 {subtitle}
               </p>
             )}
@@ -161,7 +182,7 @@ export function AuthLayout({
 
           {children}
 
-          {footer && <div className="mt-7">{footer}</div>}
+          {footer && <div className="mt-6">{footer}</div>}
         </div>
       </main>
     </div>

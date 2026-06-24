@@ -110,6 +110,11 @@ CREATE TABLE location (
     location_address VARCHAR(255),
     district         VARCHAR(255),
     location_phone   CHAR(9),
+    location_email   VARCHAR(255),         -- correo de contacto de la sede
+    schedule         VARCHAR(255),         -- horario de atención (texto libre)
+    maps_query       TEXT,                 -- texto de búsqueda para Google Maps
+    latitude         NUMERIC(10,7),        -- opcional (futuro pin con Leaflet)
+    longitude        NUMERIC(10,7),        -- opcional (futuro pin con Leaflet)
     is_active        BOOLEAN DEFAULT true
 );
  
@@ -294,9 +299,27 @@ CREATE UNIQUE INDEX idx_image_main_unique
 -- PASO 9: SEMILLAS — SEDES
 -- ============================================================
  
-INSERT INTO location (location_name, location_address, district, location_phone, is_active) VALUES
-  ('Botica Central Ate',         'Av. Nicolás Ayllón 2456', 'Ate',         '013572468', true),
-  ('Botica Central Santa Anita', 'Av. Los Ruiseñores 850',  'Santa Anita', '013621547', true);
+-- RUC 20614687259 · Razón social BOTICAS CENTRAL MOREL S.A.C.
+-- Tel/WhatsApp y email son compartidos por ambas sedes.
+INSERT INTO location
+  (location_name, location_address, district, location_phone, location_email, schedule, maps_query, is_active)
+VALUES
+  ('Botica Central Ate',
+   'Av. Metropolitana N.° 517, Lote 23, Urb. Ceres Etapa 2, Mz. G1, Ate, Lima',
+   'Ate',
+   '998113090',
+   'bmboticascentral@gmail.com',
+   'Lun a Vie: 7:00 a.m. – 12:00 a.m. (medianoche)',
+   'Av. Metropolitana 517, Ceres, Ate, Lima, Perú',
+   true),
+  ('Botica Central Santa Anita',
+   'Av. Universitaria N.° 416, Urb. Universal 2da Etapa, Santa Anita, Lima',
+   'Santa Anita',
+   '998113090',
+   'bmboticascentral@gmail.com',
+   'Lun a Vie: 7:00 a.m. – 12:00 a.m. (medianoche)',
+   'Av. Universitaria 416, Santa Anita, Lima, Perú',
+   true);
  
  
 -- ============================================================
