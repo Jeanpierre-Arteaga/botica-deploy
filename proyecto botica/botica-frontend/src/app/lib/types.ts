@@ -191,6 +191,8 @@ export interface ProductBase {
   health_record: string | null;
   is_generic: boolean;
   product_price: number;
+  /** Precio anterior (tachado). Solo se muestra si is_offer y old_price > product_price. */
+  old_price: number | null;
   is_active: boolean;
   is_offer: boolean;
   laboratory_id: number | null;
@@ -214,6 +216,8 @@ export interface ProductFilters {
   category_id?: number;
   is_offer?: boolean;
   location_id?: number;
+  /** Solo admin: incluye productos desactivados (is_active=false). */
+  include_inactive?: boolean;
 }
 
 export interface ProductStockInfo {

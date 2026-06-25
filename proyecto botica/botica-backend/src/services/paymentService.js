@@ -26,8 +26,18 @@ async function processCardPayment({
   payer = {},
 }) {
   try {
+    // Defensa en profundidad: transaction_amount DEBE ser Number con como
+    // máximo 2 decimales. Si llega con cola de flotante (ej. 58.6999999),
+    // MercadoPago responde "Invalid transaction_amount". Redondeamos aquí
+    // también, además del recálculo en el controlador.
+    const transaction_amount = Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+
+    if (!(transaction_amount > 0)) {
+      throw new Error(`transaction_amount inválido: ${amount}`);
+    }
+
     const body = {
-      transaction_amount: Number(amount),
+      transaction_amount,
       token,
       description,
       installments: Number(installments) || 1,
@@ -48,10 +58,16 @@ async function processCardPayment({
       raw: response,
     };
   } catch (err) {
-    console.error('[MP] Error processing card payment:', err.message);
     const detail =
       (err.cause && Array.isArray(err.cause) && err.cause[0] && err.cause[0].description) ||
       err.message;
+    // Detalle completo del error de MP por si vuelve a fallar.
+    console.error('[payment] processCardPayment falló:', {
+      message: err.message,
+      detail,
+      cause: err.cause,
+      amount,
+    });
     return {
       success: false,
       error: err.message,

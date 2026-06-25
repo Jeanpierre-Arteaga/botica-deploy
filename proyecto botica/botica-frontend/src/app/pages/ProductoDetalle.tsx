@@ -196,6 +196,15 @@ export function ProductoDetalle() {
     );
   }
 
+  // Precio anterior tachado: solo en ofertas con old_price mayor al actual.
+  const showOldPrice =
+    product.is_offer &&
+    product.old_price != null &&
+    product.old_price > product.product_price;
+  const discountPct = showOldPrice
+    ? Math.round((1 - product.product_price / (product.old_price as number)) * 100)
+    : 0;
+
   return (
     <div className="bg-page min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
@@ -285,10 +294,20 @@ export function ProductoDetalle() {
               </p>
             )}
 
-            <div className="flex items-baseline gap-3 mb-5">
+            <div className="flex items-baseline gap-3 mb-5 flex-wrap">
               <span className="text-4xl md:text-5xl font-bold text-brand">
                 S/ {Number(product.product_price).toFixed(2)}
               </span>
+              {showOldPrice && (
+                <>
+                  <span className="text-xl md:text-2xl line-through text-faint">
+                    S/ {Number(product.old_price).toFixed(2)}
+                  </span>
+                  <span className="text-sm font-bold px-2 py-1 rounded-md bg-brand-soft text-brand">
+                    -{discountPct}%
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Estado de stock */}

@@ -21,13 +21,18 @@ const ProductModel = {
     const laboratory_id = toInt(filtros.laboratory_id);
     const category_id   = toInt(filtros.category_id);
     const is_offer      = toBool(filtros.is_offer);
+    // include_inactive: por defecto FALSE → solo productos activos (catálogo
+    // público). El panel admin lo pasa en true para gestionar también los
+    // desactivados. No altera el comportamiento existente.
+    const include_inactive =
+      filtros.include_inactive === true || filtros.include_inactive === 'true';
 
     const result = await pool.query(
       `SELECT DISTINCT ON (p.product_id)
               p.product_id, p.product_name, p.active_ingredient, p.product_composition,
               p.contraindications, p.adverse_effects, p.product_batch, p.expiration_date,
-              p.health_record, p.is_generic, p.product_price, p.is_active, p.is_offer,
-              p.laboratory_id, p.category_id,
+              p.health_record, p.is_generic, p.product_price, p.old_price,
+              p.is_active, p.is_offer, p.laboratory_id, p.category_id,
               l.laboratory_name,
               c.category_name,
               img.url AS image_url,
@@ -39,14 +44,14 @@ const ProductModel = {
          LEFT JOIN image      img ON img.product_id  = p.product_id AND img.type = 'main'
          LEFT JOIN inventory  i   ON i.product_id    = p.product_id
                                   AND ($1::int IS NULL OR i.location_id = $1::int)
-        WHERE p.is_active = true
+        WHERE ($6::boolean = true OR p.is_active = true)
           AND ($2::text    IS NULL OR p.product_name      ILIKE '%' || $2::text || '%'
                                    OR p.active_ingredient ILIKE '%' || $2::text || '%')
           AND ($3::int     IS NULL OR p.laboratory_id = $3::int)
           AND ($4::int     IS NULL OR p.category_id   = $4::int)
           AND ($5::boolean IS NULL OR p.is_offer      = $5::boolean)
         ORDER BY p.product_id, p.product_name`,
-      [location_id, nombre, laboratory_id, category_id, is_offer]
+      [location_id, nombre, laboratory_id, category_id, is_offer, include_inactive]
     );
     return result.rows;
   },
@@ -55,8 +60,8 @@ const ProductModel = {
     const result = await pool.query(
       `SELECT p.product_id, p.product_name, p.active_ingredient, p.product_composition,
               p.contraindications, p.adverse_effects, p.product_batch, p.expiration_date,
-              p.health_record, p.is_generic, p.product_price, p.is_active, p.is_offer,
-              p.laboratory_id, p.category_id,
+              p.health_record, p.is_generic, p.product_price, p.old_price,
+              p.is_active, p.is_offer, p.laboratory_id, p.category_id,
               l.laboratory_name,
               c.category_name,
               img.url AS image_url,
@@ -91,19 +96,19 @@ const ProductModel = {
       contraindications, adverse_effects, product_batch,
       expiration_date, health_record, is_generic,
       product_price, laboratory_id, category_id,
-      is_offer = false
+      is_offer = false, old_price = null
     } = data;
 
     const result = await pool.query(
-      `INSERT INTO product 
+      `INSERT INTO product
         (product_name, active_ingredient, product_composition, contraindications,
          adverse_effects, product_batch, expiration_date, health_record,
-         is_generic, product_price, laboratory_id, category_id, is_offer, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,true)
+         is_generic, product_price, laboratory_id, category_id, is_offer, old_price, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
        RETURNING *`,
       [product_name, active_ingredient, product_composition, contraindications,
        adverse_effects, product_batch, expiration_date, health_record,
-       is_generic, product_price, laboratory_id, category_id, is_offer]
+       is_generic, product_price, laboratory_id, category_id, is_offer, old_price]
     );
     return result.rows[0];
   },
@@ -113,7 +118,8 @@ const ProductModel = {
       product_name, active_ingredient, product_composition,
       contraindications, adverse_effects, product_batch,
       expiration_date, health_record, is_generic,
-      product_price, laboratory_id, category_id, is_offer
+      product_price, laboratory_id, category_id, is_offer,
+      old_price = null
     } = data;
 
     const result = await pool.query(
@@ -121,12 +127,13 @@ const ProductModel = {
         product_name=$1, active_ingredient=$2, product_composition=$3,
         contraindications=$4, adverse_effects=$5, product_batch=$6,
         expiration_date=$7, health_record=$8, is_generic=$9,
-        product_price=$10, laboratory_id=$11, category_id=$12, is_offer=$13
-       WHERE product_id=$14
+        product_price=$10, laboratory_id=$11, category_id=$12, is_offer=$13,
+        old_price=$14
+       WHERE product_id=$15
        RETURNING *`,
       [product_name, active_ingredient, product_composition, contraindications,
        adverse_effects, product_batch, expiration_date, health_record,
-       is_generic, product_price, laboratory_id, category_id, is_offer, id]
+       is_generic, product_price, laboratory_id, category_id, is_offer, old_price, id]
     );
     return result.rows[0];
   },
@@ -137,7 +144,7 @@ const ProductModel = {
       'product_name', 'active_ingredient', 'product_composition',
       'contraindications', 'adverse_effects', 'product_batch',
       'expiration_date', 'health_record', 'is_generic',
-      'product_price', 'is_active', 'is_offer',
+      'product_price', 'old_price', 'is_active', 'is_offer',
       'laboratory_id', 'category_id'
     ];
 

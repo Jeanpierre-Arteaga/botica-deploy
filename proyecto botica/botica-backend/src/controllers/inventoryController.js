@@ -54,6 +54,24 @@ const inventoryController = {
     }
   },
 
+  // PUT /api/inventory/upsert — setea el stock de un producto en una sede.
+  // Crea la fila si no existe (UNIQUE product_id+location_id), o la actualiza.
+  upsert: async (req, res) => {
+    try {
+      const { product_id, location_id } = req.body;
+      if (product_id === undefined || location_id === undefined) {
+        return res
+          .status(400)
+          .json({ message: 'Se requiere product_id y location_id.' });
+      }
+      const item = await InventoryModel.upsert(req.body);
+      res.json(item);
+    } catch (err) {
+      console.error('[inventory/upsert]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
   transfer: async (req, res) => {
     try {
       const result = await InventoryModel.transfer(req.body);

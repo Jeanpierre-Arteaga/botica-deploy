@@ -7,6 +7,8 @@ router.get('/', verifyToken, verifyRole('admin', 'emp'), inventoryController.get
 router.get('/low-stock', verifyToken, verifyRole('admin', 'emp'), inventoryController.getLowStock);
 router.get('/:id', verifyToken, verifyRole('admin', 'emp'), inventoryController.getById);
 router.post('/', verifyToken, verifyRole('admin'), inventoryController.create);
+// /upsert debe ir ANTES de /:id para que no lo capture la ruta paramétrica.
+router.put('/upsert', verifyToken, verifyRole('admin'), inventoryController.upsert);
 router.put('/:id', verifyToken, verifyRole('admin'), inventoryController.update);
 router.post('/transfer', verifyToken, verifyRole('admin'), inventoryController.transfer);
 

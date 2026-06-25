@@ -184,20 +184,57 @@ const orderController = {
       }
     }
 
-    // Calcular totales (regla: envío gratis si pickup o subtotal >= 50)
-    const subtotal = items.reduce(
-      (sum, i) => sum + Number(i.unit_price) * Number(i.amount),
-      0
+    // ── Recalcular totales desde la BD (fuente de verdad) ──────────────
+    // NUNCA se confía en el unit_price que manda el frontend: se relee el
+    // product_price oficial. Además se redondea SIEMPRE a 2 decimales para
+    // evitar el "Invalid transaction_amount" de MercadoPago, que se dispara
+    // cuando transaction_amount llega con cola de flotante (ej. 58.6999999).
+    const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+    const productIds = [...new Set(items.map((it) => Number(it.product_id)))];
+    const priceResult = await pool.query(
+      `SELECT product_id, product_price FROM product
+       WHERE product_id = ANY($1::int[]) AND is_active = true`,
+      [productIds]
     );
+    const priceMap = new Map(
+      priceResult.rows.map((r) => [r.product_id, Number(r.product_price)])
+    );
+
+    // Construir las líneas del pedido con el precio oficial de la BD.
+    const pricedItems = [];
+    for (const it of items) {
+      const pid = Number(it.product_id);
+      const dbPrice = priceMap.get(pid);
+      if (dbPrice == null) {
+        return res.status(400).json({
+          message: `Producto ID ${pid} no disponible.`,
+        });
+      }
+      const amount = Number(it.amount);
+      pricedItems.push({
+        product_id: pid,
+        amount,
+        unit_price: round2(dbPrice),
+        sub_total: round2(dbPrice * amount),
+      });
+    }
+
+    // Totales (regla: envío gratis si pickup o subtotal >= 50)
+    const subtotal = round2(pricedItems.reduce((sum, i) => sum + i.sub_total, 0));
     const shipping = delivery_type === 'pickup' ? 0 : (subtotal >= 50 ? 0 : 8);
-    const total = subtotal + shipping;
+    const total = round2(subtotal + shipping);
+
+    if (!(total > 0)) {
+      return res.status(400).json({ message: 'Total inválido.' });
+    }
 
     // Procesar pago con MercadoPago ANTES de tocar BD
     let mpResult = null;
     if (payment_method === 'tarjeta') {
       mpResult = await processCardPayment({
         token: card_token,
-        amount: total,
+        amount: total, // Number con 2 decimales, recalculado en backend
         payment_method_id: mp_payment_method_id,
         installments: installments || 1,
         email: payer_email || req.user.email,
@@ -206,6 +243,12 @@ const orderController = {
       });
 
       if (!mpResult.success) {
+        console.error('[payment] MercadoPago rechazó el cargo', {
+          transaction_amount: total,
+          status: mpResult.status,
+          status_detail: mpResult.status_detail,
+          error: mpResult.error,
+        });
         return res.status(402).json({
           message: 'Pago rechazado por MercadoPago',
           status: mpResult.status,
@@ -235,12 +278,11 @@ const orderController = {
       );
       const order = orderResult.rows[0];
 
-      for (const it of items) {
-        const sub_total = Number(it.unit_price) * Number(it.amount);
+      for (const it of pricedItems) {
         await client.query(
           `INSERT INTO order_detail (amount, unit_price, sub_total_price, product_id, order_id)
            VALUES ($1, $2, $3, $4, $5)`,
-          [it.amount, it.unit_price, sub_total, it.product_id, order.order_id]
+          [it.amount, it.unit_price, it.sub_total, it.product_id, order.order_id]
         );
 
         const stockUpd = await client.query(

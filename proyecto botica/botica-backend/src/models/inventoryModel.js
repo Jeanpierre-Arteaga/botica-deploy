@@ -65,11 +65,27 @@ const InventoryModel = {
 
   update: async (id, { current_stock, min_stock }) => {
     const result = await pool.query(
-      `UPDATE inventory 
+      `UPDATE inventory
        SET current_stock = $1, min_stock = $2
        WHERE inventory_id = $3
        RETURNING *`,
       [current_stock, min_stock, id]
+    );
+    return result.rows[0];
+  },
+
+  // Inserta o actualiza el stock de un producto en una sede concreta.
+  // Usa el UNIQUE(product_id, location_id) para decidir insert vs update.
+  // Ideal para el flujo de alta/edición de producto desde el admin.
+  upsert: async ({ product_id, location_id, current_stock = 0, min_stock = 0 }) => {
+    const result = await pool.query(
+      `INSERT INTO inventory (current_stock, min_stock, product_id, location_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (product_id, location_id)
+       DO UPDATE SET current_stock = EXCLUDED.current_stock,
+                     min_stock     = EXCLUDED.min_stock
+       RETURNING *`,
+      [current_stock, min_stock, product_id, location_id]
     );
     return result.rows[0];
   },

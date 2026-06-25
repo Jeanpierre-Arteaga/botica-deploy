@@ -18,6 +18,15 @@ export function ProductCard({ product }: ProductCardProps) {
     product.current_stock > 0 &&
     product.current_stock <= 5;
 
+  // Precio anterior tachado: solo en ofertas con old_price mayor al actual.
+  const showOldPrice =
+    product.is_offer &&
+    product.old_price != null &&
+    product.old_price > product.product_price;
+  const discountPct = showOldPrice
+    ? Math.round((1 - product.product_price / (product.old_price as number)) * 100)
+    : 0;
+
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -128,13 +137,32 @@ export function ProductCard({ product }: ProductCardProps) {
           ))}
 
         <div className="mt-auto space-y-3">
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-2 flex-wrap">
             <span
               className="font-semibold text-xl leading-none"
               style={{ color: "var(--c-brand)" }}
             >
               S/ {Number(product.product_price).toFixed(2)}
             </span>
+            {showOldPrice && (
+              <>
+                <span
+                  className="text-sm line-through leading-none"
+                  style={{ color: "var(--c-faint)" }}
+                >
+                  S/ {Number(product.old_price).toFixed(2)}
+                </span>
+                <span
+                  className="text-[11px] font-bold px-1.5 py-0.5 rounded leading-none"
+                  style={{
+                    backgroundColor: "var(--c-brand-soft)",
+                    color: "var(--c-brand)",
+                  }}
+                >
+                  -{discountPct}%
+                </span>
+              </>
+            )}
           </div>
 
           <Button

@@ -29,6 +29,7 @@ import {
   Navigation,
 } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
+import { ProductCarousel } from "../components/ProductCarousel";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { HeroBanner } from "../components/HeroBanner";
 import { StoreMap } from "../components/StoreMap";
@@ -369,15 +370,15 @@ export function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-              {isLoadingProducts
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <ProductCardSkeleton key={`oferta-skel-${i}`} />
-                  ))
-                : ofertas.map((product) => (
-                    <ProductCard key={product.product_id} product={product} />
-                  ))}
-            </div>
+            {isLoadingProducts ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <ProductCardSkeleton key={`oferta-skel-${i}`} />
+                ))}
+              </div>
+            ) : (
+              <ProductCarousel products={ofertas} />
+            )}
           </div>
         </section>
       )}

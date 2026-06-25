@@ -76,6 +76,8 @@ function normalizeProduct<T extends Record<string, any>>(p: T): T {
   return {
     ...p,
     product_price: toNumber(p.product_price),
+    // old_price es nullable: preservamos null para no mostrar un tachado falso.
+    old_price: p.old_price != null ? toNumber(p.old_price) : null,
     current_stock: p.current_stock !== undefined ? toInt(p.current_stock) : undefined,
     min_stock: p.min_stock !== undefined ? toInt(p.min_stock) : undefined,
   };
@@ -269,6 +271,60 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
       );
     }
 
+    throw new ApiError(response.status, message, data);
+  }
+
+  return data as T;
+}
+
+// ============================================================
+// MULTIPART UPLOAD WRAPPER
+// ============================================================
+// Igual que request() pero para FormData (subida de archivos). NO fija
+// Content-Type — el navegador lo hace con el boundary correcto. Incluye
+// el token y reutiliza el mismo manejo de errores/401.
+// ============================================================
+
+async function uploadRequest<T>(
+  path: string,
+  form: FormData,
+  method: 'POST' | 'PUT' = 'POST'
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  const token = tokenStorage.get();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: form,
+    });
+  } catch (err) {
+    throw new ApiError(0, 'Sin conexión con el servidor.', err);
+  }
+
+  let data: unknown;
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    const message =
+      (data as { message?: string })?.message || `Error ${response.status}`;
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('api-unauthorized', { detail: { status: 401 } })
+      );
+    }
     throw new ApiError(response.status, message, data);
   }
 
@@ -528,6 +584,28 @@ const products = {
   delete(product_id: number): Promise<void> {
     return request<void>(`/products/${product_id}`, { method: 'DELETE' });
   },
+
+  /**
+   * POST /api/products/:id/image — sube una foto a S3/CloudFront (admin).
+   * Usa multipart/form-data con el campo `image`. NO fijamos Content-Type:
+   * el navegador añade el boundary correcto. Devuelve la URL pública.
+   */
+  uploadImage(product_id: number, file: File): Promise<{ image_url: string }> {
+    const form = new FormData();
+    form.append('image', file);
+    return uploadRequest<{ image_url: string }>(
+      `/products/${product_id}/image`,
+      form
+    );
+  },
+
+  /** DELETE /api/products/:id/image — quita la imagen principal (admin) */
+  deleteImage(product_id: number): Promise<{ message: string; removed: number }> {
+    return request<{ message: string; removed: number }>(
+      `/products/${product_id}/image`,
+      { method: 'DELETE' }
+    );
+  },
 };
 
 // ============================================================
@@ -758,6 +836,23 @@ const inventory = {
   async update(inventory_id: number, payload: Partial<InventoryItem>): Promise<InventoryItem> {
     const data = await request<InventoryItem>(`/inventory/${inventory_id}`, {
       method: 'PATCH',
+      body: payload,
+    });
+    return normalizeInventory(data);
+  },
+
+  /**
+   * PUT /api/inventory/upsert (admin) — fija el stock de un producto en
+   * una sede. Crea la fila si no existe o la actualiza (UNIQUE product+sede).
+   */
+  async upsert(payload: {
+    product_id: number;
+    location_id: number;
+    current_stock: number;
+    min_stock: number;
+  }): Promise<InventoryItem> {
+    const data = await request<InventoryItem>('/inventory/upsert', {
+      method: 'PUT',
       body: payload,
     });
     return normalizeInventory(data);
