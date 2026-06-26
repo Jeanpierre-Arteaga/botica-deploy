@@ -105,7 +105,6 @@ export function SecondaryNav() {
                         ? 'text-[#F15A29] border-[#F15A29]'
                         : 'text-[#4A5260] hover:text-[#F15A29] border-transparent'
                     }`}
-                    style={!active && cat.color_hex ? { color: cat.color_hex } : undefined}
                   >
                     <CategoryIcon name={cat.icon_name} size={16} />
                     <span>{cat.category_name}</span>

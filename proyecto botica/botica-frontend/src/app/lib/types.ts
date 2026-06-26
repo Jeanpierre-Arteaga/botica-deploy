@@ -203,8 +203,14 @@ export interface ProductBase {
 // Incluye JOINs con laboratory, category, image, inventory
 export interface Product extends ProductBase {
   laboratory_name?: string | null;
+  /** País de origen del laboratorio. Forward-compatible: el endpoint de
+   *  detalle aún NO lo expone (ver nota en ProductoDetalle). Llega undefined. */
+  laboratory_country?: string | null;
   category_name?: string | null;
   image_url?: string | null;
+  /** Galería completa (main + gallery + thumbnail). Forward-compatible:
+   *  el endpoint de detalle aún NO la expone; mientras tanto se usa image_url. */
+  images?: ProductImage[];
   // Si se pasó location_id en la query:
   current_stock?: number;
   min_stock?: number;

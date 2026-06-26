@@ -59,44 +59,13 @@ const NEEDS: Array<{
   label: string;
   image: string;
   query: string;
-  bgColor: string;
 }> = [
-  {
-    label: "Gripe y resfríos",
-    image: cat_gripe,
-    query: "gripe",
-    bgColor: "#EEF4F8",
-  },
-  {
-    label: "Dolor y fiebre",
-    image: cat_dolor,
-    query: "dolor",
-    bgColor: "#FDF2EF",
-  },
-  {
-    label: "Alergias",
-    image: cat_alergia,
-    query: "alergia",
-    bgColor: "#EDF7F5",
-  },
-  {
-    label: "Cuidado del bebé",
-    image: cat_bebe,
-    query: "bebe",
-    bgColor: "#FBF0F4",
-  },
-  {
-    label: "Vitaminas y energía",
-    image: cat_vitaminas,
-    query: "vitamina",
-    bgColor: "#F3F0FA",
-  },
-  {
-    label: "Digestivo",
-    image: cat_digestivo,
-    query: "digestivo",
-    bgColor: "#FBF6ED",
-  },
+  { label: "Gripe y resfríos", image: cat_gripe, query: "gripe" },
+  { label: "Dolor y fiebre", image: cat_dolor, query: "dolor" },
+  { label: "Alergias", image: cat_alergia, query: "alergia" },
+  { label: "Cuidado del bebé", image: cat_bebe, query: "bebe" },
+  { label: "Vitaminas y energía", image: cat_vitaminas, query: "vitamina" },
+  { label: "Digestivo", image: cat_digestivo, query: "digestivo" },
 ];
 
 export function Home() {
@@ -261,22 +230,22 @@ export function Home() {
               to={`/catalogo?nombre=${encodeURIComponent(need.query)}`}
               className="group flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 overflow-hidden"
               style={{
-                backgroundColor: need.bgColor,
-                borderColor: "transparent",
+                backgroundColor: "var(--c-surface)",
+                borderColor: "var(--c-line)",
                 boxShadow: "var(--elev-xs)",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = "var(--elev-card)";
-                e.currentTarget.style.borderColor = "var(--c-line)";
+                e.currentTarget.style.borderColor = "var(--c-brand)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "var(--elev-xs)";
-                e.currentTarget.style.borderColor = "transparent";
+                e.currentTarget.style.borderColor = "var(--c-line)";
               }}
             >
               <div
                 className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center"
-                style={{ backgroundColor: "white" }}
+                style={{ backgroundColor: "var(--c-photo)" }}
               >
                 <img
                   src={need.image}

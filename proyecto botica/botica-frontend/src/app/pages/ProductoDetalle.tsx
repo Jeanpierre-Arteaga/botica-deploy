@@ -7,27 +7,36 @@ import {
   Pill,
   AlertCircle,
   PackageX,
-  CheckCircle2,
-  Calendar,
-  FileText,
+  Truck,
+  Stethoscope,
+  Check,
+  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import yape_logo from "@/imports/yape_logo.png";
+import plin_logo from "@/imports/plin_logo.png";
 import { ProductCard } from "../components/ProductCard";
 import { ProductDetailSkeleton } from "../components/Skeleton";
 import { Button } from "../components/ui/Button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 import { api, ApiError } from "../lib/api";
 import { useCart } from "../lib/CartContext";
 import { useLocations } from "../lib/LocationContext";
 import type { Product } from "../lib/types";
 
-type TabKey =
-  | "descripcion"
-  | "composicion"
-  | "contraindicaciones"
-  | "efectos"
-  | "info";
+// Umbral de envío gratis. Coincide con el del carrito (Carrito.tsx).
+const FREE_SHIPPING_THRESHOLD = 50;
+
+// A partir de cuántos caracteres tiene sentido ofrecer "Ver más" en la
+// descripción corta (si el texto cabe en 2-3 líneas no mostramos el toggle).
+const DESC_CLAMP_CHARS = 160;
 
 function formatDateSafe(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -51,7 +60,8 @@ export function ProductoDetalle() {
   const [error, setError] = useState<string | null>(null);
 
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabKey>("descripcion");
+  const [activeImage, setActiveImage] = useState(0);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const productId = id ? Number(id) : NaN;
 
@@ -62,11 +72,17 @@ export function ProductoDetalle() {
       setIsLoading(false);
       return;
     }
+    // Al entrar a un producto (o al saltar entre relacionados) siempre
+    // arrancamos arriba: navegar conservaba el scroll y "caía" al detalle.
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
     let cancelled = false;
     setIsLoading(true);
     setError(null);
     setNotFound(false);
     setQuantity(1);
+    setActiveImage(0);
+    setDescExpanded(false);
 
     api.products
       .getById(productId, selectedLocation?.location_id)
@@ -123,11 +139,27 @@ export function ProductoDetalle() {
     };
   }, [product, selectedLocation]);
 
-  const stockDisponible = product?.current_stock;
+  // Galería: usa el array `images` si el backend lo expone; si no, cae a la
+  // imagen principal. Sin placeholders rotos cuando solo existe la 'main'.
+  const gallery = useMemo(() => {
+    if (!product) return [] as string[];
+    const fromArray =
+      product.images && product.images.length > 0
+        ? product.images.map((i) => i.url)
+        : [];
+    const urls = fromArray.length > 0
+      ? fromArray
+      : product.image_url
+        ? [product.image_url]
+        : [];
+    return Array.from(new Set(urls.filter(Boolean)));
+  }, [product]);
+
   const stockNumber =
-    typeof stockDisponible === "number" ? stockDisponible : null;
+    typeof product?.current_stock === "number" ? product.current_stock : null;
   const hasStock = stockNumber === null || stockNumber > 0;
-  const maxQuantity = stockNumber ?? 99;
+  const lowStock = stockNumber !== null && stockNumber > 0 && stockNumber <= 5;
+  const maxQuantity = stockNumber && stockNumber > 0 ? stockNumber : 99;
 
   const expDateFormatted = useMemo(
     () => formatDateSafe(product?.expiration_date ?? null),
@@ -140,11 +172,11 @@ export function ProductoDetalle() {
   };
 
   // ============================================================
-  // RENDER
+  // RENDER — estados
   // ============================================================
   if (isLoading) {
     return (
-      <div className="bg-page min-h-screen">
+      <div className="bg-page-alt min-h-screen">
         <ProductDetailSkeleton />
       </div>
     );
@@ -152,7 +184,7 @@ export function ProductoDetalle() {
 
   if (notFound) {
     return (
-      <div className="bg-page min-h-screen">
+      <div className="bg-page-alt min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <PackageX className="w-16 h-16 text-faint mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-text mb-2">
@@ -175,7 +207,7 @@ export function ProductoDetalle() {
 
   if (error || !product) {
     return (
-      <div className="bg-page min-h-screen">
+      <div className="bg-page-alt min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <AlertCircle className="w-16 h-16 text-error mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-text mb-2">
@@ -202,150 +234,235 @@ export function ProductoDetalle() {
     product.old_price != null &&
     product.old_price > product.product_price;
   const discountPct = showOldPrice
-    ? Math.round((1 - product.product_price / (product.old_price as number)) * 100)
+    ? Math.round(
+        (1 - product.product_price / (product.old_price as number)) * 100,
+      )
     : 0;
 
+  // Tono del indicador de stock por sede (punto + texto).
+  const stockTone =
+    stockNumber === null
+      ? { dot: "var(--c-faint)", color: "var(--c-muted)" }
+      : stockNumber === 0
+        ? { dot: "var(--c-error)", color: "var(--c-error)" }
+        : lowStock
+          ? { dot: "var(--c-warning)", color: "var(--c-warning)" }
+          : { dot: "var(--c-success)", color: "var(--c-success)" };
+
+  const sedeLabel = selectedLocation
+    ? selectedLocation.district || selectedLocation.location_name
+    : null;
+
+  const stockText =
+    stockNumber === null
+      ? "Selecciona una sede para ver disponibilidad"
+      : stockNumber === 0
+        ? "Sin stock en esta sede"
+        : lowStock
+          ? `Pocas unidades · ${stockNumber} disponibles`
+          : `${stockNumber} disponibles`;
+
+  // La descripción corta reutiliza la composición (único texto libre del
+  // producto). Para no duplicarla, NO la repetimos como acordeón: aquí va el
+  // resumen con "Ver más", y los acordeones quedan para precaución e info.
+  const description = product.product_composition?.trim() || null;
+  const descIsLong = !!description && description.length > DESC_CLAMP_CHARS;
+
+  // Secciones de acordeón — solo las que tienen contenido. La primera
+  // disponible queda abierta por defecto ("info" siempre existe).
+  const hasCaution = !!product.contraindications || !!product.adverse_effects;
+  const firstSection = hasCaution ? "precaucion" : "info";
+
   return (
-    <div className="bg-page min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted mb-5 flex-wrap">
-          <Link to="/" className="hover:text-brand">
+    <div className="bg-page-alt min-h-screen">
+      <div className="max-w-[1140px] mx-auto px-4 sm:px-5 py-6 md:py-8 animate-fade-in-up">
+        {/* ===== Breadcrumb ===== */}
+        <nav
+          aria-label="Migas de pan"
+          className="flex items-center gap-1.5 text-[12.5px] text-faint mb-5 flex-wrap"
+        >
+          <Link to="/" className="hover:text-text transition-colors">
             Inicio
           </Link>
-          <ChevronRight className="w-4 h-4" />
-          <Link to="/catalogo" className="hover:text-brand">
+          <ChevronRight className="w-3.5 h-3.5 text-faint" />
+          <Link to="/catalogo" className="hover:text-text transition-colors">
             Catálogo
           </Link>
           {product.category_name && product.category_id != null && (
             <>
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5 text-faint" />
               <Link
                 to={`/catalogo?category_id=${product.category_id}`}
-                className="hover:text-brand"
+                className="hover:text-text transition-colors"
               >
                 {product.category_name}
               </Link>
             </>
           )}
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-text font-medium truncate max-w-[60vw] md:max-w-none">
+          <ChevronRight className="w-3.5 h-3.5 text-faint" />
+          <span className="text-muted font-medium truncate max-w-[55vw] md:max-w-none">
             {product.product_name}
           </span>
-        </div>
+        </nav>
 
-        {/* Main */}
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-10">
-          {/* Imagen */}
-          <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8">
-            <div className="aspect-square bg-brand-soft rounded-xl overflow-hidden flex items-center justify-center relative">
-              {product.is_offer && (
-                <div className="absolute top-4 left-4 bg-brand text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm z-10">
-                  Oferta
-                </div>
-              )}
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.product_name}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-faint">
-                  <Pill className="w-20 h-20" />
-                  <span className="text-sm mt-2">Sin imagen</span>
+        {/* ===== 2 columnas: galería + compra (alineadas arriba) ===== */}
+        <div className="grid lg:grid-cols-2 gap-7 lg:gap-12 mb-14 items-start">
+          {/* ---------- IZQUIERDA: solo galería (sticky) ---------- */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="mx-auto w-full max-w-[470px]">
+              {/* Imagen principal — caja cuadrada, fondo blanco puro, contain */}
+              <div
+                className="relative aspect-square rounded-[16px] border border-line shadow-soft overflow-hidden flex items-center justify-center p-4 md:p-5"
+                style={{ backgroundColor: "var(--c-photo)" }}
+              >
+                {gallery.length > 0 ? (
+                  <img
+                    src={gallery[activeImage] ?? gallery[0]}
+                    alt={product.product_name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-faint">
+                    <Pill className="w-16 h-16" />
+                    <span className="text-sm mt-2">Sin imagen</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Tira de miniaturas — solo si hay más de una imagen */}
+              {gallery.length > 1 && (
+                <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide">
+                  {gallery.map((url, i) => (
+                    <button
+                      key={url + i}
+                      type="button"
+                      onClick={() => setActiveImage(i)}
+                      aria-label={`Ver imagen ${i + 1}`}
+                      aria-current={i === activeImage}
+                      className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center p-1.5 transition-all"
+                      style={{
+                        backgroundColor: "var(--c-photo)",
+                        border:
+                          i === activeImage
+                            ? "2px solid var(--c-text)"
+                            : "1px solid var(--c-line)",
+                      }}
+                    >
+                      <img
+                        src={url}
+                        alt=""
+                        className="w-full h-full object-contain"
+                      />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Info */}
-          <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8 flex flex-col">
-            {/* Laboratorio y categoría */}
+          {/* ---------- DERECHA: panel de compra + toda la info ---------- */}
+          <div className="max-w-xl">
+            {/* Tags neutros: laboratorio · categoría · Genérico */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {product.laboratory_name && (
-                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-info-soft text-info">
+                <span className="inline-flex items-center rounded-full bg-line-2 px-2.5 py-1 text-[11.5px] font-medium text-muted">
                   {product.laboratory_name}
                 </span>
               )}
               {product.category_name && (
-                <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-page text-muted border border-line">
+                <span className="inline-flex items-center rounded-full bg-line-2 px-2.5 py-1 text-[11.5px] font-medium text-muted">
                   {product.category_name}
                 </span>
               )}
               {product.is_generic && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-success-soft text-success">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-line-2 px-2.5 py-1 text-[11.5px] font-medium text-muted">
+                  <Check className="w-3 h-3" strokeWidth={2.5} />
                   Genérico
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-bold text-text mb-2 leading-tight">
+            {/* Nombre — la presentación ya viene en el nombre */}
+            <h1 className="text-[22px] font-semibold text-text leading-snug mb-1.5">
               {product.product_name}
             </h1>
 
+            {/* Principio activo */}
             {product.active_ingredient && (
-              <p className="text-sm text-muted mb-5">
-                <span className="text-faint">Principio activo:</span>{" "}
+              <p className="text-[12.5px] text-muted mb-4">
+                Principio activo:{" "}
                 <span className="font-medium text-text">
                   {product.active_ingredient}
                 </span>
               </p>
             )}
 
-            <div className="flex items-baseline gap-3 mb-5 flex-wrap">
-              <span className="text-4xl md:text-5xl font-bold text-brand">
+            {/* Descripción corta con "Ver más" */}
+            {description && (
+              <div className="mb-5">
+                <p
+                  className={`text-[13px] leading-relaxed text-muted whitespace-pre-line ${
+                    descExpanded || !descIsLong ? "" : "line-clamp-3"
+                  }`}
+                >
+                  {description}
+                </p>
+                {descIsLong && (
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="mt-1 text-[12.5px] font-medium text-brand hover:underline"
+                  >
+                    {descExpanded ? "Ver menos" : "Ver más"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Precio — navy bold; el naranja queda solo en el CTA */}
+            <div className="flex items-baseline gap-2.5 flex-wrap mb-4">
+              <span className="text-[34px] font-bold text-text leading-none tracking-tight">
                 S/ {Number(product.product_price).toFixed(2)}
               </span>
               {showOldPrice && (
                 <>
-                  <span className="text-xl md:text-2xl line-through text-faint">
+                  <span className="text-[15px] line-through text-faint leading-none">
                     S/ {Number(product.old_price).toFixed(2)}
                   </span>
-                  <span className="text-sm font-bold px-2 py-1 rounded-md bg-brand-soft text-brand">
+                  <span
+                    className="text-[12px] font-bold px-2 py-0.5 rounded-full leading-none text-white"
+                    style={{ backgroundColor: "var(--c-sale)" }}
+                  >
                     -{discountPct}%
                   </span>
                 </>
               )}
             </div>
 
-            {/* Estado de stock */}
-            <div className="mb-6 p-4 rounded-xl bg-page border border-line">
-              <div className="flex items-center gap-3 mb-1">
-                <span
-                  className={`inline-block w-2.5 h-2.5 rounded-full ${
-                    hasStock ? "bg-success" : "bg-error"
-                  }`}
-                />
-                <span className="text-sm font-semibold text-text">
-                  {selectedLocation
-                    ? `Sede ${selectedLocation.district || selectedLocation.location_name}`
-                    : "Disponibilidad"}
+            {/* Tarjeta de stock por sede */}
+            <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-line-2 border border-line mb-5">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: stockTone.dot }}
+              />
+              <p className="text-[12.5px] text-text">
+                {sedeLabel && (
+                  <span className="font-semibold">Sede {sedeLabel} · </span>
+                )}
+                <span style={{ color: stockTone.color }} className="font-medium">
+                  {stockText}
                 </span>
-              </div>
-              <p className="text-sm text-muted pl-5">
-                {stockNumber === null
-                  ? "Selecciona una sede para ver el stock disponible."
-                  : stockNumber === 0
-                    ? "Agotado en esta sede."
-                    : stockNumber <= 5
-                      ? `Pocas unidades disponibles (${stockNumber})`
-                      : `${stockNumber} unidades disponibles`}
               </p>
             </div>
 
-            {/* Cantidad */}
-            <div className="mb-5">
-              <label className="block text-sm font-semibold mb-2 text-text">
-                Cantidad
-              </label>
-              <div className="flex items-center gap-3">
+            {/* Cantidad + CTA en la misma fila */}
+            <div className="flex items-stretch gap-3">
+              <div className="inline-flex items-center h-11 rounded-full border border-line bg-surface overflow-hidden flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={!hasStock || quantity <= 1}
-                  className="w-11 h-11 border border-line rounded-lg hover:bg-page flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-full flex items-center justify-center text-text hover:bg-page disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label="Disminuir cantidad"
                 >
                   <Minus className="w-4 h-4" />
@@ -357,141 +474,213 @@ export function ProductoDetalle() {
                   value={quantity}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
-                    if (Number.isNaN(v)) {
-                      setQuantity(1);
-                    } else {
-                      setQuantity(Math.max(1, Math.min(maxQuantity, v)));
-                    }
+                    if (Number.isNaN(v)) setQuantity(1);
+                    else setQuantity(Math.max(1, Math.min(maxQuantity, v)));
                   }}
                   disabled={!hasStock}
-                  className="w-20 h-11 text-center border border-line rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:bg-page"
+                  aria-label="Cantidad"
+                  className="w-10 h-full text-center text-sm font-semibold text-text bg-transparent border-x border-line focus:outline-none disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setQuantity((q) => Math.min(maxQuantity, q + 1))
-                  }
+                  onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
                   disabled={!hasStock || quantity >= maxQuantity}
-                  className="w-11 h-11 border border-line rounded-lg hover:bg-page flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-full flex items-center justify-center text-text hover:bg-page disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label="Aumentar cantidad"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-            </div>
 
-            {/* CTA */}
-            <div className="mt-auto pt-2">
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                iconLeft={ShoppingCart}
+              <button
+                type="button"
                 disabled={!hasStock}
                 onClick={handleAddToCart}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full text-sm font-semibold transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed"
+                style={
+                  hasStock
+                    ? { backgroundColor: "var(--c-brand)", color: "#fff" }
+                    : {
+                        backgroundColor: "var(--c-line-2)",
+                        color: "var(--c-faint)",
+                      }
+                }
+                onMouseEnter={(e) => {
+                  if (!hasStock) return;
+                  e.currentTarget.style.backgroundColor = "var(--c-brand-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!hasStock) return;
+                  e.currentTarget.style.backgroundColor = "var(--c-brand)";
+                }}
               >
-                {hasStock ? "Agregar al carrito" : "Agotado"}
-              </Button>
+                <ShoppingCart className="w-[18px] h-[18px]" />
+                {hasStock ? "Agregar al carrito" : "Sin stock en esta sede"}
+              </button>
             </div>
+
+            {/* ===== Señales de confianza ===== */}
+            <div className="mt-6 pt-5 border-t border-line space-y-2.5">
+              <TrustRow icon={Truck}>
+                Envío gratis por compras desde{" "}
+                <span className="font-semibold text-text">
+                  S/ {FREE_SHIPPING_THRESHOLD.toFixed(2)}
+                </span>
+              </TrustRow>
+              <TrustRow icon={Stethoscope}>
+                Asesoría farmacéutica · te ayudamos con tu compra
+              </TrustRow>
+              {product.health_record && (
+                <TrustRow icon={ShieldCheck}>
+                  Reg. Sanitario DIGEMID:{" "}
+                  <span className="font-semibold text-text">
+                    {product.health_record}
+                  </span>
+                </TrustRow>
+              )}
+
+              {/* Métodos de pago — logos a color (mismos assets/estilo del footer) */}
+              <div className="flex items-center gap-2.5 pt-1.5">
+                <span className="text-[12.5px] text-faint mr-0.5">Pagos:</span>
+                {/* Yape — imagen real sobre su morado de marca */}
+                <span
+                  title="Yape"
+                  className="h-6 w-11 rounded-md flex items-center justify-center overflow-hidden shadow-sm"
+                  style={{ backgroundColor: "#702F8A" }}
+                >
+                  <img
+                    src={yape_logo}
+                    alt="Yape"
+                    className="w-full h-full object-contain"
+                  />
+                </span>
+                {/* Plin — imagen real sobre blanco */}
+                <span
+                  title="Plin"
+                  className="h-6 w-11 rounded-md flex items-center justify-center overflow-hidden shadow-sm border border-line"
+                  style={{ backgroundColor: "#FFFFFF" }}
+                >
+                  <img
+                    src={plin_logo}
+                    alt="Plin"
+                    className="w-full h-full object-contain p-0.5"
+                  />
+                </span>
+                {/* Visa — azul oficial */}
+                <span
+                  title="Visa"
+                  className="h-6 w-11 rounded-md flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: "#1A1F71" }}
+                >
+                  <span
+                    className="text-white font-extrabold text-[11px] italic tracking-wider"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    VISA
+                  </span>
+                </span>
+                {/* Mastercard — círculos rojo + naranja */}
+                <span
+                  title="Mastercard"
+                  className="h-6 w-11 rounded-md flex items-center justify-center shadow-sm border border-line"
+                  style={{ backgroundColor: "#FFFFFF" }}
+                >
+                  <svg viewBox="0 0 36 22" className="h-3.5">
+                    <circle cx="13" cy="11" r="9" fill="#EB001B" />
+                    <circle cx="23" cy="11" r="9" fill="#F79E1B" fillOpacity="0.9" />
+                    <path
+                      d="M18 4.5 a9 9 0 0 1 0 13 a9 9 0 0 1 0 -13"
+                      fill="#FF5F00"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            {/* ===== Acordeones — en esta misma columna ===== */}
+            <Accordion
+              type="multiple"
+              defaultValue={[firstSection]}
+              className="mt-6 space-y-2.5"
+            >
+              {hasCaution && (
+                <AccordionItem
+                  value="precaucion"
+                  className="border border-line rounded-xl bg-surface px-4 last:border-b"
+                >
+                  <AccordionTrigger className="text-sm font-semibold text-text hover:no-underline py-3.5">
+                    Precaución y advertencia
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-3">
+                    {product.contraindications && (
+                      <div>
+                        <h4 className="text-[12.5px] font-semibold text-text mb-1">
+                          Contraindicaciones
+                        </h4>
+                        <p className="text-[12.5px] text-muted leading-relaxed whitespace-pre-line">
+                          {product.contraindications}
+                        </p>
+                      </div>
+                    )}
+                    {product.adverse_effects && (
+                      <div>
+                        <h4 className="text-[12.5px] font-semibold text-text mb-1">
+                          Efectos adversos
+                        </h4>
+                        <p className="text-[12.5px] text-muted leading-relaxed whitespace-pre-line">
+                          {product.adverse_effects}
+                        </p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              <AccordionItem
+                value="info"
+                className="border border-line rounded-xl bg-surface px-4 last:border-b"
+              >
+                <AccordionTrigger className="text-sm font-semibold text-text hover:no-underline py-3.5">
+                  Información adicional
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  <dl className="divide-y divide-line-2">
+                    <SpecRow label="Laboratorio" value={product.laboratory_name} />
+                    <SpecRow
+                      label="País de origen"
+                      value={product.laboratory_country}
+                    />
+                    <SpecRow
+                      label="Registro sanitario"
+                      value={product.health_record}
+                    />
+                    <SpecRow label="N.° de lote" value={product.product_batch} />
+                    <SpecRow
+                      label="Fecha de vencimiento"
+                      value={expDateFormatted}
+                    />
+                    <SpecRow
+                      label="Principio activo"
+                      value={product.active_ingredient}
+                    />
+                    <SpecRow
+                      label="¿Genérico?"
+                      value={product.is_generic ? "Sí" : "No"}
+                    />
+                  </dl>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 md:p-8 mb-10">
-          <div className="border-b border-line mb-5 overflow-x-auto">
-            <div className="flex gap-6 md:gap-8 min-w-max">
-              <TabButton
-                active={activeTab === "descripcion"}
-                onClick={() => setActiveTab("descripcion")}
-              >
-                Descripción
-              </TabButton>
-              <TabButton
-                active={activeTab === "composicion"}
-                onClick={() => setActiveTab("composicion")}
-              >
-                Composición
-              </TabButton>
-              <TabButton
-                active={activeTab === "contraindicaciones"}
-                onClick={() => setActiveTab("contraindicaciones")}
-              >
-                Contraindicaciones
-              </TabButton>
-              <TabButton
-                active={activeTab === "efectos"}
-                onClick={() => setActiveTab("efectos")}
-              >
-                Efectos adversos
-              </TabButton>
-              <TabButton
-                active={activeTab === "info"}
-                onClick={() => setActiveTab("info")}
-              >
-                Información adicional
-              </TabButton>
-            </div>
-          </div>
-
-          <div className="text-sm md:text-base text-muted leading-relaxed">
-            {activeTab === "descripcion" && (
-              <TabContent
-                text={product.product_composition}
-                fallback="Aún no hay descripción disponible para este producto."
-              />
-            )}
-            {activeTab === "composicion" && (
-              <TabContent
-                text={product.active_ingredient}
-                fallback="No se ha registrado información de composición."
-              />
-            )}
-            {activeTab === "contraindicaciones" && (
-              <TabContent
-                text={product.contraindications}
-                fallback="No se han registrado contraindicaciones para este producto."
-              />
-            )}
-            {activeTab === "efectos" && (
-              <TabContent
-                text={product.adverse_effects}
-                fallback="No se han registrado efectos adversos."
-              />
-            )}
-            {activeTab === "info" && (
-              <dl className="grid sm:grid-cols-2 gap-4">
-                <InfoRow
-                  icon={FileText}
-                  label="Registro sanitario"
-                  value={product.health_record}
-                />
-                <InfoRow
-                  icon={Pill}
-                  label="Lote"
-                  value={product.product_batch}
-                />
-                <InfoRow
-                  icon={Calendar}
-                  label="Vencimiento"
-                  value={expDateFormatted}
-                />
-                <InfoRow
-                  icon={FileText}
-                  label="Tipo"
-                  value={product.is_generic ? "Genérico" : "De marca"}
-                />
-              </dl>
-            )}
-          </div>
-        </div>
-
-        {/* Relacionados */}
+        {/* ===== Relacionados (full width) ===== */}
         {related.length > 0 && (
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-text mb-5">
-              También te puede interesar
+            <h2 className="text-lg md:text-xl font-bold text-text mb-5">
+              Tal vez te interesen
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
               {related.map((p) => (
                 <ProductCard key={p.product_id} product={p} />
               ))}
@@ -506,68 +695,34 @@ export function ProductoDetalle() {
 // ============================================================
 // Subcomponentes
 // ============================================================
-function TabButton({
-  active,
-  onClick,
+function TrustRow({
+  icon: Icon,
   children,
 }: {
-  active: boolean;
-  onClick: () => void;
+  icon: typeof Truck;
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`pb-3 text-sm md:text-base font-semibold transition-colors whitespace-nowrap ${
-        active
-          ? "text-brand border-b-2 border-brand"
-          : "text-muted hover:text-text"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function TabContent({
-  text,
-  fallback,
-}: {
-  text: string | null | undefined;
-  fallback: string;
-}) {
-  if (!text || text.trim() === "") {
-    return <p className="text-faint italic">{fallback}</p>;
-  }
-  return <p className="whitespace-pre-line">{text}</p>;
-}
-
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Pill;
-  label: string;
-  value: string | null | undefined;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <Icon className="w-4 h-4 text-faint mt-1 flex-shrink-0" />
-      <div>
-        <dt className="text-xs text-faint uppercase tracking-wide font-medium mb-0.5">
-          {label}
-        </dt>
-        <dd className="text-sm text-text font-medium">
-          {value || (
-            <span className="text-faint italic font-normal">
-              No registrado
-            </span>
-          )}
-        </dd>
-      </div>
+    <div className="flex items-center gap-2.5 text-[12.5px] text-muted">
+      <Icon className="w-4 h-4 text-faint flex-shrink-0" strokeWidth={1.75} />
+      <span>{children}</span>
     </div>
   );
 }
 
+function SpecRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  // Oculta la fila si no hay dato (no mostramos campos vacíos).
+  if (value == null || String(value).trim() === "") return null;
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <dt className="text-[12.5px] text-muted flex-shrink-0">{label}</dt>
+      <dd className="text-[12.5px] font-medium text-text text-right">{value}</dd>
+    </div>
+  );
+}
