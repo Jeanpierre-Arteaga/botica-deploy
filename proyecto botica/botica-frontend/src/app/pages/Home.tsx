@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Headset,
   ShoppingBag,
+  Search,
 } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCarousel } from "../components/ProductCarousel";
@@ -101,6 +102,32 @@ export function Home() {
 
   const [categorias, setCategorias] = useState<Category[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Destino del banner promocional: categoría Dermatología.
+  // Resolvemos el category_id real desde la BD (no hardcodear ids frágiles)
+  // y construimos la misma ruta que usa el resto de categorías:
+  //   /catalogo?category_id=<id>
+  // Fallback seguro a búsqueda por nombre si la categoría aún no existe.
+  const [bannerCategoryHref, setBannerCategoryHref] = useState(
+    "/catalogo?nombre=Dermatolog%C3%ADa",
+  );
+  useEffect(() => {
+    api.categories
+      .getAll()
+      .then((cats) => {
+        const derma = cats.find(
+          (c) =>
+            c.category_name.trim().toLowerCase() === "dermatología" ||
+            c.category_name.trim().toLowerCase() === "dermatologia",
+        );
+        if (derma) {
+          setBannerCategoryHref(`/catalogo?category_id=${derma.category_id}`);
+        }
+      })
+      .catch(() => {
+        /* mantiene el fallback por nombre */
+      });
+  }, []);
 
   // Cargar categorías destacadas (selección editorial desde BD)
   useEffect(() => {
@@ -330,21 +357,16 @@ export function Home() {
         </section>
       )}
 
-      {/* ===== Banner promocional — Retiro en tienda (solo imagen, clickeable) ===== */}
+      {/* ===== Banner promocional — acceso directo a categoría (imagen + buscador, clickeable) ===== */}
       <section
         className="reveal pb-14 md:pb-20"
         style={{ backgroundColor: "var(--c-bg)" }}
       >
         <div className="max-w-7xl mx-auto px-4">
-          <button
-            type="button"
-            aria-label="Retira tu pedido en tienda — ver nuestras sedes"
-            onClick={() =>
-              document
-                .getElementById("tiendas")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="group block w-full overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.997]"
+          <Link
+            to={bannerCategoryHref}
+            aria-label="Explora la categoría Dermatología"
+            className="group relative block w-full overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.997]"
             style={{ borderRadius: "24px", boxShadow: "var(--elev-soft)" }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.boxShadow = "var(--elev-card)")
@@ -356,13 +378,13 @@ export function Home() {
             {bannerRetiroSrc ? (
               <img
                 src={bannerRetiroSrc}
-                alt="Retira tu pedido en tienda: compra online y recógelo en tu sede más cercana"
-                className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.015]"
+                alt="Cuidado dermatológico: explora nuestra selección de dermocosmética"
+                className="block w-full h-auto"
                 loading="lazy"
               />
             ) : (
               <div
-                className="w-full aspect-[1024/300] flex flex-col items-center justify-center gap-3"
+                className="w-full aspect-[1024/320] flex flex-col items-center justify-center gap-3"
                 style={{
                   backgroundColor: "var(--c-bg-2)",
                   border: "1px solid var(--c-line)",
@@ -382,11 +404,85 @@ export function Home() {
                   className="text-sm font-medium tracking-wide"
                   style={{ color: "var(--c-muted)" }}
                 >
-                  Retira tu pedido en tienda
+                  Explora Dermatología
                 </span>
               </div>
             )}
-          </button>
+
+            {/* Barra tipo buscador superpuesta — solo desktop/tablet.
+               Ubicada en el espacio libre inferior-izquierdo (bajo el texto del banner),
+               centrada dentro de esa zona. pointer-events-none: el click lo recibe el
+               <Link> que envuelve todo. */}
+            <div className="pointer-events-none hidden sm:flex absolute inset-x-0 bottom-[11%] justify-start">
+              <div className="w-[56%] flex justify-center">
+                <div
+                  className="inline-flex items-center gap-3 rounded-full backdrop-blur-md transition-all duration-300 group-hover:scale-[1.035] group-hover:shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.96)",
+                    border: "1px solid rgba(255,255,255,0.85)",
+                    boxShadow: "var(--elev-card)",
+                    padding: "8px 20px 8px 8px",
+                  }}
+                >
+                  <span
+                    className="flex items-center justify-center rounded-full w-9 h-9 shrink-0"
+                    style={{ backgroundColor: "var(--c-brand)" }}
+                  >
+                    <Search
+                      className="w-[18px] h-[18px]"
+                      strokeWidth={2.4}
+                      style={{ color: "#fff" }}
+                    />
+                  </span>
+                  <span
+                    className="text-[15px] md:text-base font-semibold whitespace-nowrap tracking-tight"
+                    style={{ color: "var(--c-text)" }}
+                  >
+                    Explora Dermatología
+                  </span>
+                  <ArrowRight
+                    className="w-5 h-5 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
+                    style={{ color: "var(--c-brand)" }}
+                  />
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Móvil: el buscador va DEBAJO del banner, en una sola columna
+             (no se superpone para no tapar texto ni productos). Mismo destino. */}
+          <Link
+            to={bannerCategoryHref}
+            aria-label="Explora la categoría Dermatología"
+            className="sm:hidden mt-3 flex items-center gap-2.5 rounded-full cursor-pointer transition-all duration-200 active:scale-[0.99]"
+            style={{
+              backgroundColor: "var(--c-surface)",
+              border: "1px solid var(--c-line)",
+              boxShadow: "var(--elev-soft)",
+              padding: "6px 14px 6px 6px",
+            }}
+          >
+            <span
+              className="flex items-center justify-center rounded-full w-8 h-8 shrink-0"
+              style={{ backgroundColor: "var(--c-brand-soft)" }}
+            >
+              <Search
+                className="w-4 h-4"
+                strokeWidth={2.2}
+                style={{ color: "var(--c-brand)" }}
+              />
+            </span>
+            <span
+              className="text-sm font-medium"
+              style={{ color: "var(--c-text)" }}
+            >
+              Explora Dermatología
+            </span>
+            <ArrowRight
+              className="w-4 h-4 shrink-0 ml-auto"
+              style={{ color: "var(--c-brand)" }}
+            />
+          </Link>
         </div>
       </section>
 
