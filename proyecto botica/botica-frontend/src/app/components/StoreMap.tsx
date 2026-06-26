@@ -2,7 +2,8 @@
 // StoreMap — mapa interactivo por sede (Leaflet + CARTO)
 // ------------------------------------------------------------
 // Mapa propio, sin API key y con color real:
-//  - Tiles CARTO "Voyager": claros, premium y legibles.
+//  - Tiles OpenStreetMap estándar: colores vivos y realistas
+//    (calles marcadas, parques verdes, agua azul) tipo Google Maps.
 //  - Pin de marca discreto (SVG).
 //  - Zoom con botones +/- , doble clic y pellizco; el scroll de
 //    la rueda NO secuestra la página (sin overlay "Ctrl + scroll").
@@ -26,7 +27,11 @@ interface StoreMapProps {
   /** Coordenadas desde backend (prioritarias). */
   lat?: number | null;
   lng?: number | null;
-  /** Override de la proporción. Por defecto "16 / 10". */
+  /**
+   * Proporción opcional. Si se omite, el alto lo controla la clase
+   * (p. ej. `h-[170px] md:h-[210px]`), que es lo recomendado para
+   * un mapa "web-real" sin que se deforme.
+   */
   aspectRatio?: string;
   className?: string;
 }
@@ -52,7 +57,7 @@ export function StoreMap({
   title,
   lat,
   lng,
-  aspectRatio = '16 / 10',
+  aspectRatio,
   className,
 }: StoreMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -103,14 +108,11 @@ export function StoreMap({
       attributionControl: true,
     });
 
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 20,
-      },
-    ).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
 
     L.marker([center.lat, center.lng], { icon: brandPin(), title })
       .addTo(map);
@@ -131,7 +133,7 @@ export function StoreMap({
     return (
       <div
         className={`store-map flex items-center justify-center ${className ?? ''}`}
-        style={{ aspectRatio, backgroundColor: 'var(--c-line-2)' }}
+        style={{ ...(aspectRatio ? { aspectRatio } : null), backgroundColor: 'var(--c-line-2)' }}
       >
         <a
           href={mapsSearchUrl(query)}
@@ -149,7 +151,7 @@ export function StoreMap({
   return (
     <div
       className={`store-map relative w-full overflow-hidden ${className ?? ''}`}
-      style={{ aspectRatio }}
+      style={aspectRatio ? { aspectRatio } : undefined}
     >
       <div ref={containerRef} className="absolute inset-0 h-full w-full" />
       {!center && (

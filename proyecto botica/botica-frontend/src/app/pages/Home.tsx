@@ -27,6 +27,9 @@ import {
   MessageCircle,
   Mail,
   Navigation,
+  ShieldCheck,
+  Headset,
+  ShoppingBag,
 } from "lucide-react";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCarousel } from "../components/ProductCarousel";
@@ -43,30 +46,50 @@ import {
 } from "../lib/contact";
 import type { Category, Product } from "../lib/types";
 
-// Imágenes reales de categorías (fotos profesionales)
-import cat_gripe from "@/imports/cat_gripe.png";
-import cat_dolor from "@/imports/cat_dolor.png";
-import cat_alergia from "@/imports/cat_alergia.png";
-import cat_bebe from "@/imports/cat_bebe.png";
-import cat_vitaminas from "@/imports/cat_vitaminas.png";
-import cat_digestivo from "@/imports/cat_digestivo.png";
+/* ============================================================
+   Franja de beneficios — confianza de farmacia, tono cercano
+   Un solo acento de marca en el ícono; resto neutro.
+   ============================================================ */
+const BENEFITS: Array<{
+  icon: typeof Truck;
+  title: string;
+  subtitle: string;
+}> = [
+  {
+    icon: Truck,
+    title: "Delivery a todo Lima",
+    subtitle: "Recíbelo en 24 – 48 horas",
+  },
+  {
+    icon: CreditCard,
+    title: "Múltiples formas de pago",
+    subtitle: "Yape, Plin, tarjetas y efectivo",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Pago 100% seguro",
+    subtitle: "Pasarelas confiables y protegidas",
+  },
+  {
+    icon: Headset,
+    title: "Asesoría farmacéutica",
+    subtitle: "Te orientamos en tu compra",
+  },
+];
 
 /* ============================================================
-   "Compra por necesidad" — chips por síntoma / condición
-   Cada chip ahora usa una FOTO REAL de la categoría
+   Imagen del banner de retiro en tienda — opcional.
+   import.meta.glob detecta el archivo si existe; el build queda
+   limpio aunque aún no se haya subido (muestra un fallback sobrio).
+   Sube la imagen como: src/assets/home/banner-retiro.webp
    ============================================================ */
-const NEEDS: Array<{
-  label: string;
-  image: string;
-  query: string;
-}> = [
-  { label: "Gripe y resfríos", image: cat_gripe, query: "gripe" },
-  { label: "Dolor y fiebre", image: cat_dolor, query: "dolor" },
-  { label: "Alergias", image: cat_alergia, query: "alergia" },
-  { label: "Cuidado del bebé", image: cat_bebe, query: "bebe" },
-  { label: "Vitaminas y energía", image: cat_vitaminas, query: "vitamina" },
-  { label: "Digestivo", image: cat_digestivo, query: "digestivo" },
-];
+const bannerRetiroGlob = import.meta.glob<string>(
+  "../../assets/home/banner-retiro.{webp,jpg,jpeg,png}",
+  { eager: true, import: "default" },
+);
+const bannerRetiroSrc = Object.values(bannerRetiroGlob)[0] as
+  | string
+  | undefined;
 
 export function Home() {
   const { selectedLocation, isLoading: isLoadingLocation, locations } = useLocations();
@@ -164,104 +187,59 @@ export function Home() {
     <div ref={mainRef} style={{ backgroundColor: "var(--c-bg)" }}>
       <HeroBanner />
 
-      {/* ===== Franja de confianza — fina e integrada ===== */}
+      {/* ===== Franja de beneficios ===== */}
       <section
-        className="border-b"
-        style={{
-          backgroundColor: "var(--c-bg-2)",
-          borderColor: "var(--c-line-2)",
-        }}
+        className="reveal pt-14 md:pt-20 pb-10 md:pb-12"
+        style={{ backgroundColor: "var(--c-bg)" }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-3.5">
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
-            <span
-              className="digemid-badge inline-flex items-center gap-2 text-sm font-medium"
-              style={{ color: "var(--c-muted)" }}
-            >
-              <svg className="digemid-check" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" className="digemid-ring" />
-                <path d="M7 12.5l3.5 3.5L17 9" className="digemid-tick" />
-              </svg>
-              Certificado DIGEMID
-            </span>
-            <span
-              className="hidden sm:inline h-4 w-px"
-              style={{ backgroundColor: "var(--c-line)" }}
-            />
-            <span
-              className="inline-flex items-center gap-2 text-sm font-medium"
-              style={{ color: "var(--c-muted)" }}
-            >
-              <Truck className="w-4 h-4" style={{ color: "var(--c-cool)" }} />
-              Delivery en 24 – 48 h
-            </span>
-            <span
-              className="hidden sm:inline h-4 w-px"
-              style={{ backgroundColor: "var(--c-line)" }}
-            />
-            <span
-              className="inline-flex items-center gap-2 text-sm font-medium"
-              style={{ color: "var(--c-muted)" }}
-            >
-              <CreditCard className="w-4 h-4" style={{ color: "var(--c-brand)" }} />
-              Pago seguro
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Compra por necesidad ===== */}
-      <section className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
-        <div className="text-center mb-10">
-          <h2
-            className="text-2xl md:text-3xl font-bold mb-3"
-            style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-          >
-            Compra por necesidad
-          </h2>
-          <p className="text-base" style={{ color: "var(--c-muted)" }}>
-            Encuentra de forma rápida el tratamiento que necesitas, según tu síntoma o condición
-          </p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {NEEDS.map((need) => (
-            <Link
-              key={need.label}
-              to={`/catalogo?nombre=${encodeURIComponent(need.query)}`}
-              className="group flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-              style={{
-                backgroundColor: "var(--c-surface)",
-                borderColor: "var(--c-line)",
-                boxShadow: "var(--elev-xs)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "var(--elev-card)";
-                e.currentTarget.style.borderColor = "var(--c-brand)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "var(--elev-xs)";
-                e.currentTarget.style.borderColor = "var(--c-line)";
-              }}
-            >
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible lg:grid-cols-4">
+            {BENEFITS.map(({ icon: Icon, title, subtitle }) => (
               <div
-                className="w-full aspect-square rounded-xl overflow-hidden flex items-center justify-center"
-                style={{ backgroundColor: "var(--c-photo)" }}
+                key={title}
+                className="snap-start shrink-0 w-[72%] sm:w-auto flex items-center gap-4 rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1"
+                style={{
+                  backgroundColor: "var(--c-surface)",
+                  borderColor: "var(--c-line)",
+                  boxShadow: "var(--elev-xs)",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.boxShadow = "var(--elev-card)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.boxShadow = "var(--elev-xs)")
+                }
               >
-                <img
-                  src={need.image}
-                  alt={need.label}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <div
+                  className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "var(--c-brand-soft)" }}
+                >
+                  <Icon
+                    className="w-6 h-6"
+                    strokeWidth={1.75}
+                    style={{ color: "var(--c-brand)" }}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h3
+                    className="text-[15px] font-bold leading-snug"
+                    style={{
+                      color: "var(--c-text)",
+                      fontFamily: "var(--font-display)",
+                    }}
+                  >
+                    {title}
+                  </h3>
+                  <p
+                    className="text-sm mt-0.5 leading-snug"
+                    style={{ color: "var(--c-muted)" }}
+                  >
+                    {subtitle}
+                  </p>
+                </div>
               </div>
-              <span
-                className="text-sm font-semibold text-center leading-tight"
-                style={{ color: "var(--c-text)" }}
-              >
-                {need.label}
-              </span>
-            </Link>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -351,6 +329,66 @@ export function Home() {
           </div>
         </section>
       )}
+
+      {/* ===== Banner promocional — Retiro en tienda (solo imagen, clickeable) ===== */}
+      <section
+        className="reveal pb-14 md:pb-20"
+        style={{ backgroundColor: "var(--c-bg)" }}
+      >
+        <div className="max-w-7xl mx-auto px-4">
+          <button
+            type="button"
+            aria-label="Retira tu pedido en tienda — ver nuestras sedes"
+            onClick={() =>
+              document
+                .getElementById("tiendas")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="group block w-full overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.997]"
+            style={{ borderRadius: "24px", boxShadow: "var(--elev-soft)" }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.boxShadow = "var(--elev-card)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.boxShadow = "var(--elev-soft)")
+            }
+          >
+            {bannerRetiroSrc ? (
+              <img
+                src={bannerRetiroSrc}
+                alt="Retira tu pedido en tienda: compra online y recógelo en tu sede más cercana"
+                className="block w-full h-auto transition-transform duration-500 group-hover:scale-[1.015]"
+                loading="lazy"
+              />
+            ) : (
+              <div
+                className="w-full aspect-[1024/300] flex flex-col items-center justify-center gap-3"
+                style={{
+                  backgroundColor: "var(--c-bg-2)",
+                  border: "1px solid var(--c-line)",
+                }}
+              >
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: "var(--c-brand-soft)" }}
+                >
+                  <ShoppingBag
+                    className="w-8 h-8"
+                    strokeWidth={1.5}
+                    style={{ color: "var(--c-brand)" }}
+                  />
+                </div>
+                <span
+                  className="text-sm font-medium tracking-wide"
+                  style={{ color: "var(--c-muted)" }}
+                >
+                  Retira tu pedido en tienda
+                </span>
+              </div>
+            )}
+          </button>
+        </div>
+      </section>
 
       {/* ===== Productos Destacados ===== */}
       <section className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
@@ -714,7 +752,7 @@ export function Home() {
       </section>
 
       {/* ===== Nuestras Tiendas ===== */}
-      <section className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
+      <section id="tiendas" className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
         <div className="text-center mb-10">
           <h2
             className="text-2xl md:text-3xl font-bold mb-3"
@@ -769,8 +807,7 @@ export function Home() {
                       title={store.location_name}
                       lat={store.latitude != null ? Number(store.latitude) : null}
                       lng={store.longitude != null ? Number(store.longitude) : null}
-                      aspectRatio="16 / 9"
-                      className="border-b"
+                      className="border-b h-[170px] md:h-[210px]"
                     />
                   )}
 
