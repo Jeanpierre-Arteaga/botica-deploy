@@ -33,12 +33,24 @@ export interface CartItem {
   available_stock?: number;
 }
 
+/** Lo mínimo que necesita el carrito de un producto para crear un CartItem. */
+type CartProductInput = Pick<
+  Product,
+  'product_id' | 'product_name' | 'product_price' | 'image_url' | 'current_stock'
+>;
+
 interface CartContextValue {
   items: CartItem[];
   itemCount: number;
   subtotal: number;
   isEmpty: boolean;
   addItem: (product: Product, amount?: number) => void;
+  /**
+   * Agrega varios productos de una sola vez (sin un toast por item).
+   * Útil para flujos como "añadir desde receta": el llamador muestra su
+   * propio toast resumen. Reutiliza la misma lógica de merge/stock.
+   */
+  addItems: (entries: Array<{ product: CartProductInput; amount: number }>) => void;
   removeItem: (product_id: number) => void;
   updateAmount: (product_id: number, amount: number) => void;
   clear: () => void;
@@ -131,6 +143,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // Agregar varios items de una vez (sin toast por item, con merge y stock)
+  const addItems = useCallback(
+    (entries: Array<{ product: CartProductInput; amount: number }>) => {
+      const valid = entries.filter((e) => e.product && e.amount > 0);
+      if (valid.length === 0) return;
+      setItems((prev) => {
+        const next = [...prev];
+        for (const { product, amount } of valid) {
+          const idx = next.findIndex((i) => i.product_id === product.product_id);
+          if (idx >= 0) {
+            const merged = next[idx].amount + amount;
+            const capped =
+              next[idx].available_stock !== undefined
+                ? Math.min(merged, next[idx].available_stock!)
+                : merged;
+            next[idx] = { ...next[idx], amount: capped };
+          } else {
+            const cap =
+              product.current_stock !== undefined
+                ? Math.min(amount, product.current_stock)
+                : amount;
+            next.push({
+              product_id: product.product_id,
+              product_name: product.product_name,
+              product_price: product.product_price,
+              image_url: product.image_url,
+              amount: cap,
+              unit_price: product.product_price,
+              available_stock: product.current_stock,
+            });
+          }
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   // Quitar item
   const removeItem = useCallback((product_id: number) => {
     setItems((prev) => {
@@ -192,6 +242,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     subtotal,
     isEmpty,
     addItem,
+    addItems,
     removeItem,
     updateAmount,
     clear,

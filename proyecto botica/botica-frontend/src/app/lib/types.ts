@@ -524,6 +524,46 @@ export interface ShiftSummary {
 
 
 // ============================================================
+// RECETAS MÉDICAS (lectura con IA → sugerencias para el carrito)
+// ============================================================
+
+export type PrescriptionConfidence = 'alta' | 'media' | 'baja';
+
+// Producto del catálogo emparejado con un medicamento detectado en la receta.
+export interface PrescriptionMatch {
+  product_id: number;
+  product_name: string;
+  active_ingredient: string | null;
+  product_price: number;
+  old_price: number | null;
+  is_offer: boolean;
+  image_url: string | null;
+  /** Cantidad sugerida (default 1 si la receta no la indica). */
+  quantity: number;
+  /** Texto del medicamento tal como se detectó en la receta. */
+  detected_name: string;
+  /** Dosis/concentración detectada (ej. "500mg"); null si no aparece. */
+  strength: string | null;
+  confidence: PrescriptionConfidence;
+}
+
+// Medicamento detectado que NO existe en el catálogo (para transparencia).
+export interface PrescriptionUnmatched {
+  detected_name: string;
+  active_ingredient: string | null;
+  reason: string;
+}
+
+// Respuesta de POST /api/prescriptions/scan
+export interface PrescriptionScanResponse {
+  matched: PrescriptionMatch[];
+  unmatched: PrescriptionUnmatched[];
+  /** Observaciones de la IA (ej. partes ilegibles de la receta). */
+  notes: string;
+}
+
+
+// ============================================================
 // API ERROR (errores del backend normalizados)
 // ============================================================
 

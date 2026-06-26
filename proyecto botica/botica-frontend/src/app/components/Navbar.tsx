@@ -8,6 +8,7 @@ import { useCart } from "../lib/CartContext";
 import { useLocations } from "../lib/LocationContext";
 import { UserMenu } from "./UserMenu";
 import { AccessibilityMenu } from "./AccessibilityMenu";
+import { PrescriptionUpload } from "./PrescriptionUpload";
 
 export function Navbar() {
   const { user, isCheckingSession, logout } = useAuth();
@@ -87,6 +88,9 @@ export function Navbar() {
 
           {/* Right Actions - Desktop */}
           <div className="hidden md:flex items-center gap-2">
+            {/* Subir receta médica (IA) */}
+            <PrescriptionUpload variant="light" />
+
             {/* Accesibilidad */}
             <AccessibilityMenu variant="light" />
 
@@ -196,6 +200,7 @@ export function Navbar() {
 
           {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-2">
+            <PrescriptionUpload variant="light" />
             <AccessibilityMenu variant="light" />
             <Link to="/carrito" className="relative" aria-label="Ir al carrito">
               <div className="p-2 bg-[#F15A29] text-white rounded-lg shadow-sm">

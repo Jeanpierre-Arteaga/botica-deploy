@@ -29,6 +29,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const prescriptionRoutes = require('./routes/prescriptionRoutes');
 const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -45,6 +46,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API Botica funcionando' });

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const m=require\\('@google/generative-ai'\\); console.log\\('version:', require\\('@google/generative-ai/package.json'\\).version\\); console.log\\('exports:', Object.keys\\(m\\).slice\\(0,20\\).join\\(', '\\)\\);\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"require\\('./src/app'\\); console.log\\('APP_LOADS_OK'\\); process.exit\\(0\\);\")",
+      "Bash(npx tsc *)",
+      "Bash(cd \"c:/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica/botica-backend\" && cat /tmp/botica_server.log)",
+      "Read(//tmp/**)",
+      "Bash(ls \"C:/Users/jeana/.claude/projects/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica/memory/\" 2>/dev/null && echo \"---MEMORY.md---\" && cat \"C:/Users/jeana/.claude/projects/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica/memory/MEMORY.md\" 2>/dev/null || echo \"NO MEMORY DIR/FILE YET\")",
+      "Read(//c/Users/jeana/.claude/projects/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica/memory/**)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const g=require\\('@google/genai'\\); console.log\\('exports:', Object.keys\\(g\\).filter\\(k=>/genai|Google/i.test\\(k\\)\\)\\); console.log\\('version:', require\\('@google/genai/package.json'\\).version\\); const ai=new g.GoogleGenAI\\({apiKey:'x'}\\); console.log\\('ai.models.generateContent:', typeof ai.models.generateContent\\);\")",
+      "Bash(node -e \"const {GoogleGenAI}=require\\('@google/genai'\\); const ai=new GoogleGenAI\\({apiKey:'x'}\\); console.log\\('models:', typeof ai.models\\); console.log\\('generateContent:', typeof ai.models.generateContent\\);\")",
+      "Bash(node --check src/services/prescriptionService.js)",
+      "Bash(node -e \"const s=require\\('./src/services/prescriptionService'\\); console.log\\('LOADS_OK', typeof s.readPrescription, typeof s.matchProductsToCatalog, 'model=', s.GEMINI_MODEL\\);\")",
+      "Bash(node \"/c/Users/jeana/AppData/Local/Temp/claude/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica-proyecto-botica/5b75cc1f-0f04-4ed7-b2e2-3e73a59cdc1e/scratchpad/repro.js\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\")",
+      "Bash(node src/server.js)",
+      "Bash(node \"/c/Users/jeana/AppData/Local/Temp/claude/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica-proyecto-botica/5b75cc1f-0f04-4ed7-b2e2-3e73a59cdc1e/scratchpad/make-image.js\")",
+      "Bash(node \"/c/Users/jeana/AppData/Local/Temp/claude/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica-proyecto-botica/5b75cc1f-0f04-4ed7-b2e2-3e73a59cdc1e/scratchpad/post.js\")"
+    ]
+  }
+}

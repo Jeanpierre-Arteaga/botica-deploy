@@ -8,7 +8,11 @@
 
 const multer = require('multer');
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB (imágenes de producto → S3)
+
+// Las fotos de recetas se toman con la cámara del móvil y pueden pesar más
+// que una imagen de catálogo, por eso usamos un límite mayor.
+const PRESCRIPTION_MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
@@ -30,7 +34,21 @@ const upload = multer({
   fileFilter,
 });
 
+// Uploader análogo para recetas: misma validación de tipo, en memoria
+// (la imagen de la receta NO se persiste), pero con límite de 8 MB.
+const prescriptionUpload = multer({
+  storage,
+  limits: { fileSize: PRESCRIPTION_MAX_FILE_SIZE },
+  fileFilter,
+});
+
 // Campo esperado en el form-data: "image"
 const uploadSingleImage = upload.single('image');
+const uploadPrescriptionImage = prescriptionUpload.single('image');
 
-module.exports = { uploadSingleImage, MAX_FILE_SIZE };
+module.exports = {
+  uploadSingleImage,
+  uploadPrescriptionImage,
+  MAX_FILE_SIZE,
+  PRESCRIPTION_MAX_FILE_SIZE,
+};

@@ -37,6 +37,7 @@ import type {
   SalesReport,
   OrdersStats,
   ShiftSummary,
+  PrescriptionScanResponse,
 } from './types';
 
 // ============================================================
@@ -871,6 +872,39 @@ const dashboard = {
 };
 
 // ============================================================
+// PRESCRIPTIONS (recetas médicas → sugerencias con IA)
+// ============================================================
+
+const prescriptions = {
+  /**
+   * POST /api/prescriptions/scan — sube la foto de una receta (multipart,
+   * campo `image`), la IA la lee y devuelve productos del catálogo que
+   * coinciden + los no encontrados. NO fijamos Content-Type: el navegador
+   * añade el boundary correcto. Normalizamos los precios a number.
+   */
+  async scan(file: File): Promise<PrescriptionScanResponse> {
+    const form = new FormData();
+    form.append('image', file);
+    const data = await uploadRequest<PrescriptionScanResponse>(
+      '/prescriptions/scan',
+      form
+    );
+    return {
+      matched: Array.isArray(data.matched)
+        ? data.matched.map((m) => ({
+            ...m,
+            product_price: toNumber(m.product_price),
+            old_price: m.old_price != null ? toNumber(m.old_price) : null,
+            quantity: toInt(m.quantity) || 1,
+          }))
+        : [],
+      unmatched: Array.isArray(data.unmatched) ? data.unmatched : [],
+      notes: typeof data.notes === 'string' ? data.notes : '',
+    };
+  },
+};
+
+// ============================================================
 // REPORTS (admin)
 // ============================================================
 
@@ -901,6 +935,7 @@ export const api = {
   inventory,
   dashboard,
   reports,
+  prescriptions,
 };
 
 export default api;
