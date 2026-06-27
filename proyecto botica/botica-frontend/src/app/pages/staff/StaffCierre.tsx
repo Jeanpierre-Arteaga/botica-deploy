@@ -3,14 +3,18 @@
 // ============================================================
 // Muestra el resumen del día del trabajador autenticado:
 // ventas totales, pedidos atendidos, desglose por método de pago
-// y top 3 productos. Datos desde GET /api/orders/shift-summary
-// (filtrado por user_id del JWT en el backend).
+// (con gráfico de dona) y top 3 productos. Datos REALES desde
+// GET /api/orders/shift-summary (filtrado por user_id del JWT).
+// Reutiliza Button/Card/tokens de los prompts 1 y 2.
 // ============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  TrendingUp, ShoppingBag, CreditCard, Award, Printer, RefreshCw,
+  TrendingUp, ShoppingBag, CreditCard, Award, Printer, RefreshCw, PieChart as PieIcon,
 } from 'lucide-react';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+} from 'recharts';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/AuthContext';
 import { toast } from 'sonner';
@@ -24,6 +28,16 @@ const PAYMENT_LABELS: Record<string, string> = {
   tarjeta: 'Tarjeta',
   transferencia: 'Transferencia',
   sin_pago: 'Sin pago',
+};
+
+// Colores sobrios de la paleta para cada método (coherentes con el dashboard)
+const PAYMENT_COLORS: Record<string, string> = {
+  efectivo: '#16A34A',      // success
+  yape: '#8B6FC9',          // violeta
+  plin: '#4C82A8',          // azul acero
+  tarjeta: '#F15A29',       // brand
+  transferencia: '#2563EB', // info
+  sin_pago: '#9CA3AF',      // neutral
 };
 
 export default function StaffCierre() {
@@ -73,12 +87,18 @@ export default function StaffCierre() {
   });
 
   const operatorName = summary.full_name || user?.full_name || 'Operador';
+  const sede = user?.location_name?.trim() || null;
 
   return (
     <div>
       <PageHeader
         title="Cierre de turno"
-        subtitle={<span className="capitalize">{today}</span>}
+        subtitle={
+          <span>
+            {sede && <>{sede} · </>}
+            <span className="capitalize">{today}</span>
+          </span>
+        }
         className="print:hidden"
         actions={
           <>
@@ -92,7 +112,7 @@ export default function StaffCierre() {
         }
       />
 
-      {/* Membrete del reporte: operador + métricas clave */}
+      {/* Membrete del reporte: operador + métricas clave (card oscuro) */}
       <div className="relative overflow-hidden rounded-2xl border border-line shadow-soft bg-ink-2 text-white mb-5">
         <div
           className="absolute -right-12 -top-14 w-60 h-60 rounded-full opacity-20 blur-2xl pointer-events-none"
@@ -100,16 +120,17 @@ export default function StaffCierre() {
         />
         <div className="relative p-5 sm:p-6 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center font-bold text-lg shrink-0 shadow-brand">
+            <div className="w-12 h-12 rounded-xl bg-brand flex items-center justify-center font-bold text-lg shrink-0 shadow-brand text-white">
               {operatorName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55">
                 Reporte de cierre · Operador
               </p>
-              <p className="font-bold text-lg truncate">{operatorName}</p>
+              <p className="font-bold text-lg truncate text-white">{operatorName}</p>
               <p className="text-xs text-white/65 capitalize">
-                {user?.role === 'admin' ? 'Administrador' : 'Empleado'} · {today}
+                {user?.role === 'admin' ? 'Administrador' : 'Empleado'}
+                {sede && ` · ${sede}`}
               </p>
             </div>
           </div>
@@ -129,32 +150,11 @@ export default function StaffCierre() {
         </div>
       </div>
 
-      {/* Detalle: desglose por método + top productos */}
+      {/* Detalle: ventas por método (dona + desglose) + top productos */}
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <SectionTitle icon={CreditCard} className="mb-4">Desglose por método</SectionTitle>
-          {summary.by_payment_method.length === 0 ? (
-            <EmptyBlock />
-          ) : (
-            <div className="space-y-2">
-              {summary.by_payment_method.map((m) => (
-                <div
-                  key={m.payment_method}
-                  className="flex justify-between items-center bg-page border border-line-2 rounded-xl px-4 py-3 hover:border-line transition-colors"
-                >
-                  <span className="font-semibold text-text">
-                    {PAYMENT_LABELS[m.payment_method] || m.payment_method}
-                  </span>
-                  <div className="text-right">
-                    <p className="font-bold text-text tabular-nums">S/ {Number(m.total).toFixed(2)}</p>
-                    <p className="text-xs text-muted">
-                      {m.count} pedido{m.count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <SectionTitle icon={CreditCard} className="mb-4">Ventas por método de pago</SectionTitle>
+          <PaymentBreakdown summary={summary} />
         </Card>
 
         <Card>
@@ -192,6 +192,120 @@ export default function StaffCierre() {
   );
 }
 
+// ============================================================
+// Ventas por método de pago: gráfico de dona + desglose (datos reales)
+// ============================================================
+
+function PaymentBreakdown({ summary }: { summary: ShiftSummary }) {
+  const methods = summary.by_payment_method;
+  const total = useMemo(
+    () => methods.reduce((sum, m) => sum + Number(m.total), 0),
+    [methods]
+  );
+
+  const chartData = useMemo(
+    () => methods.map((m) => ({
+      key: m.payment_method,
+      label: PAYMENT_LABELS[m.payment_method] || m.payment_method,
+      total: Number(m.total),
+      count: m.count,
+      color: PAYMENT_COLORS[m.payment_method] || '#9CA3AF',
+    })),
+    [methods]
+  );
+
+  if (methods.length === 0 || total === 0) {
+    return (
+      <div className="h-[220px] flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 mb-2 rounded-2xl bg-page flex items-center justify-center">
+          <PieIcon size={24} className="text-faint" />
+        </div>
+        <p className="text-sm font-medium text-muted">Sin ventas hoy</p>
+        <p className="text-xs text-faint mt-0.5">Aún no hay movimientos registrados</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Dona */}
+      <div className="relative h-[200px] w-full mb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="total"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius={58}
+              outerRadius={84}
+              paddingAngle={chartData.length > 1 ? 2 : 0}
+              stroke="var(--c-surface)"
+              strokeWidth={2}
+            >
+              {chartData.map((d) => (
+                <Cell key={d.key} fill={d.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<DonutTooltip total={total} />} />
+          </PieChart>
+        </ResponsiveContainer>
+        {/* Total al centro */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Total</span>
+          <span className="text-lg font-bold text-text tabular-nums">S/ {total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      {/* Desglose */}
+      <div className="space-y-2">
+        {chartData.map((d) => {
+          const pct = total > 0 ? Math.round((d.total / total) * 100) : 0;
+          return (
+            <div
+              key={d.key}
+              className="flex items-center justify-between gap-3 bg-page border border-line-2 rounded-xl px-3.5 py-2.5"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                <span className="font-medium text-text text-sm truncate">{d.label}</span>
+                <span className="text-xs text-muted shrink-0">· {pct}%</span>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="font-bold text-text tabular-nums text-sm">S/ {d.total.toFixed(2)}</p>
+                <p className="text-xs text-muted">{d.count} pedido{d.count !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface DonutTooltipProps {
+  active?: boolean;
+  total: number;
+  payload?: Array<{ payload: { label: string; total: number; count: number; color: string } }>;
+}
+
+function DonutTooltip({ active, payload, total }: DonutTooltipProps) {
+  if (!active || !payload || !payload.length) return null;
+  const d = payload[0].payload;
+  const pct = total > 0 ? Math.round((d.total / total) * 100) : 0;
+  return (
+    <div className="rounded-xl border border-line bg-surface shadow-card px-3 py-2">
+      <p className="text-xs font-semibold text-text mb-0.5 flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+        {d.label}
+      </p>
+      <p className="text-sm font-bold text-text tabular-nums">S/ {d.total.toFixed(2)} · {pct}%</p>
+      <p className="text-xs text-muted tabular-nums">{d.count} pedido{d.count !== 1 ? 's' : ''}</p>
+    </div>
+  );
+}
+
 /** Métrica embebida en el membrete navy (alto contraste sobre fondo oscuro). */
 function BannerStat({
   icon: Icon, label, value,
@@ -205,12 +319,12 @@ function BannerStat({
       <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/60 mb-1.5">
         <Icon size={13} className="text-brand" /> {label}
       </div>
-      <p className="text-2xl font-bold tabular-nums leading-none">{value}</p>
+      <p className="text-2xl font-bold tabular-nums leading-none text-white">{value}</p>
     </div>
   );
 }
 
-/** Estado vacío reutilizado en ambas tarjetas de detalle. */
+/** Estado vacío reutilizado en las tarjetas de detalle. */
 function EmptyBlock() {
   return (
     <div className="text-center py-6 bg-page border border-dashed border-line rounded-xl">

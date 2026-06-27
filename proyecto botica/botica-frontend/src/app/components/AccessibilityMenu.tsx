@@ -50,11 +50,19 @@ function applyToHtml(attr: string, value: string) {
 interface AccessibilityMenuProps {
   /** light = headers claros (storefront) · dark = top bars oscuras (admin/staff) */
   variant?: "light" | "dark";
+  /**
+   * Borde por el que se ancla el popover respecto al botón.
+   * "right" (por defecto) abre hacia la izquierda — correcto cuando el
+   * trigger está pegado al borde derecho (topbar). "left" abre hacia la
+   * derecha — útil cuando el trigger está pegado al borde izquierdo.
+   */
+  align?: "right" | "left";
   className?: string;
 }
 
 export function AccessibilityMenu({
   variant = "light",
+  align = "right",
   className = "",
 }: AccessibilityMenuProps) {
   const [open, setOpen] = useState(false);
@@ -139,17 +147,26 @@ export function AccessibilityMenu({
           ref={panelRef}
           role="dialog"
           aria-label="Opciones de accesibilidad y tema"
-          className="absolute right-0 top-full mt-2 w-[300px] z-[60]"
+          className={`absolute top-full mt-2 z-[60] ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
           style={{
+            /* Ancho adaptable: nunca menor a 17rem ni mayor que el viewport.
+               Al usar rem crece de forma controlada con el tamaño de texto
+               (A/A+/A++) y el min() evita que se salga de pantalla. */
+            width: "min(20rem, calc(100vw - 1.5rem))",
+            minWidth: "min(17rem, calc(100vw - 1.5rem))",
             animation: "a11yPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           }}
         >
-          {/* Glassmorphism card */}
+          {/* Tarjeta del panel — crece con el contenido y, si no cabe en
+              alto (p. ej. con A++), hace scroll interno en vez de recortarse. */}
           <div
-            className="rounded-2xl p-5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.18)] border"
+            className="rounded-2xl p-5 shadow-[0_16px_48px_-12px_rgba(15,23,42,0.18)] border overflow-y-auto"
             style={{
               backgroundColor: "var(--c-surface)",
               borderColor: "var(--c-line)",
+              maxHeight: "calc(100vh - 6rem)",
               backdropFilter: "saturate(180%) blur(16px)",
               WebkitBackdropFilter: "saturate(180%) blur(16px)",
             }}

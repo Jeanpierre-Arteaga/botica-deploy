@@ -59,6 +59,7 @@ export interface StaffLoginResponse {
     full_name: string;
     role: 'admin' | 'emp';
     location_id: number | null;
+    location_name?: string | null;
     is_active: boolean;
   };
 }
@@ -102,6 +103,8 @@ export interface User {
   full_name: string;
   role: 'admin' | 'emp';
   location_id: number | null;
+  /** Nombre de la sede (viene del LEFT JOIN con location en /users/me y /users) */
+  location_name?: string | null;
   is_active: boolean;
   // user_password nunca viene en respuestas (sanitizado en backend)
 }
@@ -154,6 +157,16 @@ export interface CustomerRegisterPayload {
   dni?: string;
   address?: string;
   phone?: string;
+}
+
+// GET /api/customers/check — verificación en vivo en el registro (solo booleanos).
+export interface CustomerCheckResponse {
+  /** El email ya pertenece a un customer (activo o inactivo). */
+  email_taken?: boolean;
+  /** El DNI ya existe en algún customer. */
+  dni_taken?: boolean;
+  /** El DNI ya tiene cuenta web (debe iniciar sesión, no registrarse). */
+  dni_has_account?: boolean;
 }
 
 
@@ -276,6 +289,9 @@ export interface OrderDetail {
 // Pedido completo (lo que devuelve findById, includes JOIN con customer/location/user)
 export interface Order {
   order_id: number;
+  /** Correlativo del pedido DENTRO de los pedidos del cliente (1 = el primero).
+   *  Solo para la vista del cliente; NO reemplaza al order_id real. */
+  display_number?: number;
   order_state: OrderState;
   delivery_type: DeliveryType | null;
   order_date: string;
@@ -374,6 +390,16 @@ export interface Payment {
   mp_payment_id?: string | null;
   mp_status?: string | null;
   mp_status_detail?: string | null;
+  /** URL (CloudFront) del comprobante interno en PDF, si ya fue generado. */
+  voucher_pdf_url?: string | null;
+}
+
+// GET /api/orders/:id/voucher — comprobante interno (PDF)
+export interface VoucherResponse {
+  order_id: number;
+  voucher_type: VoucherType | null;
+  voucher_pdf_url: string;
+  cached: boolean;
 }
 
 
@@ -491,6 +517,19 @@ export interface OrdersStats {
     total: number;
     count: number;
   }>;
+}
+
+// GET /api/orders/sales-series — serie diaria para el gráfico del dashboard
+export interface SalesSeriesPoint {
+  date: string;   // 'YYYY-MM-DD'
+  ventas: number;
+  pedidos: number;
+}
+
+export interface SalesSeriesResponse {
+  days: number;
+  location_id: number | null;
+  series: SalesSeriesPoint[];
 }
 
 export interface ShiftSummary {

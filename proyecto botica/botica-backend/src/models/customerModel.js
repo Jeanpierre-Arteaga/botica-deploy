@@ -89,6 +89,30 @@ const CustomerModel = {
     return result.rows[0];
   },
 
+  // Enlaza una cuenta web a un customer EXISTENTE creado presencialmente
+  // por el staff (customer_password IS NULL). Fija email + contraseña y
+  // SOBREESCRIBE los datos del registro web: el nombre que el propio cliente
+  // ingresa al registrarse manda sobre el que puso el staff. Para
+  // teléfono/dirección, el dato web pisa solo si se proporcionó (NULLIF del
+  // parámetro); si el cliente lo dejó vacío, se conserva el existente.
+  // Reactiva la cuenta por si estuviera inactiva. Los pedidos (customer_id)
+  // no se tocan, así que el historial se preserva intacto.
+  linkWebAccount: async (id, { email, customer_password, full_name, phone, address }) => {
+    const result = await pool.query(
+      `UPDATE customer
+       SET email = $1,
+           customer_password = $2,
+           full_name = COALESCE(NULLIF($3, ''), full_name),
+           phone    = COALESCE(NULLIF($4, ''), phone),
+           address  = COALESCE(NULLIF($5, ''), address),
+           is_active = true
+       WHERE customer_id = $6
+       RETURNING customer_id, full_name, dni, address, phone, email, is_active, created_at`,
+      [email, customer_password, full_name || null, phone || null, address || null, id]
+    );
+    return result.rows[0];
+  },
+
   // Actualiza solo el password (hash bcrypt). Usado por el flujo de
   // recuperación de contraseña — fuera de la allowlist de update().
   updatePassword: async (id, customer_password) => {

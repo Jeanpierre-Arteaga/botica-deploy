@@ -30,6 +30,8 @@ export interface AuthUser {
   // Específico de staff/admin:
   user_code?: string;
   location_id?: number | null;
+  /** Nombre de la sede asignada (para mostrar "Sede: ..." en el panel) */
+  location_name?: string | null;
   // Específico de customer:
   email?: string;
   dni?: string | null;
@@ -167,10 +169,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (storedUser.role === 'cust') {
           await api.customers.getMe();
+          // Sesión válida, mantener el user actual
         } else {
-          await api.users.getMe();
+          // Enriquecemos el user con datos frescos del backend (p. ej. location_name,
+          // que sesiones anteriores a este fix podían no tener guardado).
+          const u = await api.users.getMe();
+          if (u.location_name && u.location_name !== storedUser.location_name) {
+            const enriched: AuthUser = {
+              ...storedUser,
+              location_id: u.location_id ?? storedUser.location_id ?? null,
+              location_name: u.location_name,
+            };
+            setUser(enriched);
+            saveUserToStorage(enriched);
+          }
         }
-        // Sesión válida, mantener el user actual
       } catch (err) {
         // 401 → token rechazado por backend (sesión inválida)
         if (err instanceof ApiError && err.status === 401) {
@@ -231,6 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: res.user.full_name,
           user_code: res.user.user_code,
           location_id: res.user.location_id,
+          location_name: res.user.location_name ?? null,
         };
         setUser(authUser);
         saveUserToStorage(authUser);
@@ -343,6 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: u.full_name,
           user_code: u.user_code,
           location_id: u.location_id,
+          location_name: u.location_name ?? null,
         };
         setUser(updated);
         saveUserToStorage(updated);

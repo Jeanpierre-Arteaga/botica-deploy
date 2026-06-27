@@ -1,7 +1,11 @@
 const OrderModel = require('../models/orderModel');
+const LocationModel = require('../models/locationModel');
 const pool = require('../config/db');
 const { toFloat, toInt } = require('../utils/casting');
+const { todayInLima } = require('../utils/dates');
 const { processCardPayment } = require('../services/paymentService');
+const { buildVoucherPdf } = require('../services/voucherService');
+const { uploadBuffer } = require('../config/s3');
 
 const VALID_ORDER_STATES = ['pendiente', 'en proceso', 'entregado', 'cancelado'];
 const VALID_DELIVERY_TYPES = ['delivery', 'pickup'];
@@ -49,6 +53,83 @@ const orderController = {
     } catch (err) {
       console.error('[orders/getById]', err);
       return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
+  // GET /api/orders/:id/voucher
+  // Devuelve la URL (CloudFront) del comprobante interno en PDF del pedido.
+  // Generación PEREZOSA con caché: si ya existe (payment.voucher_pdf_url) se
+  // reutiliza; si no, se genera el PDF, se sube a S3 (prefijo vouchers/) y se
+  // guarda la URL. Autorización: el cliente dueño, o staff/admin.
+  getVoucher: async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id, 10);
+      if (!orderId) return res.status(400).json({ message: 'ID inválido.' });
+
+      const order = await OrderModel.findById(orderId);
+      if (!order) return res.status(404).json({ message: 'Pedido no encontrado.' });
+
+      // Ownership: el cliente solo accede a sus propios pedidos.
+      if (req.user.role === 'cust' && order.customer_id !== req.user.customer_id) {
+        return res.status(403).json({ message: 'No tienes permiso para ver este comprobante.' });
+      }
+
+      if (!order.payment) {
+        return res.status(400).json({ message: 'El pedido aún no tiene un pago registrado.' });
+      }
+
+      // Ya generado → reutilizar (no regenerar).
+      if (order.payment.voucher_pdf_url) {
+        return res.json({
+          order_id: orderId,
+          voucher_type: order.payment.voucher_type || null,
+          voucher_pdf_url: order.payment.voucher_pdf_url,
+          cached: true,
+        });
+      }
+
+      const location = order.location_id
+        ? await LocationModel.findById(order.location_id)
+        : null;
+
+      const pdfBuffer = await buildVoucherPdf({
+        order: {
+          order_id: order.order_id,
+          order_date: order.order_date,
+          total_price: order.total_price,
+          delivery_type: order.delivery_type,
+        },
+        customer: { full_name: order.customer_name, dni: order.customer_dni },
+        location: location || { location_name: order.location_name },
+        items: (order.details || []).map((d) => ({
+          product_name: d.product_name,
+          product_id: d.product_id,
+          amount: d.amount,
+          unit_price: d.unit_price,
+          sub_total_price: d.sub_total_price,
+        })),
+        payment: {
+          payment_method: order.payment.payment_method,
+          voucher_type: order.payment.voucher_type,
+        },
+      });
+
+      const { url } = await uploadBuffer(pdfBuffer, 'application/pdf', 'vouchers');
+
+      await pool.query(
+        `UPDATE payment SET voucher_pdf_url = $1 WHERE order_id = $2`,
+        [url, orderId]
+      );
+
+      return res.json({
+        order_id: orderId,
+        voucher_type: order.payment.voucher_type || null,
+        voucher_pdf_url: url,
+        cached: false,
+      });
+    } catch (err) {
+      console.error('[orders/getVoucher]', err);
+      return res.status(500).json({ message: 'Error al generar el comprobante.' });
     }
   },
 
@@ -473,7 +554,8 @@ const orderController = {
   // GET /api/orders/stats?date=YYYY-MM-DD&location_id=
   getStats: async (req, res) => {
     try {
-      const date = req.query.date || new Date().toISOString().slice(0, 10);
+      // "Hoy" SIEMPRE en zona de Perú (America/Lima), no en UTC. Ver utils/dates.
+      const date = req.query.date || todayInLima();
       let locId;
       if (req.user.role === 'emp') {
         locId = req.user.location_id;
@@ -536,10 +618,65 @@ const orderController = {
     }
   },
 
+  // GET /api/orders/sales-series?days=7&location_id=
+  // Serie diaria de ventas para el gráfico del dashboard del staff.
+  // "Ventas" = pedidos 'en proceso' + 'entregado' (misma definición que getStats).
+  //  - emp   → SIEMPRE su sede (req.user.location_id), ignora el query.
+  //  - admin → ?location_id opcional (sin él, todas las sedes).
+  // Devuelve un punto por día (incluye días sin ventas con 0) vía generate_series.
+  getSalesSeries: async (req, res) => {
+    try {
+      let days = parseInt(req.query.days, 10);
+      if (!Number.isFinite(days) || days < 1) days = 7;
+      if (days > 31) days = 31; // tope defensivo
+
+      let locId;
+      if (req.user.role === 'emp') {
+        locId = req.user.location_id;
+      } else {
+        locId = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
+      }
+
+      const result = await pool.query(
+        `WITH dias AS (
+           SELECT (CURRENT_DATE - gs)::date AS dia
+           FROM generate_series(0, $1::int - 1) AS gs
+         )
+         SELECT
+           to_char(d.dia, 'YYYY-MM-DD') AS date,
+           COALESCE(SUM(o.total_price)
+             FILTER (WHERE o.order_state IN ('en proceso','entregado')), 0) AS ventas,
+           COUNT(o.order_id)
+             FILTER (WHERE o.order_state IN ('en proceso','entregado'))::int AS pedidos
+         FROM dias d
+         LEFT JOIN orders o
+           ON DATE(o.order_date) = d.dia
+          AND ($2::int IS NULL OR o.location_id = $2::int)
+         GROUP BY d.dia
+         ORDER BY d.dia ASC`,
+        [days, locId]
+      );
+
+      return res.json({
+        days,
+        location_id: locId,
+        series: result.rows.map(r => ({
+          date: r.date, // 'YYYY-MM-DD' (to_char en SQL, sin ambigüedad de zona horaria)
+          ventas: toFloat(r.ventas),
+          pedidos: toInt(r.pedidos)
+        }))
+      });
+    } catch (err) {
+      console.error('[orders/getSalesSeries]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
   // GET /api/orders/shift-summary?date=YYYY-MM-DD
   getShiftSummary: async (req, res) => {
     try {
-      const date = req.query.date || new Date().toISOString().slice(0, 10);
+      // "Hoy" SIEMPRE en zona de Perú (America/Lima), no en UTC. Ver utils/dates.
+      const date = req.query.date || todayInLima();
       const userId = req.user.user_id;
       const fullName = req.user.full_name;
 
@@ -690,8 +827,11 @@ const orderController = {
       // Staff/admin: cualquier transición permitida
 
       // Actualizar SOLO el estado (no tocar user_id original)
-      const updated = await OrderModel.updateStatus(orderId, order_state);
-      return res.json(updated);
+      await OrderModel.updateStatus(orderId, order_state);
+      // Devolvemos el pedido COMPLETO (cliente, entrega, productos, pago) para
+      // que el frontend no se quede con datos parciales tras la acción.
+      const fullOrder = await OrderModel.findById(orderId);
+      return res.json(fullOrder);
     } catch (err) {
       console.error('[orders/updateStatus]', err);
       return res.status(500).json({ message: 'Error en el servidor.' });

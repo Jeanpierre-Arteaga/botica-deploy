@@ -49,6 +49,36 @@ const customerController = {
     }
   },
 
+  // GET /api/customers/check?email=&dni= — verificación ligera para el
+  // formulario de registro. Público (no expone datos sensibles): SOLO devuelve
+  // booleanos para validar en vivo si un email/DNI ya está en uso.
+  //   { email_taken, dni_taken, dni_has_account }
+  // dni_has_account distingue el DNI con cuenta web (debe iniciar sesión) del
+  // DNI creado por el staff sin cuenta (registrarse lo enlazará, es válido).
+  checkExists: async (req, res) => {
+    try {
+      const email = (req.query.email || '').toString().trim();
+      const dni = (req.query.dni || '').toString().trim();
+
+      const result = {};
+
+      if (email) {
+        const byEmail = await CustomerModel.findByEmailIncludingInactive(email);
+        result.email_taken = !!byEmail;
+      }
+      if (dni && /^\d{8}$/.test(dni)) {
+        const byDni = await CustomerModel.findByDni(dni);
+        result.dni_taken = !!byDni;
+        result.dni_has_account = !!(byDni && byDni.customer_password);
+      }
+
+      return res.json(result);
+    } catch (err) {
+      console.error('[customers/check]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
   getByDni: async (req, res) => {
     try {
       const customer = await CustomerModel.findByDni(req.params.dni);

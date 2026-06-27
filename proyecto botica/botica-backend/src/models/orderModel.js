@@ -3,15 +3,23 @@ const pool = require('../config/db');
 const OrderModel = {
 
   findAll: async (filtros = {}) => {
+    // Se incluye el pago (método, tipo de comprobante y URL del voucher PDF)
+    // para que la tabla de pedidos del staff muestre el método y permita la
+    // descarga directa del comprobante sin entrar al detalle. Hay como máximo
+    // un pago por pedido, así que el LEFT JOIN no duplica filas.
     let query = `
-      SELECT o.*, 
+      SELECT o.*,
              c.full_name AS customer_name, c.dni,
              l.location_name,
-             u.full_name AS employee_name
+             u.full_name AS employee_name,
+             pay.payment_method,
+             pay.voucher_type,
+             pay.voucher_pdf_url
       FROM orders o
       LEFT JOIN customer c ON o.customer_id = c.customer_id
       LEFT JOIN location l ON o.location_id = l.location_id
       LEFT JOIN users u ON o.user_id = u.user_id
+      LEFT JOIN payment pay ON pay.order_id = o.order_id
       WHERE 1=1
     `;
     const values = [];
@@ -36,18 +44,36 @@ const OrderModel = {
 
     query += ' ORDER BY o.order_date DESC';
     const result = await pool.query(query, values);
-    return result.rows;
+    // Expone payment como objeto (consistente con findById/findByCustomer) para
+    // que el frontend use order.payment?.payment_method y order.payment?.voucher_pdf_url.
+    return result.rows.map((r) => {
+      const { payment_method, voucher_type, voucher_pdf_url, ...rest } = r;
+      return {
+        ...rest,
+        payment: payment_method
+          ? { payment_method, voucher_type, voucher_pdf_url }
+          : null,
+      };
+    });
   },
 
   findById: async (id) => {
-    // Datos del pedido
+    // Datos del pedido. display_number = correlativo del pedido DENTRO de los
+    // pedidos del mismo cliente (1 = el más antiguo), para que la vista del
+    // cliente muestre su numeración propia sin alterar el order_id real.
     const orderResult = await pool.query(
       `SELECT o.*,
               c.full_name AS customer_name, c.dni AS customer_dni,
               c.phone AS customer_phone, c.email AS customer_email,
               l.location_name,
               u.full_name AS employee_name,
-              cu.full_name AS cancelled_by_name
+              cu.full_name AS cancelled_by_name,
+              (
+                SELECT COUNT(*) FROM orders o2
+                WHERE o2.customer_id = o.customer_id
+                  AND (o2.order_date < o.order_date
+                       OR (o2.order_date = o.order_date AND o2.order_id <= o.order_id))
+              ) AS display_number
        FROM orders o
        LEFT JOIN customer c  ON o.customer_id = c.customer_id
        LEFT JOIN location l  ON o.location_id = l.location_id
@@ -59,11 +85,14 @@ const OrderModel = {
 
     if (!orderResult.rows[0]) return null;
 
-    // Detalle del pedido
+    // Detalle del pedido. Se incluye la imagen 'main' del producto (mismo
+    // criterio que productModel) para poder mostrar la miniatura en el detalle.
     const detailResult = await pool.query(
-      `SELECT od.*, p.product_name, p.active_ingredient
+      `SELECT od.*, p.product_name, p.active_ingredient,
+              img.url AS image_url
        FROM order_detail od
-       LEFT JOIN product p ON od.product_id = p.product_id
+       LEFT JOIN product p   ON od.product_id = p.product_id
+       LEFT JOIN image   img ON img.product_id = od.product_id AND img.type = 'main'
        WHERE od.order_id = $1`,
       [id]
     );
@@ -82,11 +111,15 @@ const OrderModel = {
   },
 
   findByCustomer: async (customer_id) => {
+    // display_number = correlativo personal del cliente (1 = su primer pedido),
+    // calculado con ROW_NUMBER ascendente. La lista se muestra DESC (recientes
+    // primero) pero el número refleja el orden cronológico de alta del cliente.
     const result = await pool.query(
       `SELECT o.*,
               l.location_name,
               pay.payment_method,
-              (SELECT COUNT(*)::int FROM order_detail od WHERE od.order_id = o.order_id) AS detail_count
+              (SELECT COUNT(*)::int FROM order_detail od WHERE od.order_id = o.order_id) AS detail_count,
+              ROW_NUMBER() OVER (ORDER BY o.order_date ASC, o.order_id ASC) AS display_number
        FROM orders o
        LEFT JOIN location l ON o.location_id = l.location_id
        LEFT JOIN payment  pay ON pay.order_id = o.order_id

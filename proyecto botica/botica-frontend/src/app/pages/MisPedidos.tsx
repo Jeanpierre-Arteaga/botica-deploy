@@ -125,9 +125,10 @@ export function MisPedidos() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h3 className="font-bold text-text text-lg">
-                      Pedido #{order.order_id}
+                      Pedido N° {order.display_number ?? order.order_id}
                     </h3>
                     <StatusBadge state={order.order_state} />
+                    <span className="text-xs text-faint">Ref. #{order.order_id}</span>
                   </div>
 
                   <p className="text-sm text-muted">

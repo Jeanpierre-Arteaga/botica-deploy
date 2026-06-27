@@ -22,6 +22,7 @@ import type {
   UserUpdatePayload,
   Customer,
   CustomerCreatePayload,
+  CustomerCheckResponse,
   Product,
   ProductFilters,
   ProductStockInfo,
@@ -37,6 +38,8 @@ import type {
   SalesReport,
   OrdersStats,
   ShiftSummary,
+  SalesSeriesResponse,
+  VoucherResponse,
   PrescriptionScanResponse,
 } from './types';
 
@@ -107,6 +110,8 @@ function normalizeOrder<T extends Record<string, any>>(o: T): T {
   return {
     ...o,
     total_price: toNumber(o.total_price),
+    // display_number llega como bigint (string) en my-orders/detalle del cliente.
+    ...(o.display_number != null ? { display_number: toInt(o.display_number) } : {}),
     details: Array.isArray(o.details) ? o.details.map(normalizeOrderDetail) : o.details,
     payment: o.payment ? normalizePayment(o.payment) : o.payment,
   };
@@ -494,6 +499,17 @@ const customers = {
     return request<Customer>(`/customers/dni/${dni}`);
   },
 
+  /**
+   * GET /api/customers/check?email=&dni= — verificación en vivo para el
+   * registro. Público (solo devuelve booleanos). Pasa email y/o dni.
+   */
+  check(params: { email?: string; dni?: string }): Promise<CustomerCheckResponse> {
+    return request<CustomerCheckResponse>('/customers/check', {
+      query: params,
+      skipAuth: true,
+    });
+  },
+
   /** POST /api/customers — crear customer (público para checkout walk-in) */
   create(payload: CustomerCreatePayload): Promise<Customer> {
     return request<Customer>('/customers', {
@@ -741,10 +757,30 @@ const orders = {
     return request<ShiftSummary>('/orders/shift-summary', { query: { date } });
   },
 
+  /**
+   * GET /api/orders/sales-series?days=&location_id= — serie diaria de ventas
+   * para el gráfico del dashboard. El emp queda fijado a su sede por el backend;
+   * un admin puede pasar location_id.
+   */
+  getSalesSeries(days = 7, location_id?: number): Promise<SalesSeriesResponse> {
+    return request<SalesSeriesResponse>('/orders/sales-series', {
+      query: { days, location_id },
+    });
+  },
+
   /** GET /api/orders/:id — detalle del pedido */
   async getById(order_id: number): Promise<Order> {
     const data = await request<Order>(`/orders/${order_id}`);
     return normalizeOrder(data);
+  },
+
+  /**
+   * GET /api/orders/:id/voucher — comprobante interno en PDF.
+   * Generación perezosa con caché en el backend: la primera vez lo crea y
+   * sube a S3; las siguientes reutiliza la misma URL de CloudFront.
+   */
+  getVoucher(order_id: number): Promise<VoucherResponse> {
+    return request<VoucherResponse>(`/orders/${order_id}/voucher`);
   },
 
   /** POST /api/orders — crear pedido web (customer) */

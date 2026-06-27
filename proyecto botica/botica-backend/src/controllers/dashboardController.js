@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { toFloat, toInt } = require('../utils/casting');
+const { todayInLima } = require('../utils/dates');
 
 const pctChange = (actual, anterior) => {
   const a = parseFloat(actual);
@@ -13,7 +14,8 @@ const dashboardController = {
   // GET /api/dashboard/summary?location_id=&date=YYYY-MM-DD
   summary: async (req, res) => {
     try {
-      const date = req.query.date || new Date().toISOString().slice(0, 10);
+      // "Hoy" SIEMPRE en zona de Perú (America/Lima), no en UTC. Ver utils/dates.
+      const date = req.query.date || todayInLima();
       const locId = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
 
       // Cada query recibe [date, location_id_or_null]

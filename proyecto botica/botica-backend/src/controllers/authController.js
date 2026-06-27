@@ -6,9 +6,12 @@ const login = async (req, res) => {
   const { user_code, user_password } = req.body;
 
   try {
-    // Buscar usuario activo
+    // Buscar usuario activo (con el nombre de su sede para mostrarlo al ingresar)
     const result = await pool.query(
-      'SELECT * FROM users WHERE user_code = $1 AND is_active = true',
+      `SELECT u.*, l.location_name
+       FROM users u
+       LEFT JOIN location l ON u.location_id = l.location_id
+       WHERE u.user_code = $1 AND u.is_active = true`,
       [user_code]
     );
 
@@ -40,9 +43,12 @@ const login = async (req, res) => {
       token,
       user: {
         user_id: user.user_id,
+        user_code: user.user_code,
         full_name: user.full_name,
         role: user.role,
-        location_id: user.location_id
+        location_id: user.location_id,
+        location_name: user.location_name || null,
+        is_active: user.is_active
       }
     });
 

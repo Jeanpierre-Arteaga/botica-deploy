@@ -43,6 +43,7 @@ const EXT_BY_MIME = {
   'image/jpg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'application/pdf': 'pdf',
 };
 
 /** URL pública (CloudFront) de un key del bucket. */

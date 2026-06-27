@@ -82,12 +82,46 @@ const customerAuthController = {
         return res.status(400).json({ message: 'El teléfono debe tener 9 dígitos.' });
       }
 
+      const hashed = await bcrypt.hash(customer_password, 10);
+      const remember = req.body?.remember === true;
+
+      // ── Enlace por DNI ──────────────────────────────────────────────
+      // Si el usuario provee DNI y ya existe un customer con ese DNI creado
+      // por el staff en una venta presencial (sin cuenta web), enlazamos esa
+      // misma cuenta en vez de duplicar, para que herede sus pedidos.
+      if (dni) {
+        const byDni = await CustomerModel.findByDni(dni);
+        if (byDni) {
+          // Caso (c): ya tiene cuenta web → no permitir tomarla.
+          if (byDni.customer_password) {
+            return res.status(409).json({
+              message: 'Ya existe una cuenta con ese DNI. Inicia sesión.'
+            });
+          }
+          // Caso (b): existe pero SIN cuenta (creado por staff) → enlazar.
+          // El email no puede pertenecer a OTRO customer distinto.
+          const byEmail = await CustomerModel.findByEmailIncludingInactive(email);
+          if (byEmail && byEmail.customer_id !== byDni.customer_id) {
+            return res.status(409).json({ message: 'Email ya registrado.' });
+          }
+          const linked = await CustomerModel.linkWebAccount(byDni.customer_id, {
+            email,
+            customer_password: hashed,
+            full_name,
+            phone,
+            address
+          });
+          const token = signCustomerToken(linked, remember);
+          return res.status(200).json({ token, customer: sanitize(linked), linked: true });
+        }
+      }
+
+      // Caso (a): no hay DNI o no existe ese DNI → alta normal.
       const existing = await CustomerModel.findByEmailIncludingInactive(email);
       if (existing) {
         return res.status(409).json({ message: 'Email ya registrado.' });
       }
 
-      const hashed = await bcrypt.hash(customer_password, 10);
       const customer = await CustomerModel.createWithPassword({
         full_name,
         dni: dni || null,
@@ -97,7 +131,7 @@ const customerAuthController = {
         customer_password: hashed
       });
 
-      const token = signCustomerToken(customer, req.body?.remember === true);
+      const token = signCustomerToken(customer, remember);
       return res.status(201).json({ token, customer: sanitize(customer) });
     } catch (err) {
       if (err && err.code === '23505') {

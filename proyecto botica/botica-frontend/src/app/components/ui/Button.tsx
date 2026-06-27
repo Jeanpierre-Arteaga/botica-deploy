@@ -1,7 +1,14 @@
 import { LucideIcon } from "lucide-react";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "success"
+  | "info"
+  | "ghost"
+  | "danger"
+  | "danger-outline";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -37,9 +44,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-brand text-white hover:bg-brand-hover active:scale-[0.98] shadow-soft hover:shadow-[var(--shadow-brand)]",
       secondary:
         "border border-line text-ink-2 bg-surface hover:bg-[#F8FAFC] hover:border-[#CBD5E1] active:scale-[0.98]",
+      success:
+        "bg-success text-white hover:brightness-110 active:scale-[0.98] shadow-soft hover:shadow-md",
+      info:
+        "bg-info text-white hover:brightness-110 active:scale-[0.98] shadow-soft hover:shadow-md",
       ghost: "text-muted hover:bg-[#F1F5F9] hover:text-ink-2 active:scale-[0.98]",
       danger:
         "bg-error text-white hover:bg-[#B91C1C] active:scale-[0.98] shadow-soft hover:shadow-md",
+      "danger-outline":
+        "border border-error/50 text-error bg-surface hover:bg-error-soft hover:border-error active:scale-[0.98]",
     };
 
     const sizeStyles = {

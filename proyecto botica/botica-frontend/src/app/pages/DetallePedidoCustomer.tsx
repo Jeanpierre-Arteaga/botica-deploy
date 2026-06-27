@@ -10,6 +10,8 @@ import {
   MapPin,
   CreditCard,
   Package,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, ApiError } from '../lib/api';
@@ -152,8 +154,12 @@ export function DetallePedidoCustomer() {
 
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-text">Pedido #{order.order_id}</h1>
-          <p className="text-sm text-muted mt-1">Realizado el {dateStr}</p>
+          <h1 className="text-3xl font-bold text-text">
+            Pedido N° {order.display_number ?? order.order_id}
+          </h1>
+          <p className="text-sm text-muted mt-1">
+            Realizado el {dateStr} · <span className="text-faint">Ref. #{order.order_id}</span>
+          </p>
         </div>
         <StatusBadge state={order.order_state} />
       </div>
@@ -203,6 +209,14 @@ export function DetallePedidoCustomer() {
               <p className="text-sm text-muted">Sede: {order.location_name}</p>
             )}
           </section>
+
+          {order.payment && (
+            <CustomerVoucher
+              orderId={order.order_id}
+              initialUrl={order.payment.voucher_pdf_url || null}
+              voucherType={order.payment.voucher_type || 'boleta'}
+            />
+          )}
 
           {paymentMethod === 'tarjeta' &&
             ['pendiente', 'en proceso'].includes(order.order_state) && (
@@ -311,5 +325,87 @@ export function DetallePedidoCustomer() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// Comprobante interno (PDF): visor embebido + descarga / generación
+// ============================================================
+
+function CustomerVoucher({
+  orderId, initialUrl, voucherType,
+}: {
+  orderId: number;
+  initialUrl: string | null;
+  voucherType: string;
+}) {
+  const [url, setUrl] = useState<string | null>(initialUrl);
+  const [loading, setLoading] = useState(false);
+
+  async function generate() {
+    setLoading(true);
+    try {
+      const res = await api.orders.getVoucher(orderId);
+      setUrl(res.voucher_pdf_url);
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? (err.body as { message?: string } | undefined)?.message || err.message
+        : 'No se pudo generar el comprobante';
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="bg-surface rounded-xl border border-line p-6">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h2 className="font-bold text-text flex items-center gap-2">
+          <FileText size={18} className="text-brand" />
+          Comprobante <span className="text-sm font-medium text-muted capitalize">· {voucherType}</span>
+        </h2>
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-line text-text text-sm font-semibold hover:border-brand hover:text-brand transition-colors focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            <Download size={15} /> Descargar PDF
+          </a>
+        )}
+      </div>
+
+      {url ? (
+        // Ticket angosto (~80mm): visor acotado y centrado para respetar el
+        // aspecto del rollo, sin franjas grandes a los lados.
+        <div className="mx-auto max-w-[360px] rounded-lg border border-line overflow-hidden bg-page">
+          <iframe
+            src={`${url}#view=FitH`}
+            title={`Comprobante del pedido ${orderId}`}
+            className="w-full h-[540px] block"
+          />
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-page border border-dashed border-line rounded-lg">
+          <div className="w-12 h-12 mx-auto mb-2 rounded-2xl bg-surface flex items-center justify-center">
+            <FileText size={22} className="text-faint" />
+          </div>
+          <p className="text-sm font-medium text-text">Comprobante no generado</p>
+          <p className="text-xs text-muted mt-0.5 mb-3">Genera tu comprobante interno en PDF</p>
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-brand text-white font-semibold hover:bg-brand-hover active:scale-[0.98] disabled:opacity-50 transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          >
+            {loading ? (
+              <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generando…</>
+            ) : (
+              <><FileText size={16} /> Generar comprobante</>
+            )}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

@@ -53,6 +53,9 @@
   --c-bg:      #FFF9F5;  /* fondo de página: crema muy claro */
   --c-bg-2:    #FFFFFF;  /* alterna con bg para ritmo de secciones */
   --c-surface: #FFFFFF;  /* cards, inputs */
+  --c-surface-2: #F4F6FA; /* gris frío muy claro: headers de tabla, tracks de
+                             segmented y hover de fila. NEUTRO (no durazno),
+                             para que las superficies destaquen sobre el crema. */
   --c-line:    #E2E8F0;  /* bordes y divisores */
   --c-line-2:  #EEF2F7;  /* divisores muy sutiles */
   /* Secundario frío (confianza, uso sutil) — sky desaturado */
@@ -215,6 +218,7 @@ html[data-theme="dark"] {
   --c-bg:      #0B1220;
   --c-bg-2:    #0F172A;
   --c-surface: #131C2E;
+  --c-surface-2: #1A2942; /* gris frío elevado sobre surface en oscuro */
   --c-line:    #233047;
   --c-line-2:  #1A2438;
   --c-cool:      #5AA0C4;
@@ -320,6 +324,7 @@ html[data-theme="dark"] p { color: var(--c-muted); }
   --color-page: var(--c-bg);
   --color-page-alt: var(--c-bg-2);
   --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
   --color-line: var(--c-line);
   --color-line-2: var(--c-line-2);
   --color-cool: var(--c-cool);
@@ -926,6 +931,40 @@ html[data-theme="dark"] p { color: var(--c-muted); }
       opacity: 1 !important;
       transform: none !important;
     }
+  }
+
+  /* ============================================================
+     FIX SISTÉMICO DE CONTRASTE — superficies oscuras (navy)
+     Los selectores globales `h1..h6 { color: --c-text }` y
+     `p { color: --c-muted }` ganan a la herencia, por lo que un
+     titular/parrafo que SOLO hereda `text-white` de un contenedor
+     navy se pintaba oscuro sobre oscuro (texto invisible).
+     Aquí forzamos `color: inherit` para titulares y párrafos que
+     viven dentro de superficies oscuras (.bg-ink / .bg-ink-2 /
+     .bg-ink-3). Usamos :where() (especificidad 0 en el argumento)
+     para que cualquier clase utilitaria explícita (text-white/70,
+     text-brand, etc.) siga teniendo prioridad.
+     ============================================================ */
+  :where(.bg-ink, .bg-ink-2, .bg-ink-3) :where(h1, h2, h3, h4, h5, h6, p) {
+    color: inherit;
+  }
+
+  /* ============================================================
+     FONDO DEL PANEL (staff/admin) — crema con patrón de puntos
+     extremadamente sutil. Da profundidad sin protagonismo y evita
+     el look "wallpaper IA". Reutilizable en cualquier área de
+     contenido del panel. Compatible con tema claro y oscuro.
+     ============================================================ */
+  .bg-app-canvas {
+    background-color: var(--c-bg);
+    background-image:
+      radial-gradient(circle at center, rgba(15, 23, 42, 0.045) 1px, transparent 1.4px);
+    background-size: 22px 22px;
+    background-attachment: fixed;
+  }
+  html[data-theme="dark"] .bg-app-canvas {
+    background-image:
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.04) 1px, transparent 1.4px);
   }
 
 }
