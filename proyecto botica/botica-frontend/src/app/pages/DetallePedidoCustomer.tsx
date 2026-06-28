@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import {
-  ArrowLeft,
   Clock,
   CheckCircle2,
   XCircle,
@@ -15,6 +14,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, ApiError } from '../lib/api';
+import { Container } from '../components/Container';
+import { PageHeader } from '../components/PageHeader';
 import type { Order, OrderState } from '../lib/types';
 
 type BadgeIcon = typeof Clock;
@@ -27,10 +28,10 @@ interface BadgeConfig {
 }
 
 const STATUS_CONFIG: Record<OrderState, BadgeConfig> = {
-  pendiente:   { color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', icon: Clock,        label: 'Pendiente' },
-  'en proceso':{ color: 'var(--color-info)',    bg: 'var(--color-info-soft)',    icon: Truck,        label: 'En proceso' },
-  entregado:   { color: 'var(--color-success)', bg: 'var(--color-success-soft)', icon: CheckCircle2, label: 'Entregado' },
-  cancelado:   { color: 'var(--color-error)',   bg: 'var(--color-error-soft)',   icon: XCircle,      label: 'Cancelado' },
+  pendiente:   { color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', icon: Clock,        label: 'Pendiente' },
+  'en proceso':{ color: 'var(--c-info)',    bg: 'var(--c-info-soft)',    icon: Truck,        label: 'En proceso' },
+  entregado:   { color: 'var(--c-success)', bg: 'var(--c-success-soft)', icon: CheckCircle2, label: 'Entregado' },
+  cancelado:   { color: 'var(--c-error)',   bg: 'var(--c-error-soft)',   icon: XCircle,      label: 'Cancelado' },
 };
 
 function StatusBadge({ state }: { state: OrderState }) {
@@ -107,10 +108,10 @@ export function DetallePedidoCustomer() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+      <Container className="py-16 text-center">
         <div className="inline-block w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         <p className="text-muted mt-4">Cargando detalle...</p>
-      </div>
+      </Container>
     );
   }
 
@@ -143,26 +144,22 @@ export function DetallePedidoCustomer() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link
-        to="/mis-pedidos"
-        className="inline-flex items-center gap-2 text-muted hover:text-brand text-sm mb-4"
-      >
-        <ArrowLeft size={16} />
-        Volver a Mis pedidos
-      </Link>
-
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold text-text">
-            Pedido N° {order.display_number ?? order.order_id}
-          </h1>
-          <p className="text-sm text-muted mt-1">
-            Realizado el {dateStr} · <span className="text-faint">Ref. #{order.order_id}</span>
-          </p>
-        </div>
-        <StatusBadge state={order.order_state} />
-      </div>
+    <Container className="py-8">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', to: '/' },
+          { label: 'Mis pedidos', to: '/mis-pedidos' },
+          { label: `Pedido N° ${order.display_number ?? order.order_id}` },
+        ]}
+        title={`Pedido N° ${order.display_number ?? order.order_id}`}
+        subtitle={
+          <>
+            Realizado el {dateStr} ·{' '}
+            <span className="text-faint">Ref. #{order.order_id}</span>
+          </>
+        }
+        action={<StatusBadge state={order.order_state} />}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
@@ -335,7 +332,7 @@ export function DetallePedidoCustomer() {
           )}
         </div>
       </div>
-    </div>
+    </Container>
   );
 }
 

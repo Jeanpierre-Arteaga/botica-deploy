@@ -93,7 +93,7 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
       {/* Pista */}
       <div
         ref={trackRef}
-        className="grid grid-flow-col auto-cols-[80%] sm:auto-cols-[calc(50%-6px)] lg:auto-cols-[calc(25%-9px)] gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="grid grid-flow-col auto-cols-[47%] sm:auto-cols-[calc(50%-6px)] lg:auto-cols-[calc(25%-9px)] gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         tabIndex={0}
         role="group"
         aria-label="Carrusel de productos"

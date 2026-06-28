@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, Calendar, ListTree, Info, ShieldAlert } from "lucide-react";
+import { Container } from "../../components/Container";
 import { PROVEEDOR, LEGAL_LAST_UPDATED } from "./proveedor";
 
 export interface LegalSection {
@@ -70,7 +71,7 @@ export function LegalPage({ icon: Icon, title, legalBasis, sections }: LegalPage
 
   return (
     <div style={{ backgroundColor: "var(--c-bg)" }}>
-      <div className="max-w-6xl mx-auto px-4 py-10 md:py-14">
+      <Container className="py-10 md:py-14">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm font-medium mb-8 transition-colors hover:opacity-80"
@@ -236,7 +237,7 @@ export function LegalPage({ icon: Icon, title, legalBasis, sections }: LegalPage
             </p>
           </article>
         </div>
-      </div>
+      </Container>
 
       {/* Estilos de prosa legal: ritmo de lectura cómodo, coherente con tokens */}
       <style>{`

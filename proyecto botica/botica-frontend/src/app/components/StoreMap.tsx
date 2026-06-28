@@ -36,9 +36,9 @@ interface StoreMapProps {
   className?: string;
 }
 
-const BRAND = '#F15A29';
-
-/** Pin de marca minimalista como icono Leaflet. */
+/** Pin de marca minimalista como icono Leaflet.
+ *  El color de marca se toma del token --c-brand vía `style` (los CSS vars no
+ *  resuelven en el atributo `fill` de un SVG, pero sí en `style="fill:…"`). */
 function brandPin(): L.DivIcon {
   return L.divIcon({
     className: 'store-pin',
@@ -46,7 +46,7 @@ function brandPin(): L.DivIcon {
     iconAnchor: [15, 37],
     html: `
       <svg width="30" height="38" viewBox="0 0 30 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15 0C6.716 0 0 6.716 0 15c0 10.5 13.4 21.74 13.97 22.21a1.6 1.6 0 0 0 2.06 0C16.6 36.74 30 25.5 30 15 30 6.716 23.284 0 15 0Z" fill="${BRAND}"/>
+        <path d="M15 0C6.716 0 0 6.716 0 15c0 10.5 13.4 21.74 13.97 22.21a1.6 1.6 0 0 0 2.06 0C16.6 36.74 30 25.5 30 15 30 6.716 23.284 0 15 0Z" style="fill:var(--c-brand)"/>
         <circle cx="15" cy="15" r="5.4" fill="#fff"/>
       </svg>`,
   });

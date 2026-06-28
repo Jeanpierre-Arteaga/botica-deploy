@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { CheckCircle2, Package, ArrowRight, Home } from 'lucide-react';
 import { api } from '../lib/api';
+import { Container } from '../components/Container';
 import type { Order } from '../lib/types';
 
 export function Confirmacion() {
@@ -29,16 +30,16 @@ export function Confirmacion() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+      <Container className="py-16 text-center">
         <div className="inline-block w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         <p className="text-muted mt-4">Cargando confirmación...</p>
-      </div>
+      </Container>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+      <Container className="py-16 text-center">
         <p className="text-error mb-4">{error || 'Pedido no encontrado'}</p>
         <Link
           to="/"
@@ -47,7 +48,7 @@ export function Confirmacion() {
           <Home size={18} />
           Volver al inicio
         </Link>
-      </div>
+      </Container>
     );
   }
 
@@ -55,8 +56,8 @@ export function Confirmacion() {
   const isPendingValidation = order.order_state === 'pendiente';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-surface rounded-2xl border border-line p-8 text-center">
+    <Container className="py-12">
+      <div className="max-w-2xl mx-auto bg-surface rounded-2xl border border-line p-8 text-center">
         <div className="w-20 h-20 mx-auto mb-4 bg-success-soft rounded-full flex items-center justify-center">
           <CheckCircle2 className="text-success" size={48} />
         </div>
@@ -129,6 +130,6 @@ export function Confirmacion() {
           </Link>
         </div>
       </div>
-    </div>
+    </Container>
   );
 }

@@ -252,7 +252,7 @@ export function Footer() {
               {/* Yape */}
               <div
                 className="h-9 w-16 rounded-md flex items-center justify-center shadow-sm overflow-hidden"
-                style={{ backgroundColor: "#702F8A" }}
+                style={{ backgroundColor: "var(--c-pay-yape)" }}
                 title="Yape"
               >
                 <img src={yape_logo} alt="Yape" className="w-full h-full object-contain" />
@@ -268,7 +268,7 @@ export function Footer() {
               {/* Efectivo */}
               <div
                 className="h-9 px-2.5 rounded-md flex items-center justify-center gap-1 shadow-sm"
-                style={{ backgroundColor: "#16A34A" }}
+                style={{ backgroundColor: "var(--c-success)" }}
                 title="Efectivo"
               >
                 <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="white" strokeWidth="2">
@@ -286,7 +286,7 @@ export function Footer() {
               {/* Visa */}
               <div
                 className="h-9 w-16 rounded-md flex items-center justify-center shadow-sm"
-                style={{ backgroundColor: "#1A1F71" }}
+                style={{ backgroundColor: "var(--c-pay-visa)" }}
                 title="Visa"
               >
                 <span

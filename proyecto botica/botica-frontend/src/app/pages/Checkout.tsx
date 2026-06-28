@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import { ArrowLeft, ArrowRight, Truck, Store, CreditCard, Banknote, Smartphone, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CardPayment } from '@mercadopago/sdk-react';
@@ -9,6 +9,8 @@ import { useCart } from '../lib/CartContext';
 import { useAuth } from '../lib/AuthContext';
 import { useLocations } from '../lib/LocationContext';
 import { Stepper } from '../components/Stepper';
+import { Container } from '../components/Container';
+import { PageHeader } from '../components/PageHeader';
 
 type Step = 1 | 2 | 3;
 type DeliveryType = 'delivery' | 'pickup';
@@ -172,14 +174,15 @@ export function Checkout() {
   if (isEmpty || !user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="text-sm text-muted mb-4">
-        <Link to="/carrito" className="hover:text-brand">Carrito</Link>
-        <span className="mx-2">›</span>
-        <span className="text-text font-medium">Checkout</span>
-      </div>
-
-      <h1 className="text-3xl font-bold text-text mb-6 text-center">Finalizar compra</h1>
+    <Container className="py-8">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', to: '/' },
+          { label: 'Carrito', to: '/carrito' },
+          { label: 'Finalizar compra' },
+        ]}
+        title="Finalizar compra"
+      />
 
       <Stepper steps={STEPS} currentStep={currentStep} />
 
@@ -379,7 +382,7 @@ export function Checkout() {
           </div>
         </div>
       </div>
-    </div>
+    </Container>
   );
 }
 

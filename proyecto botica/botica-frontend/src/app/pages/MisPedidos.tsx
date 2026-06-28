@@ -3,6 +3,8 @@ import { Link } from 'react-router';
 import { ChevronRight, Clock, CheckCircle2, XCircle, Truck, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
+import { Container } from '../components/Container';
+import { PageHeader } from '../components/PageHeader';
 import type { Order, OrderState } from '../lib/types';
 
 type BadgeIcon = typeof Clock;
@@ -15,10 +17,10 @@ interface BadgeConfig {
 }
 
 const STATUS_CONFIG: Record<OrderState, BadgeConfig> = {
-  pendiente:   { color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', icon: Clock,        label: 'Pendiente' },
-  'en proceso':{ color: 'var(--color-info)',    bg: 'var(--color-info-soft)',    icon: Truck,        label: 'En proceso' },
-  entregado:   { color: 'var(--color-success)', bg: 'var(--color-success-soft)', icon: CheckCircle2, label: 'Entregado' },
-  cancelado:   { color: 'var(--color-error)',   bg: 'var(--color-error-soft)',   icon: XCircle,      label: 'Cancelado' },
+  pendiente:   { color: 'var(--c-warning)', bg: 'var(--c-warning-soft)', icon: Clock,        label: 'Pendiente' },
+  'en proceso':{ color: 'var(--c-info)',    bg: 'var(--c-info-soft)',    icon: Truck,        label: 'En proceso' },
+  entregado:   { color: 'var(--c-success)', bg: 'var(--c-success-soft)', icon: CheckCircle2, label: 'Entregado' },
+  cancelado:   { color: 'var(--c-error)',   bg: 'var(--c-error-soft)',   icon: XCircle,      label: 'Cancelado' },
 };
 
 function StatusBadge({ state }: { state: OrderState }) {
@@ -60,17 +62,20 @@ export function MisPedidos() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <Container className="py-12 text-center">
         <div className="inline-block w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         <p className="text-muted mt-4">Cargando tus pedidos...</p>
-      </div>
+      </Container>
     );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-text mb-6">Mis pedidos</h1>
+      <Container className="py-12">
+        <PageHeader
+          breadcrumbs={[{ label: 'Inicio', to: '/' }, { label: 'Mis pedidos' }]}
+          title="Mis pedidos"
+        />
         <div className="bg-surface rounded-2xl border border-line p-12 text-center">
           <ShoppingBag size={64} className="mx-auto text-line mb-4" />
           <h2 className="text-xl font-bold text-text mb-2">Aún no tienes pedidos</h2>
@@ -84,22 +89,17 @@ export function MisPedidos() {
             Explorar el catálogo
           </Link>
         </div>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="text-sm text-muted mb-2">
-        <Link to="/" className="hover:text-brand">Inicio</Link>
-        <span className="mx-2">›</span>
-        <span className="text-text font-medium">Mis pedidos</span>
-      </div>
-
-      <h1 className="text-3xl font-bold text-text mb-2">Mis pedidos</h1>
-      <p className="text-muted mb-6">
-        {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'} en total
-      </p>
+    <Container className="py-8">
+      <PageHeader
+        breadcrumbs={[{ label: 'Inicio', to: '/' }, { label: 'Mis pedidos' }]}
+        title="Mis pedidos"
+        subtitle={`${orders.length} ${orders.length === 1 ? 'pedido' : 'pedidos'} en total`}
+      />
 
       <div className="space-y-3">
         {orders.map((order) => {
@@ -148,6 +148,6 @@ export function MisPedidos() {
           );
         })}
       </div>
-    </div>
+    </Container>
   );
 }

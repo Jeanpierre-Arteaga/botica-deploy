@@ -28,6 +28,7 @@ import {
   Info,
   FileText,
 } from "lucide-react";
+import { Container } from "../components/Container";
 
 // ── Datos FIJOS del proveedor (Anexo I, sección 1) ──────────────────
 // ⚠️ Confirmar la dirección legal exacta de la sede principal.
@@ -221,7 +222,8 @@ export function LibroReclamaciones() {
 
   return (
     <div style={{ backgroundColor: "var(--c-bg)" }}>
-      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+      <Container className="py-10 md:py-16">
+       <div className="max-w-3xl mx-auto">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-sm font-medium mb-8 transition-colors hover:opacity-80"
@@ -569,7 +571,8 @@ export function LibroReclamaciones() {
         <p className="mt-8 text-xs text-center" style={{ color: "var(--c-faint)" }}>
           {PROVEEDOR.razon_social} — RUC {PROVEEDOR.ruc} · {PROVEEDOR.direccion}
         </p>
-      </div>
+       </div>
+      </Container>
     </div>
   );
 }
@@ -603,7 +606,8 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
         }
       `}</style>
 
-      <div className="max-w-3xl mx-auto px-4 py-10 md:py-16">
+      <Container className="py-10 md:py-16">
+       <div className="max-w-3xl mx-auto">
         {/* Banner de éxito */}
         <div className="text-center mb-8 no-print">
           <div
@@ -740,7 +744,8 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
             Volver al inicio
           </Link>
         </div>
-      </div>
+       </div>
+      </Container>
     </div>
   );
 }

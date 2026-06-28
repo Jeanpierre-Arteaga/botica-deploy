@@ -916,7 +916,7 @@ export function Home() {
             <p>No hay sedes disponibles por el momento.</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
             {locations.map((store) => {
               const mapQuery = mapsQueryOf(store);
               const tel = telHref(storePhone(store));
@@ -940,11 +940,11 @@ export function Home() {
                       title={store.location_name}
                       lat={store.latitude != null ? Number(store.latitude) : null}
                       lng={store.longitude != null ? Number(store.longitude) : null}
-                      className="border-b h-[170px] md:h-[210px]"
+                      className="border-b h-[150px] md:h-[210px]"
                     />
                   )}
 
-                  <div className="p-5 flex flex-col flex-1">
+                  <div className="p-4 md:p-5 flex flex-col flex-1">
                     {/* Sede + dirección */}
                     <div className="flex items-start gap-3.5">
                       <div

@@ -141,7 +141,7 @@ export function AccessibilityMenu({
 
   const triggerStyles =
     variant === "dark"
-      ? "text-slate-200 hover:bg-white/10 hover:text-white"
+      ? "text-white/70 hover:bg-white/10 hover:text-white"
       : "text-text hover:bg-brand-soft hover:text-brand";
 
   return (

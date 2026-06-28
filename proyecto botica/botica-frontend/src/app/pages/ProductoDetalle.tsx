@@ -20,6 +20,7 @@ import yape_logo from "@/imports/yape_logo.png";
 import plin_logo from "@/imports/plin_logo.png";
 import { ProductCard } from "../components/ProductCard";
 import { ProductDetailSkeleton } from "../components/Skeleton";
+import { Container } from "../components/Container";
 import { Button } from "../components/ui/Button";
 import {
   Accordion,
@@ -188,7 +189,7 @@ export function ProductoDetalle() {
   if (notFound) {
     return (
       <div className="bg-page-alt min-h-screen">
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <Container className="py-16 text-center">
           <PackageX className="w-16 h-16 text-faint mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-text mb-2">
             Producto no encontrado
@@ -203,7 +204,7 @@ export function ProductoDetalle() {
           >
             Volver al catálogo
           </Button>
-        </div>
+        </Container>
       </div>
     );
   }
@@ -211,7 +212,7 @@ export function ProductoDetalle() {
   if (error || !product) {
     return (
       <div className="bg-page-alt min-h-screen">
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <Container className="py-16 text-center">
           <AlertCircle className="w-16 h-16 text-error mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-text mb-2">
             No pudimos cargar el producto
@@ -226,7 +227,7 @@ export function ProductoDetalle() {
           >
             Reintentar
           </Button>
-        </div>
+        </Container>
       </div>
     );
   }
@@ -284,7 +285,7 @@ export function ProductoDetalle() {
 
   return (
     <div className="bg-page-alt min-h-screen">
-      <div className="max-w-[1140px] mx-auto px-4 sm:px-5 py-6 md:py-8 animate-fade-in-up">
+      <Container className="py-6 md:py-8 animate-fade-in-up">
         {/* ===== Breadcrumb ===== */}
         <nav
           aria-label="Migas de pan"
@@ -586,7 +587,7 @@ export function ProductoDetalle() {
                 <span
                   title="Yape"
                   className="h-6 w-11 rounded-md flex items-center justify-center overflow-hidden shadow-sm"
-                  style={{ backgroundColor: "#702F8A" }}
+                  style={{ backgroundColor: "var(--c-pay-yape)" }}
                 >
                   <img
                     src={yape_logo}
@@ -610,7 +611,7 @@ export function ProductoDetalle() {
                 <span
                   title="Visa"
                   className="h-6 w-11 rounded-md flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: "#1A1F71" }}
+                  style={{ backgroundColor: "var(--c-pay-visa)" }}
                 >
                   <span
                     className="text-white font-extrabold text-[11px] italic tracking-wider"
@@ -742,7 +743,7 @@ export function ProductoDetalle() {
             </div>
           </div>
         )}
-      </div>
+      </Container>
     </div>
   );
 }

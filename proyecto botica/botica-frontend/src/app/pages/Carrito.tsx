@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { useCart } from '../lib/CartContext';
 import { useAuth } from '../lib/AuthContext';
 import { useLocations } from '../lib/LocationContext';
+import { Container } from '../components/Container';
+import { PageHeader } from '../components/PageHeader';
 
 export function Carrito() {
   const { items, itemCount, subtotal, updateAmount, removeItem, isEmpty } = useCart();
@@ -29,7 +31,7 @@ export function Carrito() {
 
   if (isEmpty) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <Container className="py-12">
         <div className="text-center py-16">
           <ShoppingCart size={64} className="mx-auto text-line mb-4" />
           <h2 className="text-2xl font-bold text-text mb-2">
@@ -46,22 +48,17 @@ export function Carrito() {
             Ir al catálogo
           </Link>
         </div>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="text-sm text-muted mb-2">
-        <Link to="/" className="hover:text-brand">Inicio</Link>
-        <span className="mx-2">›</span>
-        <span className="text-text font-medium">Carrito</span>
-      </div>
-
-      <h1 className="text-3xl font-bold text-text mb-2">Tu carrito</h1>
-      <p className="text-muted mb-6">
-        {itemCount} {itemCount === 1 ? 'producto' : 'productos'} en {selectedLocation?.location_name || 'tu sede'}
-      </p>
+    <Container className="py-8">
+      <PageHeader
+        breadcrumbs={[{ label: 'Inicio', to: '/' }, { label: 'Carrito' }]}
+        title="Tu carrito"
+        subtitle={`${itemCount} ${itemCount === 1 ? 'producto' : 'productos'} en ${selectedLocation?.location_name || 'tu sede'}`}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
@@ -190,6 +187,6 @@ export function Carrito() {
           </div>
         </div>
       </div>
-    </div>
+    </Container>
   );
 }

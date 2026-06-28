@@ -100,7 +100,7 @@ export function Navbar() {
               <button
                 onClick={() => setLocationDropdownOpen(!locationDropdownOpen)}
                 disabled={isLoadingLocations || locations.length === 0}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#1E4D8C] text-white rounded-lg hover:bg-[#1B4480] transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2.5 bg-secondary-brand text-white rounded-lg hover:bg-secondary-brand-hover transition-colors font-medium text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 aria-label="Seleccionar sede"
               >
                 <MapPin className="w-4 h-4" />
@@ -192,7 +192,7 @@ export function Navbar() {
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden lg:inline">Carrito</span>
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#1E4D8C] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                <span className="absolute -top-1.5 -right-1.5 bg-secondary-brand text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
                   {itemCount}
                 </span>
               )}
@@ -207,7 +207,7 @@ export function Navbar() {
               <div className="p-2 bg-brand text-white rounded-lg shadow-sm">
                 <ShoppingCart className="w-5 h-5" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#1E4D8C] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-secondary-brand text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {itemCount}
                   </span>
                 )}
@@ -265,7 +265,7 @@ export function Navbar() {
                           }}
                           className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors font-medium text-sm ${
                             isSelected
-                              ? 'bg-[#1E4D8C] text-white'
+                              ? 'bg-secondary-brand text-white'
                               : 'bg-surface-2 text-text hover:bg-line'
                           }`}
                         >

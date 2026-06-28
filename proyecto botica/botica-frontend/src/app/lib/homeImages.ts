@@ -16,7 +16,7 @@
  * carpeta. Si añades un slot nuevo, agrega su nombre base aquí.
  */
 const modules = import.meta.glob<string>(
-  "../../assets/home/{banner-retiro,banner-genericos,promo-wide,promo-square,asesoria}.{webp,jpg,jpeg,png}",
+  "../../assets/home/{banner-retiro,banner-genericos,promo-wide,promo-square,asesoria,hero-2,hero-3}.{webp,jpg,jpeg,png}",
   { eager: true, import: "default" },
 );
 

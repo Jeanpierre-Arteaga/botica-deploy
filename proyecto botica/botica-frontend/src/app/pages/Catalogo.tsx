@@ -1,6 +1,5 @@
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import {
-  ChevronRight,
   SlidersHorizontal,
   X,
   AlertCircle,
@@ -10,6 +9,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
+import { Container } from "../components/Container";
+import { PageHeader } from "../components/PageHeader";
 import { api } from "../lib/api";
 import { useLocations } from "../lib/LocationContext";
 import type {
@@ -296,52 +297,42 @@ export function Catalogo() {
 
   return (
     <div className="bg-page min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted mb-5">
-          <Link to="/" className="hover:text-brand">
-            Inicio
-          </Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-text font-medium">Catálogo</span>
-          {activeCategory && (
+      <Container className="py-6 md:py-8">
+        <PageHeader
+          breadcrumbs={[
+            { label: "Inicio", to: "/" },
+            { label: "Catálogo", to: "/catalogo" },
+            ...(activeCategory
+              ? [{ label: activeCategory.category_name }]
+              : []),
+          ]}
+          title={
             <>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-text font-medium">
-                {activeCategory.category_name}
-              </span>
+              Catálogo
+              {selectedLocation && (
+                <span className="text-base font-normal text-faint ml-2">
+                  · Sede{" "}
+                  {selectedLocation.district || selectedLocation.location_name}
+                </span>
+              )}
             </>
-          )}
-        </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-text">
-            Catálogo
-            {selectedLocation && (
-              <span className="text-base font-normal text-faint ml-2">
-                · Sede{" "}
-                {selectedLocation.district || selectedLocation.location_name}
-              </span>
-            )}
-          </h1>
-          {filters.nombre && (
-            <p className="text-sm text-muted mt-1">
-              Resultados para “
-              <span className="font-medium text-text">
-                {filters.nombre}
-              </span>
-              ”
-              <button
-                type="button"
-                onClick={() => updateParam("nombre", null)}
-                className="ml-2 text-brand hover:underline"
-              >
-                quitar
-              </button>
-            </p>
-          )}
-        </div>
+          }
+          subtitle={
+            filters.nombre ? (
+              <>
+                Resultados para “
+                <span className="font-medium text-text">{filters.nombre}</span>”
+                <button
+                  type="button"
+                  onClick={() => updateParam("nombre", null)}
+                  className="ml-2 text-brand hover:underline"
+                >
+                  quitar
+                </button>
+              </>
+            ) : undefined
+          }
+        />
 
         {/* Active chips (mobile-friendly) */}
         {hasActiveFilters && (
@@ -509,7 +500,7 @@ export function Catalogo() {
             )}
           </div>
         </div>
-      </div>
+      </Container>
 
       {/* Drawer Mobile */}
       {mobileFiltersOpen && (

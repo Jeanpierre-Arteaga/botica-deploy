@@ -61,6 +61,14 @@
   /* Secundario frío (confianza, uso sutil) — sky desaturado */
   --c-cool:      #4C82A8;
   --c-cool-soft: #EEF4F8;
+  /* Azul institucional — selector de sede, badge del carrito. NO es acento de
+     marca (ese es el naranja); es un azul de confianza para chrome de navegación. */
+  --c-secondary:       #1E4D8C;
+  --c-secondary-hover: #1B4480;
+  /* Marcas de pago (terceros) — color oficial de cada billetera/tarjeta.
+     Centralizados para no repetir el hex en Footer/PDP. */
+  --c-pay-yape: #702F8A;
+  --c-pay-visa: #1A1F71;
   /* Semánticos */
   --c-success: #16A34A;  --c-success-soft: #DCFCE7;
   --c-warning: #F59E0B;  --c-warning-soft: #FEF3C7;
@@ -223,6 +231,9 @@ html[data-theme="dark"] {
   --c-line-2:  #1A2438;
   --c-cool:      #5AA0C4;
   --c-cool-soft: #122230;
+  --c-secondary:       #3D6FB0;   /* azul un punto más claro para contraste AA en oscuro */
+  --c-secondary-hover: #4C82C4;
+  /* --c-pay-* se mantienen (son colores de marca de terceros) */
   --c-success-soft: #0E2A1A;
   --c-warning-soft: #2A2110;
   --c-error-soft:   #2A1414;
@@ -329,6 +340,10 @@ html[data-theme="dark"] p { color: var(--c-muted); }
   --color-line-2: var(--c-line-2);
   --color-cool: var(--c-cool);
   --color-cool-soft: var(--c-cool-soft);
+  --color-secondary-brand: var(--c-secondary);
+  --color-secondary-brand-hover: var(--c-secondary-hover);
+  --color-pay-yape: var(--c-pay-yape);
+  --color-pay-visa: var(--c-pay-visa);
   --color-success: var(--c-success);
   --color-success-soft: var(--c-success-soft);
   --color-warning: var(--c-warning);
@@ -376,6 +391,14 @@ html[data-theme="dark"] p { color: var(--c-muted); }
     background-color: var(--c-bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Sin scroll horizontal accidental en móvil (768 / 414 / 390 / 375 px).
+     Red de seguridad: ningún elemento debe desbordar el ancho del viewport. */
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
