@@ -35,8 +35,15 @@ export function ScrollToTop() {
 
     // Atrás/adelante: dejar que el navegador restaure la posición.
     if (navType === "POP") return;
-    // Ancla #seccion de la misma página: no forzar arriba.
-    if (hash) return;
+    // Ancla #seccion: posicionar la sección destino (scroll suave). Un rAF
+    // de refuerzo cubre el caso de contenido que monta tras la navegación.
+    if (hash) {
+      const id = decodeURIComponent(hash.slice(1));
+      const toEl = () => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      toEl();
+      const rafHash = requestAnimationFrame(toEl);
+      return () => cancelAnimationFrame(rafHash);
+    }
 
     const toTop = () => {
       // Instantáneo (forma de 2 args, sin animación).

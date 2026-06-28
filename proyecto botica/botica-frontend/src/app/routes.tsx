@@ -35,6 +35,10 @@ import { Reportes } from "./pages/admin/Reportes";
 import { MisPedidos } from "./pages/MisPedidos";
 import { DetallePedidoCustomer } from "./pages/DetallePedidoCustomer";
 import { LibroReclamaciones } from "./pages/LibroReclamaciones";
+import { Privacidad } from "./pages/legal/Privacidad";
+import { Terminos } from "./pages/legal/Terminos";
+import { Cookies } from "./pages/legal/Cookies";
+import { Devoluciones } from "./pages/legal/Devoluciones";
 
 // ============================================================
 // RootProviders
@@ -117,6 +121,10 @@ export const router = createBrowserRouter([
             ),
           },
           { path: "libro-reclamaciones", Component: LibroReclamaciones },
+          { path: "privacidad", Component: Privacidad },
+          { path: "terminos", Component: Terminos },
+          { path: "cookies", Component: Cookies },
+          { path: "devoluciones", Component: Devoluciones },
           { path: "*", Component: NotFound },
         ],
       },

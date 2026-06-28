@@ -4,6 +4,7 @@ import { TopBar } from "../components/TopBar";
 import { SecondaryNav } from "../components/SecondaryNav";
 import { Footer } from "../components/Footer";
 import { QuickActionFab } from "../components/QuickActionFab";
+import { CookieConsent } from "../components/CookieConsent";
 
 /**
  * Layout del CLIENTE (home, catálogo, PDP, carrito, checkout).
@@ -33,6 +34,8 @@ export function PublicLayout() {
       <Footer />
       {/* FAB de acción rápida (asesoría + subir receta) — solo cliente */}
       <QuickActionFab />
+      {/* Banner de consentimiento de cookies (primera visita) */}
+      <CookieConsent />
     </div>
   );
 }

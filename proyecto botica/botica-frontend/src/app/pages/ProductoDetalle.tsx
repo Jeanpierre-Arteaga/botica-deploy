@@ -711,6 +711,21 @@ export function ProductoDetalle() {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
+
+            {/* Aviso legal del rubro farmacia (sobrio, general).
+                NOTA: el backend no expone aún un campo "requiere receta" por
+                producto; mientras tanto mostramos el aviso general. */}
+            <div
+              className="mt-4 rounded-xl border p-3.5 flex items-start gap-2.5"
+              style={{ borderColor: "var(--c-line)", backgroundColor: "var(--c-surface-2)" }}
+            >
+              <Stethoscope className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
+              <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--c-muted)" }}>
+                Algunos medicamentos requieren <strong style={{ color: "var(--c-text)" }}>receta médica</strong>{" "}
+                y solo se dispensan con ella. La información mostrada es referencial y no reemplaza la
+                consulta con un profesional de salud.
+              </p>
+            </div>
           </div>
         </div>
 
