@@ -17,7 +17,7 @@ export function Table({ columns, data, emptyMessage = "No hay datos para mostrar
   if (data.length === 0) {
     return (
       <div className="bg-surface rounded-2xl border border-line p-12 text-center shadow-soft">
-        <div className="w-16 h-16 mx-auto mb-4 bg-[#F1F5F9] rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-surface-2 rounded-full flex items-center justify-center">
           <Package className="w-8 h-8 text-faint" />
         </div>
         <h3 className="text-lg font-semibold text-ink-2 mb-2">Sin resultados</h3>
@@ -30,7 +30,7 @@ export function Table({ columns, data, emptyMessage = "No hay datos para mostrar
     <div className="bg-surface rounded-2xl border border-line overflow-hidden shadow-soft">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-[#F8FAFC] border-b border-line">
+          <thead className="bg-surface-2 border-b border-line">
             <tr>
               {columns.map((column) => (
                 <th
@@ -46,8 +46,8 @@ export function Table({ columns, data, emptyMessage = "No hay datos para mostrar
             {data.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className={`border-b border-line-2 last:border-0 transition-colors hover:bg-[#F8FAFC] ${
-                  rowIndex % 2 === 0 ? "bg-surface" : "bg-[#FCFDFE]"
+                className={`border-b border-line-2 last:border-0 transition-colors hover:bg-surface-2 ${
+                  rowIndex % 2 === 0 ? "bg-surface" : "bg-surface-2"
                 }`}
               >
                 {columns.map((column) => (

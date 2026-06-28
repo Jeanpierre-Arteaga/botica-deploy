@@ -24,17 +24,17 @@ export function Stepper({ steps, currentStep }: StepperProps) {
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ${
                   isCompleted
-                    ? 'bg-[#F15A29] text-white'
+                    ? 'bg-brand text-white'
                     : isActive
-                    ? 'bg-[#F15A29] text-white ring-4 ring-[#FFF4EE]'
-                    : 'bg-[#E5E7EB] text-[#4A5260]'
+                    ? 'bg-brand text-white ring-4 ring-brand-soft'
+                    : 'bg-surface-2 text-muted'
                 }`}
               >
                 {isCompleted ? <Check size={16} /> : step.number}
               </div>
               <span
                 className={`text-xs sm:text-sm font-medium hidden sm:block ${
-                  isActive ? 'text-[#1A1F2E]' : 'text-[#4A5260]'
+                  isActive ? 'text-text' : 'text-muted'
                 }`}
               >
                 {step.label}
@@ -43,7 +43,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
             {!isLast && (
               <div
                 className={`h-0.5 w-8 sm:w-16 transition-colors ${
-                  isCompleted ? 'bg-[#F15A29]' : 'bg-[#E5E7EB]'
+                  isCompleted ? 'bg-brand' : 'bg-surface-2'
                 }`}
               />
             )}

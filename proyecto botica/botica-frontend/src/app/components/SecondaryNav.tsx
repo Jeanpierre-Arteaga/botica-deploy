@@ -49,7 +49,7 @@ export function SecondaryNav() {
 
   return (
     <>
-      <div className="bg-white border-b border-[#E5E7EB] sticky top-0 z-30">
+      <div className="bg-surface border-b border-line">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div
             className="flex items-center gap-1 overflow-x-auto scrollbar-hide"
@@ -60,7 +60,7 @@ export function SecondaryNav() {
               <button
                 ref={buttonRef}
                 onClick={() => setShowCategories(!showCategories)}
-                className="flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 text-[#4A5260] hover:text-[#F15A29] transition-colors text-sm font-medium whitespace-nowrap border-b-2 border-transparent"
+                className="flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 text-muted hover:text-brand transition-colors text-sm font-medium whitespace-nowrap border-b-2 border-transparent"
               >
                 <ChevronDown
                   className={`w-4 h-4 transition-transform ${showCategories ? 'rotate-180' : ''}`}
@@ -74,8 +74,8 @@ export function SecondaryNav() {
               to={offersHref}
               className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
                 isActive(offersHref)
-                  ? 'text-[#F15A29] border-[#F15A29]'
-                  : 'text-[#F15A29] hover:text-[#D94E1F] border-transparent'
+                  ? 'text-brand border-brand'
+                  : 'text-brand hover:text-brand-hover border-transparent'
               }`}
             >
               <Tag className="w-4 h-4" />
@@ -88,7 +88,7 @@ export function SecondaryNav() {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="h-8 w-24 bg-[#F9FAFB] rounded-full animate-pulse"
+                    className="h-8 w-24 bg-surface-2 rounded-full animate-pulse"
                   />
                 ))}
               </div>
@@ -102,8 +102,8 @@ export function SecondaryNav() {
                     to={to}
                     className={`flex items-center gap-1.5 px-3 md:px-4 py-3 md:py-4 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 ${
                       active
-                        ? 'text-[#F15A29] border-[#F15A29]'
-                        : 'text-[#4A5260] hover:text-[#F15A29] border-transparent'
+                        ? 'text-brand border-brand'
+                        : 'text-muted hover:text-brand border-transparent'
                     }`}
                   >
                     <CategoryIcon name={cat.icon_name} size={16} />
@@ -125,14 +125,14 @@ export function SecondaryNav() {
           />
 
           <div
-            className="fixed z-[9999] bg-white rounded-[16px] shadow-lg border border-[#E5E7EB] py-4 px-3 w-[calc(100vw-2rem)] md:w-96 max-h-[450px] overflow-y-auto"
+            className="fixed z-[9999] bg-surface rounded-[16px] shadow-lg border border-line py-4 px-3 w-[calc(100vw-2rem)] md:w-96 max-h-[450px] overflow-y-auto"
             style={{
               top: `${dropdownPosition.top}px`,
               left: window.innerWidth < 768 ? '1rem' : `${dropdownPosition.left}px`
             }}
           >
             {allCategories.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-[#9CA3AF]">
+              <p className="px-4 py-3 text-sm text-faint">
                 No hay categorías disponibles.
               </p>
             ) : (
@@ -142,7 +142,7 @@ export function SecondaryNav() {
                     key={cat.category_id}
                     to={`/catalogo?category_id=${cat.category_id}`}
                     onClick={() => setShowCategories(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-[#FFF4EE] hover:text-[#F15A29] transition-colors text-[#1A1F2E]"
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-brand-soft hover:text-brand transition-colors text-text"
                   >
                     <CategoryIcon
                       name={cat.icon_name}

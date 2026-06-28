@@ -11,6 +11,7 @@ import {
   Stethoscope,
   Check,
   ShieldCheck,
+  Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
@@ -29,6 +30,7 @@ import {
 import { api, ApiError } from "../lib/api";
 import { useCart } from "../lib/CartContext";
 import { useLocations } from "../lib/LocationContext";
+import { useVoiceReader, formatPriceForSpeech } from "../lib/voiceReader";
 import type { Product } from "../lib/types";
 
 // Umbral de envío gratis. Coincide con el del carrito (Carrito.tsx).
@@ -52,6 +54,7 @@ export function ProductoDetalle() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { selectedLocation } = useLocations();
+  const { enabled: voiceOn, speak, speakNow } = useVoiceReader();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -262,6 +265,12 @@ export function ProductoDetalle() {
           ? `Pocas unidades · ${stockNumber} disponibles`
           : `${stockNumber} disponibles`;
 
+  // Texto para la lectura por voz: nombre + precio + disponibilidad.
+  const spokenText =
+    `${product.product_name}. ` +
+    `Precio: ${formatPriceForSpeech(product.product_price)}. ` +
+    `Disponibilidad: ${stockText}.`;
+
   // La descripción corta reutiliza la composición (único texto libre del
   // producto). Para no duplicarla, NO la repetimos como acordeón: aquí va el
   // resumen con "Ver más", y los acordeones quedan para precaución e info.
@@ -419,8 +428,12 @@ export function ProductoDetalle() {
               </div>
             )}
 
-            {/* Precio — navy bold; el naranja queda solo en el CTA */}
-            <div className="flex items-baseline gap-2.5 flex-wrap mb-4">
+            {/* Precio — navy bold; el naranja queda solo en el CTA.
+                Al pasar el cursor (con lectura por voz activa) se lee solo. */}
+            <div
+              className="flex items-baseline gap-2.5 flex-wrap mb-4"
+              onMouseEnter={() => speak(spokenText)}
+            >
               <span className="text-[34px] font-bold text-text leading-none tracking-tight">
                 S/ {Number(product.product_price).toFixed(2)}
               </span>
@@ -436,6 +449,33 @@ export function ProductoDetalle() {
                     -{discountPct}%
                   </span>
                 </>
+              )}
+
+              {/* Botón de lectura — SOLO aparece si la lectura por voz está
+                  encendida en Accesibilidad. Al pulsar lee siempre (explícito). */}
+              {voiceOn && (
+                <button
+                  type="button"
+                  onClick={() => speakNow(spokenText)}
+                  aria-label="Escuchar nombre, precio y disponibilidad del producto"
+                  className="ml-auto self-center inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors"
+                  style={{
+                    backgroundColor: "var(--c-brand-soft)",
+                    color: "var(--c-brand)",
+                    border: "1px solid var(--c-brand)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--c-brand)";
+                    e.currentTarget.style.color = "#fff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--c-brand-soft)";
+                    e.currentTarget.style.color = "var(--c-brand)";
+                  }}
+                >
+                  <Volume2 className="w-4 h-4" />
+                  Escuchar
+                </button>
               )}
             </div>
 

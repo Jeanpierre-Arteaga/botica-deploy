@@ -24,12 +24,12 @@ export function Sidebar({ items, userRole }: SidebarProps) {
 
   return (
     <aside
-      className={`bg-white border-r border-[#E5E7EB] h-screen sticky top-0 flex flex-col transition-all duration-300 ${
+      className={`bg-surface border-r border-line h-screen sticky top-0 flex flex-col transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-60"
       }`}
     >
       {/* Logo */}
-      <div className="p-4 border-b border-[#E5E7EB] flex items-center justify-between">
+      <div className="p-4 border-b border-line flex items-center justify-between">
         {!isCollapsed && (
           <img
             src={image_botica_icono}
@@ -39,7 +39,7 @@ export function Sidebar({ items, userRole }: SidebarProps) {
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-[10px] hover:bg-[#F9FAFB] text-[#4A5260] transition-colors ml-auto"
+          className="p-1.5 rounded-[10px] hover:bg-surface-2 text-muted transition-colors ml-auto"
         >
           {isCollapsed ? (
             <ChevronRight className="w-5 h-5" />
@@ -60,14 +60,14 @@ export function Sidebar({ items, userRole }: SidebarProps) {
               to={item.to}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-all relative group ${
                 active
-                  ? "bg-[#FFF4EE] text-[#D94E1F]"
-                  : "text-[#4A5260] hover:bg-[#F9FAFB]"
+                  ? "bg-brand-soft text-brand-hover"
+                  : "text-muted hover:bg-surface-2"
               }`}
             >
               {active && (
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#F15A29] rounded-r-full" />
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-brand rounded-r-full" />
               )}
-              <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "" : "group-hover:text-[#F15A29]"}`} />
+              <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "" : "group-hover:text-brand"}`} />
               {!isCollapsed && (
                 <span className="text-sm font-medium">{item.label}</span>
               )}
@@ -77,24 +77,24 @@ export function Sidebar({ items, userRole }: SidebarProps) {
       </nav>
 
       {/* User Profile & Logout */}
-      <div className="p-4 border-t border-[#E5E7EB]">
+      <div className="p-4 border-t border-line">
         <div className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}>
-          <div className="w-10 h-10 rounded-full bg-[#FFF4EE] flex items-center justify-center text-[#F15A29] font-semibold">
+          <div className="w-10 h-10 rounded-full bg-brand-soft flex items-center justify-center text-brand font-semibold">
             {userRole === "admin" ? "A" : "S"}
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#1A1F2E] truncate">
+              <p className="text-sm font-semibold text-text truncate">
                 {userRole === "admin" ? "Administrador" : "Staff"}
               </p>
-              <p className="text-xs text-[#9CA3AF]">
+              <p className="text-xs text-faint">
                 {userRole === "admin" ? "Admin" : "Vendedor"}
               </p>
             </div>
           )}
         </div>
         <button
-          className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-[10px] text-[#DC2626] hover:bg-[#FEE2E2] transition-colors w-full ${
+          className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-[10px] text-error hover:bg-error-soft transition-colors w-full ${
             isCollapsed ? "justify-center" : ""
           }`}
         >

@@ -1,7 +1,7 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] rounded ${className}`}
+      className={`animate-pulse bg-surface-2 bg-[length:200%_100%] rounded ${className}`}
       style={{
         animation: 'shimmer 2s infinite',
       }}
@@ -92,7 +92,7 @@ export function CartSkeleton() {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div key={i} className="bg-surface rounded-xl shadow-sm p-6 border border-line">
               <div className="flex gap-4">
                 <Skeleton className="w-20 h-20 rounded-lg" />
                 <div className="flex-1">
@@ -107,7 +107,7 @@ export function CartSkeleton() {
         </div>
 
         <div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="bg-surface rounded-xl shadow-sm p-6 border border-line">
             <Skeleton className="h-6 w-32 mb-6" />
             <Skeleton className="h-4 w-full mb-3" />
             <Skeleton className="h-4 w-full mb-6" />

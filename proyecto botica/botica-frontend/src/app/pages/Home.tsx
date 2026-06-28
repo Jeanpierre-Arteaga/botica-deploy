@@ -32,11 +32,13 @@ import {
   ShoppingBag,
   Search,
 } from "lucide-react";
-import { ProductCard } from "../components/ProductCard";
 import { ProductCarousel } from "../components/ProductCarousel";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { HeroBanner } from "../components/HeroBanner";
+import { SectionHeader } from "../components/SectionHeader";
+import { PromoImageRow } from "../components/PromoImageRow";
 import { StoreMap } from "../components/StoreMap";
+import { homeImage } from "../lib/homeImages";
 import { api } from "../lib/api";
 import { useLocations } from "../lib/LocationContext";
 import {
@@ -44,6 +46,7 @@ import {
   mailtoHref,
   mapsQueryOf,
   mapsSearchUrl,
+  storePhone,
 } from "../lib/contact";
 import type { Category, Product } from "../lib/types";
 
@@ -78,21 +81,12 @@ const BENEFITS: Array<{
   },
 ];
 
-/* ============================================================
-   Imagen del banner de retiro en tienda — opcional.
-   import.meta.glob detecta el archivo si existe; el build queda
-   limpio aunque aún no se haya subido (muestra un fallback sobrio).
-   Sube la imagen como: src/assets/home/banner-retiro.webp
-   ============================================================ */
-const bannerRetiroGlob = import.meta.glob<string>(
-  "../../assets/home/banner-retiro.{webp,jpg,jpeg,png}",
-  { eager: true, import: "default" },
-);
-const bannerRetiroSrc = Object.values(bannerRetiroGlob)[0] as
-  | string
-  | undefined;
-
 export function Home() {
+  /* Imágenes del home — auto-detectadas desde src/assets/home/ (ver homeImages.ts).
+     Si el archivo no existe aún, el valor es undefined y se muestra un fallback. */
+  const bannerRetiroSrc = homeImage("banner-retiro"); // banner Dermatología
+  const bannerGenericosSrc = homeImage("banner-genericos"); // franja de marca (opcional)
+
   const { selectedLocation, isLoading: isLoadingLocation, locations } = useLocations();
 
   const [ofertas, setOfertas] = useState<Product[]>([]);
@@ -111,6 +105,17 @@ export function Home() {
   const [bannerCategoryHref, setBannerCategoryHref] = useState(
     "/catalogo?nombre=Dermatolog%C3%ADa",
   );
+  // Destino de la tarjeta promo (countdown): categoría Mamá & Bebé.
+  // Misma estrategia que Dermatología: resolvemos el category_id real desde la BD,
+  // con fallback seguro a búsqueda por nombre.
+  const [mamaBebeHref, setMamaBebeHref] = useState(
+    "/catalogo?nombre=Mam%C3%A1%20%26%20Beb%C3%A9",
+  );
+  // Destino de la imagen promo-wide ("Bienestar diario"): categoría Vitaminas.
+  // Misma estrategia: category_id real desde la BD con fallback por nombre.
+  const [vitaminasHref, setVitaminasHref] = useState(
+    "/catalogo?nombre=Vitaminas",
+  );
   useEffect(() => {
     api.categories
       .getAll()
@@ -123,9 +128,22 @@ export function Home() {
         if (derma) {
           setBannerCategoryHref(`/catalogo?category_id=${derma.category_id}`);
         }
+        const mama = cats.find((c) => {
+          const n = c.category_name.trim().toLowerCase();
+          return n.includes("mam") && n.includes("beb");
+        });
+        if (mama) {
+          setMamaBebeHref(`/catalogo?category_id=${mama.category_id}`);
+        }
+        const vitaminas = cats.find((c) =>
+          c.category_name.trim().toLowerCase().includes("vitamina"),
+        );
+        if (vitaminas) {
+          setVitaminasHref(`/catalogo?category_id=${vitaminas.category_id}`);
+        }
       })
       .catch(() => {
-        /* mantiene el fallback por nombre */
+        /* mantiene los fallbacks por nombre */
       });
   }, []);
 
@@ -214,42 +232,42 @@ export function Home() {
     <div ref={mainRef} style={{ backgroundColor: "var(--c-bg)" }}>
       <HeroBanner />
 
-      {/* ===== Franja de beneficios ===== */}
+      {/* ===== Franja de beneficios — barra fina sobre blanco =====
+          Sin tarjetas gruesas ni crema: una sola barra con divisores finos
+          (hairlines de 1px logradas con gap-px + fondo de línea). 4 en desktop,
+          2x2 en tablet, 1 columna apilada en móvil. */}
       <section
-        className="reveal pt-14 md:pt-20 pb-10 md:pb-12"
-        style={{ backgroundColor: "var(--c-bg)" }}
+        className="reveal pt-12 md:pt-16 pb-0"
+        style={{ backgroundColor: "var(--c-bg-2)" }}
       >
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible lg:grid-cols-4">
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border"
+            style={{
+              backgroundColor: "var(--c-line)",
+              borderColor: "var(--c-line)",
+              boxShadow: "var(--elev-xs)",
+            }}
+          >
             {BENEFITS.map(({ icon: Icon, title, subtitle }) => (
               <div
                 key={title}
-                className="snap-start shrink-0 w-[72%] sm:w-auto flex items-center gap-4 rounded-2xl p-5 border transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  backgroundColor: "var(--c-surface)",
-                  borderColor: "var(--c-line)",
-                  boxShadow: "var(--elev-xs)",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.boxShadow = "var(--elev-card)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.boxShadow = "var(--elev-xs)")
-                }
+                className="flex items-center gap-3.5 px-5 py-4 md:py-5"
+                style={{ backgroundColor: "var(--c-surface)" }}
               >
-                <div
-                  className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                <span
+                  className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: "var(--c-brand-soft)" }}
                 >
                   <Icon
-                    className="w-6 h-6"
+                    className="w-[18px] h-[18px]"
                     strokeWidth={1.75}
                     style={{ color: "var(--c-brand)" }}
                   />
-                </div>
+                </span>
                 <div className="min-w-0">
                   <h3
-                    className="text-[15px] font-bold leading-snug"
+                    className="text-sm font-semibold leading-tight"
                     style={{
                       color: "var(--c-text)",
                       fontFamily: "var(--font-display)",
@@ -258,7 +276,7 @@ export function Home() {
                     {title}
                   </h3>
                   <p
-                    className="text-sm mt-0.5 leading-snug"
+                    className="text-[12.5px] mt-0.5 leading-snug"
                     style={{ color: "var(--c-muted)" }}
                   >
                     {subtitle}
@@ -272,7 +290,7 @@ export function Home() {
 
       {/* Error */}
       {productsError && (
-        <section className="max-w-7xl mx-auto px-4 py-12">
+        <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
           <div
             className="rounded-2xl p-8 text-center border"
             style={{
@@ -311,39 +329,19 @@ export function Home() {
       {/* ===== Ofertas ===== */}
       {showOfertasSection && (
         <section
-          className="reveal py-14 md:py-20"
+          className="reveal py-12 md:py-16"
           style={{ backgroundColor: "var(--c-bg-2)" }}
         >
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 gap-3">
-              <div>
-                <h2
-                  className="text-2xl md:text-3xl font-bold mb-2"
-                  style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-                >
-                  Ofertas
-                </h2>
-                <p style={{ color: "var(--c-muted)" }}>
-                  Aprovecha precios especiales por tiempo limitado
-                  {selectedLocation && (
-                    <span style={{ color: "var(--c-faint)" }}>
-                      {" "}
-                      · Sede{" "}
-                      {selectedLocation.district ||
-                        selectedLocation.location_name}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <Link
-                to="/catalogo?is_offer=true"
-                className="inline-flex items-center gap-2 font-semibold text-sm transition-colors"
-                style={{ color: "var(--c-brand)" }}
-              >
-                Ver todas las ofertas
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            <SectionHeader
+              className="mb-10"
+              title="Ofertas"
+              subtitle="Aprovecha precios especiales por tiempo limitado"
+              action={{
+                to: "/catalogo?is_offer=true",
+                label: "Ver todas las ofertas",
+              }}
+            />
             {isLoadingProducts ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -357,12 +355,16 @@ export function Home() {
         </section>
       )}
 
-      {/* ===== Banner promocional — acceso directo a categoría (imagen + buscador, clickeable) ===== */}
+      {/* ===== Banner promocional — acceso directo a categoría (imagen + buscador, clickeable) =====
+          Contenedor un poco más angosto que el resto (max-w-6xl ≈ -10%) para que el
+          banner no llegue tan al borde y quede más compacto; al usar la imagen h-auto,
+          su altura baja de forma proporcional (sin deformar). La fila de 2 imágenes va
+          dentro del MISMO contenedor, así que queda alineada a este ancho. */}
       <section
-        className="reveal pb-14 md:pb-20"
+        className="reveal py-12 md:py-16"
         style={{ backgroundColor: "var(--c-bg)" }}
       >
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
           <Link
             to={bannerCategoryHref}
             aria-label="Explora la categoría Dermatología"
@@ -483,32 +485,41 @@ export function Home() {
               style={{ color: "var(--c-brand)" }}
             />
           </Link>
+
+          {/* ===== Fila promocional (mismo ancho del banner) =====
+                · promo-wide   (izq, ~60%, apaisada) → categoría Vitaminas
+                · tarjeta promo (der, ~40%) → countdown + CTA a Mamá & Bebé
+              La imagen izquierda se auto-detecta (ver homeImages.ts):
+                · src/assets/home/promo-wide.webp */}
+          <div className="mt-4 md:mt-5">
+            <PromoImageRow
+              left={{
+                img: "promo-wide",
+                alt: "Bienestar diario: vitaminas y suplementos",
+                to: vitaminasHref,
+                fallback: "promo-wide.webp",
+              }}
+              promo={{
+                img: "promo-square",
+                to: mamaBebeHref,
+                label: "Promo del día",
+                title: "Llévate Nutri-Vite al 50%",
+                subtitle: "Por la compra de un Enfagrow Premium",
+                cta: "Comprar ahora",
+              }}
+            />
+          </div>
         </div>
       </section>
 
       {/* ===== Productos Destacados ===== */}
-      <section className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 gap-3">
-          <div>
-            <h2
-              className="text-2xl md:text-3xl font-bold mb-2"
-              style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-            >
-              Productos destacados
-            </h2>
-            <p style={{ color: "var(--c-muted)" }}>
-              Los más vendidos de la semana
-            </p>
-          </div>
-          <Link
-            to="/catalogo"
-            className="inline-flex items-center gap-2 font-semibold text-sm transition-colors"
-            style={{ color: "var(--c-brand)" }}
-          >
-            Ver todos los productos
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+      <section className="reveal max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <SectionHeader
+          className="mb-10"
+          title="Productos destacados"
+          subtitle="Los más vendidos de la semana"
+          action={{ to: "/catalogo", label: "Ver todos los productos" }}
+        />
 
         {isLoadingProducts ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
@@ -538,36 +549,34 @@ export function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-            {destacados.map((product) => (
-              <ProductCard key={product.product_id} product={product} />
-            ))}
-          </div>
+          <ProductCarousel products={destacados} />
         )}
       </section>
 
       {/* ===== ¿Por qué Genéricos? ===== */}
       <section
-        className="reveal py-14 md:py-20"
+        className="reveal py-12 md:py-16"
         style={{ backgroundColor: "var(--c-bg-2)" }}
       >
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2
-              className="text-2xl md:text-3xl font-bold mb-4"
-              style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-            >
-              ¿Por qué elegir genéricos?
-            </h2>
-            <p
-              className="text-base md:text-lg max-w-3xl mx-auto"
-              style={{ color: "var(--c-muted)" }}
-            >
-              Los medicamentos genéricos tienen el mismo principio activo que
-              los de marca, están certificados por DIGEMID y te permiten ahorrar
-              hasta 50%.
-            </p>
-          </div>
+          {/* Slot opcional: franja de marca (auto-detectada). Solo aparece si
+              subes la imagen — si falta, no se renderiza nada (sin hueco).
+              Sube como: src/assets/home/banner-genericos.webp (apaisada, ~1024x260). */}
+          {bannerGenericosSrc && (
+            <img
+              src={bannerGenericosSrc}
+              alt="Genéricos certificados por DIGEMID al mejor precio"
+              loading="lazy"
+              className="block w-full h-auto mb-12"
+              style={{ borderRadius: "24px", boxShadow: "var(--elev-soft)" }}
+            />
+          )}
+          <SectionHeader
+            className="mb-12"
+            align="center"
+            title="¿Por qué elegir genéricos?"
+            subtitle="Mismo principio activo que los de marca, certificados por DIGEMID y hasta 50% más económicos."
+          />
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {/* Card marca */}
             <div
@@ -674,7 +683,7 @@ export function Home() {
 
       {/* ===== Asesoría de Químicos Farmacéuticos (VERSIÓN CLARA) ===== */}
       <section
-        className="reveal relative overflow-hidden py-14 md:py-20"
+        className="reveal relative overflow-hidden py-12 md:py-16"
         style={{ backgroundColor: "var(--c-bg-2)" }}
       >
         {/* Glow decorativo sutil claro */}
@@ -689,39 +698,30 @@ export function Home() {
         <div className="relative max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <span
-                className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide mb-6"
-                style={{
-                  borderColor: "var(--c-line)",
-                  backgroundColor: "var(--c-brand-soft)",
-                  color: "var(--c-brand)",
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                Profesionales colegiados
-              </span>
-              <h2
-                className="text-3xl md:text-4xl font-bold mb-5 leading-tight"
-                style={{
-                  color: "var(--c-text)",
-                  fontFamily: "var(--font-display)",
-                }}
-              >
-                Asesoría de químicos{" "}
-                <span style={{ color: "var(--c-brand)" }}>farmacéuticos</span>
-              </h2>
-              <p
-                className="text-base md:text-lg leading-relaxed mb-8"
-                style={{
-                  color: "var(--c-muted)",
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                Nuestros químicos farmacéuticos colegiados están disponibles
-                para orientarte sobre el uso correcto de tus medicamentos,
-                interacciones, dosis y alternativas genéricas equivalentes.
-              </p>
+              <SectionHeader
+                className="mb-8"
+                eyebrow={
+                  <span
+                    className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wide"
+                    style={{
+                      borderColor: "var(--c-line)",
+                      backgroundColor: "var(--c-brand-soft)",
+                      color: "var(--c-brand)",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Profesionales colegiados
+                  </span>
+                }
+                title={
+                  <>
+                    Asesoría de químicos{" "}
+                    <span style={{ color: "var(--c-brand)" }}>farmacéuticos</span>
+                  </>
+                }
+                subtitle="Nuestros químicos farmacéuticos colegiados te orientan sobre el uso correcto de tus medicamentos, interacciones, dosis y alternativas genéricas equivalentes."
+              />
 
               {/* Lista de beneficios — con CHECKS ANIMADOS en cascada */}
               <ul className="benefit-list space-y-3.5 mb-8">
@@ -751,8 +751,10 @@ export function Home() {
               </ul>
 
               <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/catalogo"
+                <a
+                  href="https://wa.me/51929255281?text=Hola%2C%20quiero%20una%20consulta."
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98]"
                   style={{ backgroundColor: "var(--c-brand)" }}
                   onMouseEnter={(e) =>
@@ -764,9 +766,9 @@ export function Home() {
                 >
                   <MessageCircle className="w-4 h-4" />
                   Consultar ahora
-                </Link>
+                </a>
                 <a
-                  href="tel:+5111234567"
+                  href="tel:+51929255281"
                   className="inline-flex items-center gap-2 rounded-xl border px-7 py-3.5 text-sm font-semibold transition-all duration-300 active:scale-[0.98]"
                   style={{
                     borderColor: "var(--c-line)",
@@ -848,18 +850,13 @@ export function Home() {
       </section>
 
       {/* ===== Nuestras Tiendas ===== */}
-      <section id="tiendas" className="reveal max-w-7xl mx-auto px-4 py-14 md:py-20">
-        <div className="text-center mb-10">
-          <h2
-            className="text-2xl md:text-3xl font-bold mb-3"
-            style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-          >
-            Visita nuestras tiendas
-          </h2>
-          <p style={{ color: "var(--c-muted)" }}>
-            Atención personalizada y stock disponible
-          </p>
-        </div>
+      <section id="tiendas" className="reveal max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <SectionHeader
+          className="mb-10"
+          align="center"
+          title="Visita nuestras tiendas"
+          subtitle="Atención personalizada y stock disponible"
+        />
         {isLoadingLocation ? (
           <div className="grid md:grid-cols-2 gap-6">
             {[0, 1].map((i) => (
@@ -882,7 +879,7 @@ export function Home() {
           <div className="grid md:grid-cols-2 gap-6">
             {locations.map((store) => {
               const mapQuery = mapsQueryOf(store);
-              const tel = telHref(store.location_phone);
+              const tel = telHref(storePhone(store));
               const mail = mailtoHref(store.location_email);
               const addressLine = [store.location_address, store.district]
                 .filter(Boolean)

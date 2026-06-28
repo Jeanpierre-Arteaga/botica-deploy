@@ -43,12 +43,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary:
         "bg-brand text-white hover:bg-brand-hover active:scale-[0.98] shadow-soft hover:shadow-[var(--shadow-brand)]",
       secondary:
-        "border border-line text-ink-2 bg-surface hover:bg-[#F8FAFC] hover:border-[#CBD5E1] active:scale-[0.98]",
+        "border border-line text-ink-2 bg-surface hover:bg-surface-2 hover:border-line active:scale-[0.98]",
       success:
         "bg-success text-white hover:brightness-110 active:scale-[0.98] shadow-soft hover:shadow-md",
       info:
         "bg-info text-white hover:brightness-110 active:scale-[0.98] shadow-soft hover:shadow-md",
-      ghost: "text-muted hover:bg-[#F1F5F9] hover:text-ink-2 active:scale-[0.98]",
+      ghost: "text-muted hover:bg-surface-2 hover:text-ink-2 active:scale-[0.98]",
       danger:
         "bg-error text-white hover:bg-[#B91C1C] active:scale-[0.98] shadow-soft hover:shadow-md",
       "danger-outline":

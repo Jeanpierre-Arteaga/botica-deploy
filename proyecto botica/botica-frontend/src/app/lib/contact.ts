@@ -17,6 +17,36 @@ export function digitsOnly(value: string | null | undefined): string {
 }
 
 /**
+ * Teléfonos de contacto canónicos por sede (móvil/WhatsApp).
+ * Tienen prioridad sobre `location_phone` del backend para el público:
+ * footer, sección "Nuestras tiendas" y botones "Llamar"/"WhatsApp".
+ * Texto con espacios bonito; los helpers tel/wa los normalizan al href.
+ */
+const GENERIC_CONTACT_PHONE = '929 255 281';
+
+const STORE_PHONES: { match: RegExp; phone: string }[] = [
+  { match: /santa\s*anita/i, phone: '929 255 281' },
+  { match: /\bate\b/i, phone: '942 874 843' },
+];
+
+/**
+ * Devuelve el teléfono de contacto correcto para una sede, según su
+ * distrito/nombre. Si no reconoce la sede, cae al teléfono del backend.
+ */
+export function storePhone(
+  location: Pick<Location, 'district' | 'location_name' | 'location_phone'>,
+): string {
+  const haystack = `${location.district ?? ''} ${location.location_name ?? ''}`;
+  const found = STORE_PHONES.find((s) => s.match.test(haystack));
+  return found?.phone ?? location.location_phone ?? '';
+}
+
+/** Teléfono genérico para consultas/asesoría sin sede específica. */
+export function genericContactPhone(): string {
+  return GENERIC_CONTACT_PHONE;
+}
+
+/**
  * Normaliza un teléfono al formato internacional sin "+".
  * Si son 9 dígitos (móvil peruano) antepone 51; si ya trae código país,
  * lo respeta. Devuelve '' si no hay dígitos.

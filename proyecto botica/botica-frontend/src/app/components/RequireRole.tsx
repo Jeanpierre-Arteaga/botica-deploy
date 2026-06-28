@@ -32,7 +32,7 @@ export function RequireRole({ roles, children }: RequireRoleProps) {
   if (isCheckingSession) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-[#4A5260] text-sm">Cargando...</div>
+        <div className="text-muted text-sm">Cargando...</div>
       </div>
     );
   }

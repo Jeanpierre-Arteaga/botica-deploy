@@ -227,8 +227,19 @@ export function DetallePedidoCustomer() {
                   <p>
                     Como pagaste con tarjeta, la cancelación requiere procesar una devolución
                     con MercadoPago. Contacta al staff de la botica al{' '}
-                    <strong>(01) 357-2468</strong> o por WhatsApp para gestionar tu cancelación
-                    y reembolso.
+                    <a href="tel:+51929255281" className="font-semibold underline">
+                      929 255 281
+                    </a>{' '}
+                    o por{' '}
+                    <a
+                      href="https://wa.me/51929255281?text=Hola%2C%20quiero%20una%20consulta."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline"
+                    >
+                      WhatsApp
+                    </a>{' '}
+                    para gestionar tu cancelación y reembolso.
                   </p>
                 </div>
               </div>

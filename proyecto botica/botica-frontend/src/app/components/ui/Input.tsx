@@ -19,10 +19,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={`w-full h-11 px-4 rounded-xl border text-text placeholder:text-faint ${
             error
-              ? "border-error focus:ring-2 focus:ring-[#DC2626]/20 focus:border-error"
-              : "border-line focus:ring-2 focus:ring-[#F15A29]/25 focus:border-brand"
+              ? "border-error focus:ring-2 focus:ring-error/20 focus:border-error"
+              : "border-line focus:ring-2 focus:ring-brand/25 focus:border-brand"
           } transition-all outline-none ${
-            props.disabled ? "bg-[#F1F5F9] cursor-not-allowed" : "bg-surface"
+            props.disabled ? "bg-surface-2 cursor-not-allowed" : "bg-surface"
           } ${className}`}
           {...props}
         />

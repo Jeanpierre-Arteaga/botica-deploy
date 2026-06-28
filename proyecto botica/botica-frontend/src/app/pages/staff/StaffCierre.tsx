@@ -32,12 +32,12 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 // Colores sobrios de la paleta para cada método (coherentes con el dashboard)
 const PAYMENT_COLORS: Record<string, string> = {
-  efectivo: '#16A34A',      // success
-  yape: '#8B6FC9',          // violeta
-  plin: '#4C82A8',          // azul acero
-  tarjeta: '#F15A29',       // brand
-  transferencia: '#2563EB', // info
-  sin_pago: '#9CA3AF',      // neutral
+  efectivo: 'var(--c-success)',  // success
+  yape: 'var(--c-violet)',       // violeta
+  plin: 'var(--c-cool)',         // azul acero
+  tarjeta: 'var(--c-brand)',     // brand
+  transferencia: 'var(--c-info)',// info
+  sin_pago: 'var(--c-faint)',    // neutral
 };
 
 export default function StaffCierre() {
@@ -209,7 +209,7 @@ function PaymentBreakdown({ summary }: { summary: ShiftSummary }) {
       label: PAYMENT_LABELS[m.payment_method] || m.payment_method,
       total: Number(m.total),
       count: m.count,
-      color: PAYMENT_COLORS[m.payment_method] || '#9CA3AF',
+      color: PAYMENT_COLORS[m.payment_method] || 'var(--c-faint)',
     })),
     [methods]
   );

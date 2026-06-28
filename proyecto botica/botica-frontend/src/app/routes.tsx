@@ -4,6 +4,7 @@ import { AuthProvider } from "./lib/AuthContext";
 import { CartProvider } from "./lib/CartContext";
 import { LocationProvider } from "./lib/LocationContext";
 import { RequireRole } from "./components/RequireRole";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { StoreAuthLayout } from "./layouts/StoreAuthLayout";
 import StaffLayout from "./layouts/StaffLayout";
@@ -33,6 +34,7 @@ import { GestionUsuarios } from "./pages/admin/GestionUsuarios";
 import { Reportes } from "./pages/admin/Reportes";
 import { MisPedidos } from "./pages/MisPedidos";
 import { DetallePedidoCustomer } from "./pages/DetallePedidoCustomer";
+import { LibroReclamaciones } from "./pages/LibroReclamaciones";
 
 // ============================================================
 // RootProviders
@@ -46,6 +48,7 @@ function RootProviders() {
     <AuthProvider>
       <LocationProvider>
         <CartProvider>
+          <ScrollToTop />
           <Outlet />
           <Toaster
             position="bottom-right"
@@ -113,6 +116,7 @@ export const router = createBrowserRouter([
               </RequireRole>
             ),
           },
+          { path: "libro-reclamaciones", Component: LibroReclamaciones },
           { path: "*", Component: NotFound },
         ],
       },

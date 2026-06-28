@@ -66,7 +66,7 @@ export function HeroBanner() {
           >
             Tu salud,
             <br />
-            <span className="bg-gradient-to-r from-[#F15A29] via-[#FB923C] to-[#FDBA74] bg-clip-text text-transparent drop-shadow-sm">
+            <span className="bg-gradient-to-r from-brand via-[#FB923C] to-[#FDBA74] bg-clip-text text-transparent drop-shadow-sm">
               entregada en horas
             </span>
           </h1>
@@ -88,7 +88,7 @@ export function HeroBanner() {
           >
             <Link
               to="/catalogo"
-              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#F15A29] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#F15A29]/25 transition-all duration-300 hover:bg-[#D94E1F] hover:shadow-xl hover:shadow-[#F15A29]/30 active:scale-[0.98]"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-8 py-4 text-base font-semibold text-white shadow-lg shadow-brand/25 transition-all duration-300 hover:bg-brand-hover hover:shadow-xl hover:shadow-brand/30 active:scale-[0.98]"
             >
               Explorar catálogo
               <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -122,9 +122,25 @@ export function HeroBanner() {
         </div>
       </div>
 
-      {/* Indicador de scroll */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 text-white/60">
-        <span className="text-[11px] uppercase tracking-[0.2em]">Desliza</span>
+      {/* Indicador de scroll — abajo y centrado. Halo radial suave detrás para que
+          se LEA sobre la foto sin tapar el texto del hero. El bounce respeta
+          prefers-reduced-motion (ver .animate-scroll-hint en theme.css). */}
+      <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 z-[5] h-28 w-56">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at bottom, rgba(8,15,30,0.5) 0%, transparent 72%)",
+          }}
+        />
+      </div>
+      <div
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5 text-white/90"
+        style={{ textShadow: "0 2px 10px rgba(8,15,30,0.75)" }}
+      >
+        <span className="text-[11px] font-medium uppercase tracking-[0.22em]">
+          Desliza
+        </span>
         <ChevronDown className="w-5 h-5 animate-scroll-hint" />
       </div>
     </section>

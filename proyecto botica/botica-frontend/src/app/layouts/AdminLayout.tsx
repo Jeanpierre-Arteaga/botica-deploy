@@ -197,7 +197,7 @@ export function AdminLayout() {
                 onClick={() => setActiveBranch("both")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   activeBranch === "both"
-                    ? 'bg-[#FF6633] text-white'
+                    ? 'bg-brand text-white'
                     : 'bg-[#0F172A] text-gray-300 hover:text-white'
                 }`}
               >
@@ -207,7 +207,7 @@ export function AdminLayout() {
                 onClick={() => setActiveBranch("ate")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   activeBranch === "ate"
-                    ? 'bg-[#FF6633] text-white'
+                    ? 'bg-brand text-white'
                     : 'bg-[#0F172A] text-gray-300 hover:text-white'
                 }`}
               >
@@ -217,7 +217,7 @@ export function AdminLayout() {
                 onClick={() => setActiveBranch("santa-anita")}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   activeBranch === "santa-anita"
-                    ? 'bg-[#FF6633] text-white'
+                    ? 'bg-brand text-white'
                     : 'bg-[#0F172A] text-gray-300 hover:text-white'
                 }`}
               >
@@ -235,7 +235,7 @@ export function AdminLayout() {
             >
               <Bell className="w-5 h-5 text-white" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#FF6633] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-brand text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}

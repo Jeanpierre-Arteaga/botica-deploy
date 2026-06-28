@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { ShoppingCart, Pill } from "lucide-react";
 import { useCart } from "../lib/CartContext";
+import { useVoiceReader, formatPriceForSpeech } from "../lib/voiceReader";
 import type { Product } from "../lib/types";
 
 interface ProductCardProps {
@@ -9,6 +10,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
+  const { speak } = useVoiceReader();
 
   const hasStock =
     product.current_stock === undefined || product.current_stock > 0;
@@ -18,11 +20,10 @@ export function ProductCard({ product }: ProductCardProps) {
     product.current_stock <= 5;
   const knownStock = typeof product.current_stock === "number";
 
-  // Precio anterior tachado: solo en ofertas con old_price mayor al actual.
+  // Precio anterior tachado: cualquier producto con old_price mayor al actual
+  // (no solo ofertas), para que también se vea el descuento en Destacados.
   const showOldPrice =
-    product.is_offer &&
-    product.old_price != null &&
-    product.old_price > product.product_price;
+    product.old_price != null && product.old_price > product.product_price;
   const discountPct = showOldPrice
     ? Math.round((1 - product.product_price / (product.old_price as number)) * 100)
     : 0;
@@ -43,6 +44,13 @@ export function ProductCard({ product }: ProductCardProps) {
         ? { color: "var(--c-warning)", label: "Pocas unidades", muted: false }
         : { color: "var(--c-success)", label: "En stock", muted: true };
 
+  // Texto que lee la voz (si el usuario activó la lectura): nombre + precio
+  // + disponibilidad. speak() no hace nada si el toggle está apagado.
+  const spokenText =
+    `${product.product_name}. ` +
+    `Precio: ${formatPriceForSpeech(product.product_price)}.` +
+    (stock ? ` ${stock.label}.` : "");
+
   return (
     <Link
       to={`/producto/${product.product_id}`}
@@ -54,10 +62,12 @@ export function ProductCard({ product }: ProductCardProps) {
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.boxShadow = "var(--elev-card)";
+        speak(spokenText);
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = "var(--elev-xs)";
       }}
+      onFocus={() => speak(spokenText)}
     >
       {/* ===== Área de imagen — fondo blanco puro, 1:1, contain ===== */}
       <div className="relative">
@@ -86,16 +96,23 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* "Oferta": tag sobrio, discreto, en el acento de marca (no grita) */}
-        {product.is_offer && (
+        {/* Insignia de esquina ÚNICA y fuerte:
+            - con descuento → píldora SÓLIDA roja "-XX%" (resalta sobre el blanco)
+            - oferta sin %     → píldora SÓLIDA naranja "Oferta"
+            Texto blanco bold + sombra tintada para que llame sin gritar. */}
+        {(discountPct > 0 || product.is_offer) && (
           <span
-            className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[11px] font-semibold"
+            className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-extrabold leading-none tracking-tight text-white"
             style={{
-              backgroundColor: "var(--c-brand-soft)",
-              color: "var(--c-brand)",
+              backgroundColor:
+                discountPct > 0 ? "var(--c-sale)" : "var(--c-brand)",
+              boxShadow:
+                discountPct > 0
+                  ? "0 4px 12px -2px rgba(225, 29, 72, 0.5)"
+                  : "0 4px 12px -2px rgba(241, 90, 41, 0.5)",
             }}
           >
-            Oferta
+            {discountPct > 0 ? `-${discountPct}%` : "Oferta"}
           </span>
         )}
       </div>
@@ -144,21 +161,12 @@ export function ProductCard({ product }: ProductCardProps) {
               S/ {Number(product.product_price).toFixed(2)}
             </span>
             {showOldPrice && (
-              <>
-                <span
-                  className="text-sm line-through leading-none"
-                  style={{ color: "var(--c-faint)" }}
-                >
-                  S/ {Number(product.old_price).toFixed(2)}
-                </span>
-                {/* Píldora roja de descuento — único elemento rojo "fuerte" */}
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-full leading-none text-white"
-                  style={{ backgroundColor: "var(--c-sale)" }}
-                >
-                  -{discountPct}%
-                </span>
-              </>
+              <span
+                className="text-sm line-through leading-none"
+                style={{ color: "var(--c-faint)" }}
+              >
+                S/ {Number(product.old_price).toFixed(2)}
+              </span>
             )}
           </div>
 

@@ -335,7 +335,7 @@ function Section({
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
               style={
                 accent
-                  ? { backgroundColor: `${accent}1A`, color: accent }
+                  ? { backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }
                   : { backgroundColor: 'var(--c-brand-soft)', color: 'var(--c-brand)' }
               }
             >

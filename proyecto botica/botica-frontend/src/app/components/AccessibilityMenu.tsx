@@ -5,7 +5,9 @@ import {
   Sun,
   Moon,
   RotateCcw,
+  Volume2,
 } from "lucide-react";
+import { useVoiceReader } from "../lib/voiceReader";
 
 /**
  * Menú de accesibilidad (UI pura, NO lógica de negocio).
@@ -68,6 +70,12 @@ export function AccessibilityMenu({
   const [open, setOpen] = useState(false);
   const [textSize, setTextSize] = useState<TextSize>("normal");
   const [theme, setTheme] = useState<Theme>("light");
+  const {
+    supported: voiceSupported,
+    enabled: voiceOn,
+    setEnabled: setVoiceOn,
+    speakNow,
+  } = useVoiceReader();
   const panelRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -121,6 +129,14 @@ export function AccessibilityMenu({
   const reset = () => {
     setTextSize("normal");
     setTheme("light");
+    if (voiceSupported) setVoiceOn(false);
+  };
+
+  const toggleVoice = () => {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    // Confirmación hablada al ENCENDER (acción explícita del usuario).
+    if (next) speakNow("Lectura por voz activada");
   };
 
   const triggerStyles =
@@ -295,6 +311,66 @@ export function AccessibilityMenu({
                 })}
               </div>
             </div>
+
+            {/* === Lectura por voz — solo si el navegador la soporta === */}
+            {voiceSupported && (
+              <div>
+                <label
+                  className="flex items-center gap-2 mb-3 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                  style={{ color: "var(--c-faint)" }}
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  Lectura por voz
+                </label>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Volume2
+                      className="w-[18px] h-[18px] flex-shrink-0"
+                      style={{ color: voiceOn ? "var(--c-brand)" : "var(--c-faint)" }}
+                    />
+                    <div className="min-w-0">
+                      <span
+                        className="block text-sm font-medium"
+                        style={{ color: "var(--c-text)" }}
+                      >
+                        {voiceOn ? "Activada" : "Desactivada"}
+                      </span>
+                      <span
+                        className="block text-[11.5px] leading-snug"
+                        style={{ color: "var(--c-muted)" }}
+                      >
+                        Lee en voz alta productos y precios al pasar el cursor.
+                      </span>
+                    </div>
+                  </div>
+                  {/* Toggle switch (mismo patrón que el de tema) */}
+                  <button
+                    type="button"
+                    onClick={toggleVoice}
+                    role="switch"
+                    aria-checked={voiceOn}
+                    aria-label={`${voiceOn ? "Desactivar" : "Activar"} lectura por voz`}
+                    className="relative flex-shrink-0 w-12 h-7 rounded-full transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{
+                      backgroundColor: voiceOn ? "var(--c-brand)" : "var(--c-line)",
+                      outlineColor: "var(--c-brand)",
+                    }}
+                  >
+                    <span
+                      className="absolute top-[3px] left-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-sm flex items-center justify-center transition-transform duration-300"
+                      style={{
+                        transform: voiceOn ? "translateX(20px)" : "translateX(0)",
+                      }}
+                    >
+                      <Volume2
+                        className="w-3 h-3"
+                        style={{ color: voiceOn ? "var(--c-brand)" : "var(--c-faint)" }}
+                      />
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

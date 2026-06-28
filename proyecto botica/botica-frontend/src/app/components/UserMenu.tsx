@@ -55,9 +55,9 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
   const buttonStyles =
     variant === 'dark'
       ? 'text-white hover:bg-white/10'
-      : 'text-[#1A1F2E] hover:bg-[#F9FAFB]';
+      : 'text-text hover:bg-surface-2';
   const avatarBg =
-    variant === 'dark' ? 'bg-white text-[#F15A29]' : 'bg-[#F15A29] text-white';
+    variant === 'dark' ? 'bg-surface text-brand' : 'bg-brand text-white';
 
   return (
     <div ref={containerRef} className="relative">
@@ -88,18 +88,18 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50">
+        <div className="absolute right-0 top-full mt-2 w-64 bg-surface rounded-xl shadow-lg border border-line py-2 z-50">
           {/* Header con nombre y rol */}
-          <div className="px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="px-4 py-3 border-b border-line">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#F15A29] text-white flex items-center justify-center font-semibold">
+              <div className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center font-semibold">
                 {getInitial()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#1A1F2E] truncate">
+                <p className="text-sm font-semibold text-text truncate">
                   {user.full_name}
                 </p>
-                <p className="text-xs text-[#4A5260] truncate">
+                <p className="text-xs text-muted truncate">
                   {user.role === 'cust' && user.email}
                   {user.role === 'admin' && 'Administrador'}
                   {user.role === 'emp' && 'Personal de botica'}
@@ -115,9 +115,9 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
               <>
                 <button
                   onClick={() => handleNavigate('/mis-pedidos')}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#1A1F2E] hover:bg-[#F9FAFB] transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text hover:bg-surface-2 transition-colors"
                 >
-                  <Package className="w-4 h-4 text-[#4A5260]" />
+                  <Package className="w-4 h-4 text-muted" />
                   Mis Pedidos
                 </button>
               </>
@@ -127,9 +127,9 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
             {user.role === 'emp' && (
               <button
                 onClick={() => handleNavigate('/staff/dashboard')}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#1A1F2E] hover:bg-[#F9FAFB] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text hover:bg-surface-2 transition-colors"
               >
-                <User className="w-4 h-4 text-[#4A5260]" />
+                <User className="w-4 h-4 text-muted" />
                 Mi Panel
               </button>
             )}
@@ -138,18 +138,18 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
             {user.role === 'admin' && (
               <button
                 onClick={() => handleNavigate('/admin/dashboard')}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#1A1F2E] hover:bg-[#F9FAFB] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text hover:bg-surface-2 transition-colors"
               >
-                <User className="w-4 h-4 text-[#4A5260]" />
+                <User className="w-4 h-4 text-muted" />
                 Panel Admin
               </button>
             )}
 
             {/* Cerrar sesión (todos) */}
-            <div className="border-t border-[#E5E7EB] my-1"></div>
+            <div className="border-t border-line my-1"></div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-error hover:bg-error-soft transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Cerrar sesión

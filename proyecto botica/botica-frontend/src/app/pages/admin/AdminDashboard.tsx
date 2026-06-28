@@ -9,22 +9,22 @@ export function AdminDashboard() {
   const kpis = [
     {
       label: "Ventas hoy", value: "S/ 8,450.00", change: "+12%", trend: "up",
-      color: "#F15A29", icon: ShoppingCart,
+      color: "var(--c-brand)", icon: ShoppingCart,
       spark: [5800, 6100, 5900, 6800, 7200, 7100, 8450],
     },
     {
       label: "Transacciones", value: "47", change: "+8%", trend: "up",
-      color: "#4C82A8", icon: Receipt,
+      color: "var(--c-cool)", icon: Receipt,
       spark: [32, 38, 35, 41, 39, 44, 47],
     },
     {
       label: "Pedidos pendientes", value: "12", change: "-3%", trend: "down",
-      color: "#F59E0B", icon: Clock,
+      color: "var(--c-warning)", icon: Clock,
       spark: [18, 16, 17, 15, 14, 13, 12],
     },
     {
       label: "Alertas de stock", value: "8", change: "+2", trend: "warning",
-      color: "#DC2626", icon: AlertTriangle,
+      color: "var(--c-error)", icon: AlertTriangle,
       spark: [4, 5, 5, 6, 6, 7, 8],
     },
   ];
@@ -46,10 +46,10 @@ export function AdminDashboard() {
   ];
 
   const ordersByStatus = [
-    { status: "Pendiente", count: 12, color: "#F59E0B" },
-    { status: "En proceso", count: 5, color: "#4C82A8" },
-    { status: "Entregado", count: 28, color: "#16A34A" },
-    { status: "Cancelado", count: 2, color: "#DC2626" },
+    { status: "Pendiente", count: 12, color: "var(--c-warning)" },
+    { status: "En proceso", count: 5, color: "var(--c-cool)" },
+    { status: "Entregado", count: 28, color: "var(--c-success)" },
+    { status: "Cancelado", count: 2, color: "var(--c-error)" },
   ];
   const totalOrders = ordersByStatus.reduce((sum, i) => sum + i.count, 0);
 
@@ -94,7 +94,7 @@ export function AdminDashboard() {
               <div className="flex items-start justify-between mb-4">
                 <div
                   className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: `${kpi.color}1A` }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${kpi.color} 10%, transparent)` }}
                 >
                   <Icon className="w-[22px] h-[22px]" style={{ color: kpi.color }} />
                 </div>
@@ -151,7 +151,7 @@ export function AdminDashboard() {
                   <span className="text-muted font-medium">Ate</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#4C82A8" }} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--c-cool)" }} />
                   <span className="text-muted font-medium">Santa Anita</span>
                 </div>
               </div>
@@ -182,14 +182,14 @@ export function AdminDashboard() {
                   />
                   <Tooltip content={<SalesTooltip />} cursor={{ stroke: "var(--c-line)", strokeWidth: 1 }} />
                   <Area
-                    type="monotone" dataKey="ate" name="Ate" stroke="#F15A29"
+                    type="monotone" dataKey="ate" name="Ate" stroke="var(--c-brand)"
                     strokeWidth={2.5} fill="url(#gAte)" dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--c-surface)" }}
                   />
                   <Area
-                    type="monotone" dataKey="santaAnita" name="Santa Anita" stroke="#4C82A8"
+                    type="monotone" dataKey="santaAnita" name="Santa Anita" stroke="var(--c-cool)"
                     strokeWidth={2.5} fill="url(#gSA)" dot={false}
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--c-surface)" }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -334,7 +334,7 @@ export function AdminDashboard() {
                         className="h-1.5 rounded-full transition-all"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: alert.status === "critical" ? "#DC2626" : "#F59E0B",
+                          backgroundColor: alert.status === "critical" ? "var(--c-error)" : "var(--c-warning)",
                         }}
                       />
                     </div>

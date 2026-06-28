@@ -145,10 +145,10 @@ export function ControlStock() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
-        <StockStat icon={Package} label="Total productos" value={stockData.length} accent="#51607A" index={0} />
-        <StockStat icon={AlertTriangle} label="Stock crítico" value={criticalProducts.length} accent="#DC2626" index={1} />
-        <StockStat icon={TrendingDown} label="Stock bajo" value={lowStockProducts.length} accent="#F59E0B" index={2} />
-        <StockStat icon={TrendingUp} label="Stock normal" value={stockData.length - criticalProducts.length - lowStockProducts.length} accent="#16A34A" index={3} />
+        <StockStat icon={Package} label="Total productos" value={stockData.length} accent="var(--c-muted)" index={0} />
+        <StockStat icon={AlertTriangle} label="Stock crítico" value={criticalProducts.length} accent="var(--c-error)" index={1} />
+        <StockStat icon={TrendingDown} label="Stock bajo" value={lowStockProducts.length} accent="var(--c-warning)" index={2} />
+        <StockStat icon={TrendingUp} label="Stock normal" value={stockData.length - criticalProducts.length - lowStockProducts.length} accent="var(--c-success)" index={3} />
       </div>
 
       {/* Stock Table */}
@@ -329,7 +329,7 @@ function StockStat({
       <span className="absolute left-0 top-0 h-full w-1 rounded-r" style={{ backgroundColor: accent }} />
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${accent}1A`, color: accent }}
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
       >
         <Icon className="w-[22px] h-[22px]" />
       </div>

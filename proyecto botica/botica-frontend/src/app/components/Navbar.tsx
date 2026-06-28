@@ -54,7 +54,7 @@ export function Navbar() {
     selectedLocation?.district || selectedLocation?.location_name || 'Sede';
 
   return (
-    <nav className="bg-white border-b border-[#EEEEEE] sticky top-0 z-50 shadow-sm">
+    <nav className="bg-surface border-b border-line">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-6">
           {/* Logo */}
@@ -74,11 +74,11 @@ export function Navbar() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Busca medicamentos, vitaminas, cuidado personal..."
-                className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F15A29]/20 focus:border-[#F15A29] transition-all bg-white text-sm"
+                className="w-full pl-4 pr-12 py-3 rounded-lg border border-line focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all bg-surface text-sm"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F15A29] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand text-white rounded-md hover:bg-brand-hover transition-colors"
                 aria-label="Buscar"
               >
                 <Search className="w-4 h-4" />
@@ -112,9 +112,9 @@ export function Navbar() {
               </button>
 
               {locationDropdownOpen && locations.length > 0 && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-2 z-50">
-                  <div className="px-4 py-2 border-b border-[#E5E7EB]">
-                    <p className="text-xs text-[#4A5260] font-semibold uppercase tracking-wide">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-surface rounded-xl shadow-lg border border-line py-2 z-50">
+                  <div className="px-4 py-2 border-b border-line">
+                    <p className="text-xs text-muted font-semibold uppercase tracking-wide">
                       Elige tu sede
                     </p>
                   </div>
@@ -128,27 +128,27 @@ export function Navbar() {
                           setSelectedLocation(loc);
                           setLocationDropdownOpen(false);
                         }}
-                        className={`w-full flex items-start gap-3 px-4 py-3 text-left text-sm hover:bg-[#FFF4EE] transition-colors ${
-                          isSelected ? 'bg-[#FFF4EE]' : ''
+                        className={`w-full flex items-start gap-3 px-4 py-3 text-left text-sm hover:bg-brand-soft transition-colors ${
+                          isSelected ? 'bg-brand-soft' : ''
                         }`}
                       >
                         <MapPin
                           className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                            isSelected ? 'text-[#F15A29]' : 'text-[#9CA3AF]'
+                            isSelected ? 'text-brand' : 'text-faint'
                           }`}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-[#1A1F2E]">
+                          <p className="font-medium text-text">
                             {loc.district || loc.location_name}
                           </p>
                           {loc.location_address && (
-                            <p className="text-xs text-[#4A5260] truncate">
+                            <p className="text-xs text-muted truncate">
                               {loc.location_address}
                             </p>
                           )}
                         </div>
                         {isSelected && (
-                          <Check className="w-4 h-4 text-[#F15A29] flex-shrink-0" />
+                          <Check className="w-4 h-4 text-brand flex-shrink-0" />
                         )}
                       </button>
                     );
@@ -161,7 +161,7 @@ export function Navbar() {
             {user?.role === 'cust' && (
               <Link
                 to="/mis-pedidos"
-                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F15A29] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 text-text hover:text-brand hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
               >
                 <Package className="w-4 h-4" />
                 <span className="hidden lg:inline">Mis Pedidos</span>
@@ -170,13 +170,13 @@ export function Navbar() {
 
             {/* Login / UserMenu */}
             {isCheckingSession ? (
-              <div className="w-28 h-10 bg-[#F9FAFB] rounded-lg animate-pulse" />
+              <div className="w-28 h-10 bg-surface-2 rounded-lg animate-pulse" />
             ) : user ? (
               <UserMenu variant="light" />
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-4 py-2.5 text-[#1A1A2E] hover:text-[#F15A29] hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 text-text hover:text-brand hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
               >
                 <User className="w-4 h-4" />
                 <span className="hidden lg:inline">Ingresar</span>
@@ -186,7 +186,7 @@ export function Navbar() {
             {/* Cart */}
             <Link
               to="/carrito"
-              className="relative flex items-center gap-2 px-4 py-2.5 bg-[#F15A29] text-white rounded-lg hover:bg-[#D94E1F] transition-colors shadow-sm font-semibold text-sm"
+              className="relative flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors shadow-sm font-semibold text-sm"
             >
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden lg:inline">Carrito</span>
@@ -203,7 +203,7 @@ export function Navbar() {
             <PrescriptionUpload variant="light" />
             <AccessibilityMenu variant="light" />
             <Link to="/carrito" className="relative" aria-label="Ir al carrito">
-              <div className="p-2 bg-[#F15A29] text-white rounded-lg shadow-sm">
+              <div className="p-2 bg-brand text-white rounded-lg shadow-sm">
                 <ShoppingCart className="w-5 h-5" />
                 {itemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#1E4D8C] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -214,7 +214,7 @@ export function Navbar() {
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-muted hover:bg-surface-2 rounded-lg transition-colors"
               aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -230,11 +230,11 @@ export function Navbar() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar medicamentos..."
-              className="w-full pl-4 pr-12 py-3 rounded-lg border border-[#EEEEEE] focus:outline-none focus:ring-2 focus:ring-[#F15A29]/20 focus:border-[#F15A29] transition-all bg-white text-sm"
+              className="w-full pl-4 pr-12 py-3 rounded-lg border border-line focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all bg-surface text-sm"
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#F15A29] text-white rounded-md hover:bg-[#D94E1F] transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand text-white rounded-md hover:bg-brand-hover transition-colors"
               aria-label="Buscar"
             >
               <Search className="w-3.5 h-3.5" />
@@ -244,12 +244,12 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-100 pt-4">
+          <div className="md:hidden mt-4 pb-4 border-t border-line pt-4">
             <div className="space-y-2">
               {/* Branch Selector Mobile */}
               {locations.length > 0 && (
                 <div>
-                  <p className="text-xs text-[#4A5260] font-semibold uppercase tracking-wide px-4 mb-2">
+                  <p className="text-xs text-muted font-semibold uppercase tracking-wide px-4 mb-2">
                     Elige tu sede
                   </p>
                   <div className="space-y-1">
@@ -265,7 +265,7 @@ export function Navbar() {
                           className={`flex items-center justify-between w-full px-4 py-3 rounded-lg transition-colors font-medium text-sm ${
                             isSelected
                               ? 'bg-[#1E4D8C] text-white'
-                              : 'bg-[#F9FAFB] text-[#1A1A2E] hover:bg-[#E5E7EB]'
+                              : 'bg-surface-2 text-text hover:bg-line'
                           }`}
                         >
                           <span className="flex items-center gap-3">
@@ -285,7 +285,7 @@ export function Navbar() {
                 <Link
                   to="/mis-pedidos"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-gray-700 hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-muted hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
                 >
                   <Package className="w-5 h-5" />
                   <span>Mis Pedidos</span>
@@ -294,18 +294,18 @@ export function Navbar() {
 
               {/* Login / Logout Mobile */}
               {isCheckingSession ? (
-                <div className="w-full h-12 bg-[#F9FAFB] rounded-lg animate-pulse" />
+                <div className="w-full h-12 bg-surface-2 rounded-lg animate-pulse" />
               ) : user ? (
                 <>
-                  <div className="flex items-center gap-3 px-4 py-3 text-[#1A1A2E]">
-                    <div className="w-9 h-9 rounded-full bg-[#F15A29] text-white flex items-center justify-center font-semibold text-sm">
+                  <div className="flex items-center gap-3 px-4 py-3 text-text">
+                    <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center font-semibold text-sm">
                       {user.full_name.trim().charAt(0).toUpperCase() || '?'}
                     </div>
                     <span className="font-medium text-sm truncate">{user.full_name}</span>
                   </div>
                   <button
                     onClick={handleMobileLogout}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-[#DC2626] hover:bg-[#FEE2E2] rounded-lg transition-colors font-medium text-sm"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-error hover:bg-error-soft rounded-lg transition-colors font-medium text-sm"
                   >
                     <LogOut className="w-5 h-5" />
                     <span>Cerrar sesión</span>
@@ -315,7 +315,7 @@ export function Navbar() {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-gray-700 hover:bg-[#FFF7F2] rounded-lg transition-colors font-medium text-sm"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-muted hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
                 >
                   <User className="w-5 h-5" />
                   <span>Iniciar sesión</span>

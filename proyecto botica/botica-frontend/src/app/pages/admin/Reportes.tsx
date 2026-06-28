@@ -27,11 +27,11 @@ export function Reportes() {
   ];
 
   const categoryPerformance = [
-    { category: "Analgésicos", sales: 4850, percentage: 28, color: "#F15A29" },
-    { category: "Vitaminas", sales: 3920, percentage: 23, color: "#16A34A" },
-    { category: "Antibióticos", sales: 3150, percentage: 18, color: "#4C82A8" },
-    { category: "Gastroenterología", sales: 2680, percentage: 16, color: "#F59E0B" },
-    { category: "Otros", sales: 2550, percentage: 15, color: "#94A3B8" },
+    { category: "Analgésicos", sales: 4850, percentage: 28, color: "var(--c-brand)" },
+    { category: "Vitaminas", sales: 3920, percentage: 23, color: "var(--c-success)" },
+    { category: "Antibióticos", sales: 3150, percentage: 18, color: "var(--c-cool)" },
+    { category: "Gastroenterología", sales: 2680, percentage: 16, color: "var(--c-warning)" },
+    { category: "Otros", sales: 2550, percentage: 15, color: "var(--c-faint)" },
   ];
 
   const totalWeekSales = salesData.reduce((sum, d) => sum + d.total, 0);
@@ -123,22 +123,22 @@ export function Reportes() {
         <ReportKpi
           icon={Wallet} label="Ventas totales"
           value={`S/ ${totalWeekSales.toFixed(2)}`}
-          accent="#F15A29" change="+18%" trend="up" index={0}
+          accent="var(--c-brand)" change="+18%" trend="up" index={0}
         />
         <ReportKpi
           icon={DollarSign} label="Promedio diario"
           value={`S/ ${avgDailySales.toFixed(2)}`}
-          accent="#4C82A8" change="+12%" trend="up" index={1}
+          accent="var(--c-cool)" change="+12%" trend="up" index={1}
         />
         <ReportKpi
           icon={Package} label="Productos vendidos"
           value="471"
-          accent="#16A34A" change="+8%" trend="up" index={2}
+          accent="var(--c-success)" change="+8%" trend="up" index={2}
         />
         <ReportKpi
           icon={Receipt} label="Ticket promedio"
           value="S/ 45.30"
-          accent="#F59E0B" change="+5%" trend="up" index={3}
+          accent="var(--c-warning)" change="+5%" trend="up" index={3}
         />
       </div>
 
@@ -173,8 +173,8 @@ export function Reportes() {
                   tickFormatter={(v) => `S/${v / 1000}k`} width={48}
                 />
                 <Tooltip content={<ReportTooltip />} cursor={{ fill: "var(--c-line-2)", opacity: 0.5 }} />
-                <Bar dataKey="ate" name="Ate" fill="#F15A29" radius={[6, 6, 0, 0]} maxBarSize={26} />
-                <Bar dataKey="santaAnita" name="Santa Anita" fill="#4C82A8" radius={[6, 6, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="ate" name="Ate" fill="var(--c-brand)" radius={[6, 6, 0, 0]} maxBarSize={26} />
+                <Bar dataKey="santaAnita" name="Santa Anita" fill="var(--c-cool)" radius={[6, 6, 0, 0]} maxBarSize={26} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -293,7 +293,7 @@ function ReportKpi({
       <div className="flex items-start justify-between mb-4">
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${accent}1A`, color: accent }}
+          style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
         >
           <Icon className="w-[22px] h-[22px]" />
         </div>

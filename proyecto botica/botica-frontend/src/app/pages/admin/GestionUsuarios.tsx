@@ -130,10 +130,10 @@ export function GestionUsuarios() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
-        <UserStat icon={UserCheck} label="Total usuarios" value={users.length} accent="#F15A29" index={0} />
-        <UserStat icon={UserCheck} label="Usuarios activos" value={users.filter(u => u.status === "active").length} accent="#16A34A" index={1} />
-        <UserStat icon={Shield} label="Administradores" value={users.filter(u => u.role === "admin").length} accent="#8B6FC9" index={2} />
-        <UserStat icon={UserCheck} label="Trabajadores" value={users.filter(u => u.role === "worker").length} accent="#4C82A8" index={3} />
+        <UserStat icon={UserCheck} label="Total usuarios" value={users.length} accent="var(--c-brand)" index={0} />
+        <UserStat icon={UserCheck} label="Usuarios activos" value={users.filter(u => u.status === "active").length} accent="var(--c-success)" index={1} />
+        <UserStat icon={Shield} label="Administradores" value={users.filter(u => u.role === "admin").length} accent="var(--c-violet)" index={2} />
+        <UserStat icon={UserCheck} label="Trabajadores" value={users.filter(u => u.role === "worker").length} accent="var(--c-cool)" index={3} />
       </div>
 
       {/* Users Table */}
@@ -338,7 +338,7 @@ function UserStat({
       <span className="absolute left-0 top-0 h-full w-1 rounded-r" style={{ backgroundColor: accent }} />
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${accent}1A`, color: accent }}
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
       >
         <Icon className="w-[22px] h-[22px]" />
       </div>

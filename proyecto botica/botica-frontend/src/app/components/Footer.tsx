@@ -20,6 +20,7 @@ import {
   mailtoHref,
   mapsQueryOf,
   mapsSearchUrl,
+  storePhone,
 } from "../lib/contact";
 
 export function Footer() {
@@ -96,8 +97,9 @@ export function Footer() {
 
           {/* Columnas dinámicas: una por sede (datos del backend) */}
           {locations.map((store) => {
-            const tel = telHref(store.location_phone);
-            const wa = whatsappHref(store.location_phone);
+            const phone = storePhone(store);
+            const tel = telHref(phone);
+            const wa = whatsappHref(phone);
             const mail = mailtoHref(store.location_email);
             const mapQuery = mapsQueryOf(store);
             return (
@@ -126,7 +128,7 @@ export function Footer() {
                       <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--c-brand)" }} />
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <a href={tel} className="hover:text-white transition-colors">
-                          {store.location_phone?.trim()}
+                          {phone.trim()}
                         </a>
                         {wa && (
                           <a

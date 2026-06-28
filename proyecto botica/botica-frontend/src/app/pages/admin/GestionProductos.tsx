@@ -215,10 +215,10 @@ export function GestionProductos() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
-        <ProductStat icon={Package} label="Total productos" value={stats.total} accent="#F15A29" index={0} loading={isLoading} />
-        <ProductStat icon={CheckCircle2} label="Productos activos" value={stats.activos} accent="#16A34A" index={1} loading={isLoading} />
-        <ProductStat icon={TrendingDown} label="Con stock bajo" value={stats.bajo} accent="#F59E0B" index={2} loading={isLoading} />
-        <ProductStat icon={Tag} label="En oferta" value={stats.ofertas} accent="#8B6FC9" index={3} loading={isLoading} />
+        <ProductStat icon={Package} label="Total productos" value={stats.total} accent="var(--c-brand)" index={0} loading={isLoading} />
+        <ProductStat icon={CheckCircle2} label="Productos activos" value={stats.activos} accent="var(--c-success)" index={1} loading={isLoading} />
+        <ProductStat icon={TrendingDown} label="Con stock bajo" value={stats.bajo} accent="var(--c-warning)" index={2} loading={isLoading} />
+        <ProductStat icon={Tag} label="En oferta" value={stats.ofertas} accent="var(--c-violet)" index={3} loading={isLoading} />
       </div>
 
       {/* Search and Filters */}
@@ -522,7 +522,7 @@ function ProductStat({
       <span className="absolute left-0 top-0 h-full w-1 rounded-r" style={{ backgroundColor: accent }} />
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${accent}1A`, color: accent }}
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
       >
         <Icon className="w-[22px] h-[22px]" />
       </div>
@@ -1072,7 +1072,7 @@ function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-error text-white py-2.5 rounded-xl font-semibold hover:bg-[#B91C1C] active:scale-[0.99] transition-all disabled:opacity-60"
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-error text-white py-2.5 rounded-xl font-semibold hover:bg-[color-mix(in_srgb,var(--c-error)_85%,black)] active:scale-[0.99] transition-all disabled:opacity-60"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? "Procesando…" : confirmLabel}

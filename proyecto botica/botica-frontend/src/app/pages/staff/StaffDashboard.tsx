@@ -111,7 +111,7 @@ export default function StaffDashboard() {
           icon={Wallet}
           label="Ventas hoy"
           value={`S/ ${stats.ventas.toFixed(2)}`}
-          accent="#F15A29"
+          accent="var(--c-brand)"
           hint="Acumulado del día"
           index={0}
         />
@@ -119,7 +119,7 @@ export default function StaffDashboard() {
           icon={ShoppingBag}
           label="Pedidos hoy"
           value={String(stats.pedidos)}
-          accent="#4C82A8"
+          accent="var(--c-cool)"
           hint="Atendidos en tu sede"
           index={1}
         />
@@ -127,7 +127,7 @@ export default function StaffDashboard() {
           icon={Clock}
           label="Pendientes"
           value={String(stats.pendientes)}
-          accent="#F59E0B"
+          accent="var(--c-warning)"
           hint="Requieren atención"
           link="/staff/pedidos?state=pendiente"
           index={2}
@@ -136,7 +136,7 @@ export default function StaffDashboard() {
           icon={Receipt}
           label="Ticket promedio"
           value={`S/ ${stats.ticket_promedio.toFixed(2)}`}
-          accent="#16A34A"
+          accent="var(--c-success)"
           hint="Por pedido"
           index={3}
         />
@@ -317,11 +317,11 @@ function SalesChart({ series }: { series: SalesSeriesPoint[] }) {
                 <Area
                   type="monotone"
                   dataKey="ventas"
-                  stroke="#F15A29"
+                  stroke="var(--c-brand)"
                   strokeWidth={2.5}
                   fill="url(#salesFill)"
-                  dot={{ r: 3, fill: '#F15A29', strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: '#F15A29', stroke: '#fff', strokeWidth: 2 }}
+                  dot={{ r: 3, fill: 'var(--c-brand)', strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: 'var(--c-brand)', stroke: 'var(--c-surface)', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -389,7 +389,7 @@ function KpiCard({ icon: Icon, label, value, accent, hint, link, index }: KpiCar
       <div className="flex items-start justify-between mb-4">
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${accent}1A`, color: accent }}
+          style={{ backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`, color: accent }}
         >
           <Icon size={22} />
         </div>
