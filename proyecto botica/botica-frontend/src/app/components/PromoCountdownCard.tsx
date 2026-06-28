@@ -96,17 +96,19 @@ export function PromoCountdownCard({
         className ?? ""
       }`}
       style={{
+        // Mismo tratamiento que el banner Dermatología y la tarjeta promo-wide:
+        // radio 24px y sombra elev-soft → elev-card en hover (set coherente de 3).
         borderRadius: "24px",
-        boxShadow: "var(--elev-card)",
+        boxShadow: "var(--elev-soft)",
         background:
           "linear-gradient(135deg, var(--c-ink) 0%, var(--c-ink-2) 55%, var(--c-ink-3) 100%)",
         border: "1px solid rgba(255,255,255,0.08)",
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.boxShadow = "var(--elev-pop)")
+        (e.currentTarget.style.boxShadow = "var(--elev-card)")
       }
       onMouseLeave={(e) =>
-        (e.currentTarget.style.boxShadow = "var(--elev-card)")
+        (e.currentTarget.style.boxShadow = "var(--elev-soft)")
       }
     >
       {/* Foto del producto: tenue, al costado derecho. Solo si existe. */}

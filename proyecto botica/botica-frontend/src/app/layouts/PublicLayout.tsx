@@ -3,6 +3,7 @@ import { Navbar } from "../components/Navbar";
 import { TopBar } from "../components/TopBar";
 import { SecondaryNav } from "../components/SecondaryNav";
 import { Footer } from "../components/Footer";
+import { QuickActionFab } from "../components/QuickActionFab";
 
 /**
  * Layout del CLIENTE (home, catálogo, PDP, carrito, checkout).
@@ -30,6 +31,8 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
+      {/* FAB de acción rápida (asesoría + subir receta) — solo cliente */}
+      <QuickActionFab />
     </div>
   );
 }

@@ -88,8 +88,9 @@ export function Navbar() {
 
           {/* Right Actions - Desktop */}
           <div className="hidden md:flex items-center gap-2">
-            {/* Subir receta médica (IA) */}
-            <PrescriptionUpload variant="light" />
+            {/* Subir receta médica (IA). respondToFab: esta instancia (el Dialog
+                usa portal, sirve también en móvil) abre el modal desde el FAB. */}
+            <PrescriptionUpload variant="light" respondToFab />
 
             {/* Accesibilidad */}
             <AccessibilityMenu variant="light" />

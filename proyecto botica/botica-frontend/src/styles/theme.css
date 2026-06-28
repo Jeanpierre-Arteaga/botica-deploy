@@ -510,6 +510,70 @@ html[data-theme="dark"] p { color: var(--c-muted); }
     animation: scrollHint 1.8s ease-in-out infinite;
   }
 
+  /* ================================================================
+     FAB de acción rápida (asistente) — solo layout de cliente.
+     Atención discreta: micro-bounce + anillo que late suavemente.
+     Apertura/cierre del mini-menú con stagger. Se oculta cuando hay
+     un modal abierto (Radix bloquea el scroll → body[data-scroll-locked]).
+     ================================================================ */
+  @keyframes qaAttn {
+    0%, 92%, 100% { transform: translateY(0); }
+    96%           { transform: translateY(-4px); }
+  }
+  @keyframes qaRing {
+    0%   { box-shadow: 0 0 0 0 rgba(241, 90, 41, 0.45); }
+    70%  { box-shadow: 0 0 0 12px rgba(241, 90, 41, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(241, 90, 41, 0); }
+  }
+  .qa-fab-btn {
+    animation: qaAttn 4.5s ease-in-out infinite;
+  }
+  .qa-fab-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    animation: qaRing 4.5s ease-out infinite;
+    pointer-events: none;
+  }
+  /* Sin atención cuando el menú está abierto o ya se usó */
+  .qa-fab-btn[data-quiet="true"],
+  .qa-fab-btn[data-quiet="true"]::after {
+    animation: none;
+  }
+
+  /* Mini-menú: transición suave de apertura y cierre */
+  .qa-menu {
+    transition: opacity 0.22s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: bottom right;
+  }
+  .qa-menu[data-open="false"] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    pointer-events: none;
+  }
+  .qa-menu[data-open="true"] {
+    opacity: 1;
+    transform: none;
+  }
+  .qa-card {
+    transition: opacity 0.26s ease, transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .qa-menu[data-open="false"] .qa-card {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  /* Ocultar el FAB cuando un modal (Radix) bloquea el scroll del body */
+  .qa-fab-root {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  body[data-scroll-locked] .qa-fab-root {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
   /* Reveal on-scroll (lo usará Home más adelante vía un mini observer) */
   .reveal {
     opacity: 0;
@@ -543,6 +607,11 @@ html[data-theme="dark"] p { color: var(--c-muted); }
       opacity: 1 !important;
       transform: none !important;
       transition: none !important;
+    }
+    /* FAB: sin micro-animaciones de atención si se pide menos movimiento */
+    .qa-fab-btn,
+    .qa-fab-btn::after {
+      animation: none !important;
     }
     /* Hero: si el usuario pide menos movimiento, ocultamos el video
        y queda solo el poster estático (sin JS). */

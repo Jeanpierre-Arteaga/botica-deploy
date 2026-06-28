@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { ProductCarousel } from "../components/ProductCarousel";
 import { ProductCardSkeleton } from "../components/Skeleton";
+import { Container } from "../components/Container";
 import { HeroBanner } from "../components/HeroBanner";
 import { SectionHeader } from "../components/SectionHeader";
 import { PromoImageRow } from "../components/PromoImageRow";
@@ -86,6 +87,7 @@ export function Home() {
      Si el archivo no existe aún, el valor es undefined y se muestra un fallback. */
   const bannerRetiroSrc = homeImage("banner-retiro"); // banner Dermatología
   const bannerGenericosSrc = homeImage("banner-genericos"); // franja de marca (opcional)
+  const asesoriaSrc = homeImage("asesoria"); // foto del químico farmacéutico (lado derecho de la sección Asesoría)
 
   const { selectedLocation, isLoading: isLoadingLocation, locations } = useLocations();
 
@@ -237,10 +239,10 @@ export function Home() {
           (hairlines de 1px logradas con gap-px + fondo de línea). 4 en desktop,
           2x2 en tablet, 1 columna apilada en móvil. */}
       <section
-        className="reveal pt-12 md:pt-16 pb-0"
+        className="reveal pt-6 md:pt-8 pb-0"
         style={{ backgroundColor: "var(--c-bg-2)" }}
       >
-        <div className="max-w-7xl mx-auto px-4">
+        <Container>
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-2xl border"
             style={{
@@ -285,12 +287,13 @@ export function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* Error */}
       {productsError && (
-        <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <section className="py-8 md:py-12">
+          <Container>
           <div
             className="rounded-2xl p-8 text-center border"
             style={{
@@ -323,18 +326,19 @@ export function Home() {
               Reintentar
             </button>
           </div>
+          </Container>
         </section>
       )}
 
       {/* ===== Ofertas ===== */}
       {showOfertasSection && (
         <section
-          className="reveal py-12 md:py-16"
+          className="reveal py-8 md:py-12"
           style={{ backgroundColor: "var(--c-bg-2)" }}
         >
-          <div className="max-w-7xl mx-auto px-4">
+          <Container>
             <SectionHeader
-              className="mb-10"
+              className="mb-8"
               title="Ofertas"
               subtitle="Aprovecha precios especiales por tiempo limitado"
               action={{
@@ -351,24 +355,24 @@ export function Home() {
             ) : (
               <ProductCarousel products={ofertas} />
             )}
-          </div>
+          </Container>
         </section>
       )}
 
       {/* ===== Banner promocional — acceso directo a categoría (imagen + buscador, clickeable) =====
-          Contenedor un poco más angosto que el resto (max-w-6xl ≈ -10%) para que el
-          banner no llegue tan al borde y quede más compacto; al usar la imagen h-auto,
-          su altura baja de forma proporcional (sin deformar). La fila de 2 imágenes va
-          dentro del MISMO contenedor, así que queda alineada a este ancho. */}
+          Usa el MISMO <Container> (max-w-7xl) que Ofertas/Destacados para que el
+          banner quede alineado al mismo borde izq/der que el resto del home. La
+          imagen va con h-auto, así que su altura baja de forma proporcional. La
+          fila de 2 imágenes va dentro del MISMO contenedor → mismo ancho total. */}
       <section
-        className="reveal py-12 md:py-16"
+        className="reveal py-8 md:py-12"
         style={{ backgroundColor: "var(--c-bg)" }}
       >
-        <div className="max-w-6xl mx-auto px-4">
+        <Container>
           <Link
             to={bannerCategoryHref}
             aria-label="Explora la categoría Dermatología"
-            className="group relative block w-full overflow-hidden cursor-pointer transition-all duration-300 active:scale-[0.997]"
+            className="group relative block w-full overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.997]"
             style={{ borderRadius: "24px", boxShadow: "var(--elev-soft)" }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.boxShadow = "var(--elev-card)")
@@ -509,13 +513,14 @@ export function Home() {
               }}
             />
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ===== Productos Destacados ===== */}
-      <section className="reveal max-w-7xl mx-auto px-4 py-12 md:py-16">
+      <section className="reveal py-8 md:py-12">
+        <Container>
         <SectionHeader
-          className="mb-10"
+          className="mb-8"
           title="Productos destacados"
           subtitle="Los más vendidos de la semana"
           action={{ to: "/catalogo", label: "Ver todos los productos" }}
@@ -551,14 +556,15 @@ export function Home() {
         ) : (
           <ProductCarousel products={destacados} />
         )}
+        </Container>
       </section>
 
       {/* ===== ¿Por qué Genéricos? ===== */}
       <section
-        className="reveal py-12 md:py-16"
+        className="reveal py-8 md:py-12"
         style={{ backgroundColor: "var(--c-bg-2)" }}
       >
-        <div className="max-w-7xl mx-auto px-4">
+        <Container>
           {/* Slot opcional: franja de marca (auto-detectada). Solo aparece si
               subes la imagen — si falta, no se renderiza nada (sin hueco).
               Sube como: src/assets/home/banner-genericos.webp (apaisada, ~1024x260). */}
@@ -567,12 +573,12 @@ export function Home() {
               src={bannerGenericosSrc}
               alt="Genéricos certificados por DIGEMID al mejor precio"
               loading="lazy"
-              className="block w-full h-auto mb-12"
+              className="block w-full h-auto mb-8"
               style={{ borderRadius: "24px", boxShadow: "var(--elev-soft)" }}
             />
           )}
           <SectionHeader
-            className="mb-12"
+            className="mb-8"
             align="center"
             title="¿Por qué elegir genéricos?"
             subtitle="Mismo principio activo que los de marca, certificados por DIGEMID y hasta 50% más económicos."
@@ -668,7 +674,7 @@ export function Home() {
               </div>
             </div>
           </div>
-          <div className="text-center mt-10">
+          <div className="text-center mt-8">
             <Link
               to="/catalogo"
               className="inline-flex items-center gap-2 text-white px-10 py-4 rounded-xl font-bold text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
@@ -678,12 +684,14 @@ export function Home() {
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ===== Asesoría de Químicos Farmacéuticos (VERSIÓN CLARA) ===== */}
+      {/* id="asesoria": ancla usada por el FAB de acción rápida para hacer scroll aquí. */}
       <section
-        className="reveal relative overflow-hidden py-12 md:py-16"
+        id="asesoria"
+        className="reveal relative overflow-hidden pt-6 md:pt-8 pb-4 md:pb-6 scroll-mt-40"
         style={{ backgroundColor: "var(--c-bg-2)" }}
       >
         {/* Glow decorativo sutil claro */}
@@ -695,7 +703,7 @@ export function Home() {
           className="pointer-events-none absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full blur-[120px]"
           style={{ backgroundColor: "rgba(76, 130, 168, 0.06)" }}
         />
-        <div className="relative max-w-7xl mx-auto px-4">
+        <Container className="relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <SectionHeader
@@ -790,34 +798,65 @@ export function Home() {
               </div>
             </div>
 
-            {/* Card visual derecha — clara y limpia */}
-            <div className="flex justify-center">
-              <div
-                className="relative w-full max-w-sm aspect-square rounded-3xl flex items-center justify-center overflow-hidden"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--c-brand-soft) 0%, var(--c-cool-soft) 100%)",
-                  border: "1px solid var(--c-line)",
-                  boxShadow: "var(--elev-card)",
-                }}
-              >
-                {/* Anillos decorativos */}
+            {/* Visual derecha — imagen GRANDE que SANGRA hacia el borde derecho de la
+               sección (negative margin) y se funde con el fondo por sus 4 bordes.
+               El fade se logra intersectando 4 máscaras lineales (una por lado): se
+               desvanece antes en IZQUIERDA (toca el texto) y ABAJO (se une con la
+               sección celeste de Tips). Sin recuadro ni esquinas visibles.
+               Si no hay imagen (asesoria.{webp,png,jpg}), cae al fallback de anillos. */}
+            <div className="flex justify-center md:justify-end md:-mr-4 lg:-mr-8">
+              {asesoriaSrc ? (
+                <img
+                  src={asesoriaSrc}
+                  alt="Químico farmacéutico colegiado de Botica Central brindando asesoría"
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full max-w-xs md:max-w-sm lg:max-w-md aspect-[4/3] object-cover object-center select-none pointer-events-none"
+                  style={{
+                    // Fade POR LADO (sin borde superior): 3 máscaras lineales intersectadas.
+                    // - izquierda: transparente -> negro 42% (fade fuerte, toca el texto)
+                    // - derecha:   transparente -> negro 12% (fade suave)
+                    // - abajo:     transparente -> negro 38% hacia arriba (fade fuerte abajo)
+                    // - arriba:    transparente -> negro 10% MUY suave (borra solo la línea
+                    //              dura del canto superior; la cabeza/hombros NO se cortan)
+                    WebkitMaskImage:
+                      "linear-gradient(to right, transparent 0%, #000 42%), linear-gradient(to left, transparent 0%, #000 12%), linear-gradient(to top, transparent 0%, #000 38%), linear-gradient(to bottom, transparent 0%, #000 10%)",
+                    maskImage:
+                      "linear-gradient(to right, transparent 0%, #000 42%), linear-gradient(to left, transparent 0%, #000 12%), linear-gradient(to top, transparent 0%, #000 38%), linear-gradient(to bottom, transparent 0%, #000 10%)",
+                    WebkitMaskComposite: "source-in",
+                    maskComposite: "intersect",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskRepeat: "no-repeat",
+                  }}
+                />
+              ) : (
                 <div
-                  className="absolute inset-8 rounded-full border-2 opacity-40"
-                  style={{ borderColor: "var(--c-brand)" }}
-                />
-                <div
-                  className="absolute inset-16 rounded-full border-2 opacity-25"
-                  style={{ borderColor: "var(--c-cool)" }}
-                />
-                <Stethoscope
-                  className="w-24 h-24 relative z-10"
-                  style={{ color: "var(--c-brand)" }}
-                />
-              </div>
+                  className="relative w-full max-w-sm aspect-square rounded-3xl flex items-center justify-center overflow-hidden"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--c-brand-soft) 0%, var(--c-cool-soft) 100%)",
+                    border: "1px solid var(--c-line)",
+                    boxShadow: "var(--elev-card)",
+                  }}
+                >
+                  {/* Anillos decorativos */}
+                  <div
+                    className="absolute inset-8 rounded-full border-2 opacity-40"
+                    style={{ borderColor: "var(--c-brand)" }}
+                  />
+                  <div
+                    className="absolute inset-16 rounded-full border-2 opacity-25"
+                    style={{ borderColor: "var(--c-cool)" }}
+                  />
+                  <Stethoscope
+                    className="w-24 h-24 relative z-10"
+                    style={{ color: "var(--c-brand)" }}
+                  />
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ===== Tips de salud — banda fina ===== */}
@@ -828,7 +867,7 @@ export function Home() {
           borderColor: "var(--c-line-2)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+        <Container className="py-6 md:py-8">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
             <span
               className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full"
@@ -846,13 +885,14 @@ export function Home() {
               por DIGEMID puedes ahorrar hasta un 70%.
             </p>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* ===== Nuestras Tiendas ===== */}
-      <section id="tiendas" className="reveal max-w-7xl mx-auto px-4 py-12 md:py-16">
+      <section id="tiendas" className="reveal py-8 md:py-12">
+        <Container>
         <SectionHeader
-          className="mb-10"
+          className="mb-8"
           align="center"
           title="Visita nuestras tiendas"
           subtitle="Atención personalizada y stock disponible"
@@ -1012,6 +1052,7 @@ export function Home() {
             })}
           </div>
         )}
+        </Container>
       </section>
     </div>
   );

@@ -40,6 +40,13 @@ import type { PrescriptionMatch, PrescriptionUnmatched } from '../lib/types';
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const MAX_SIZE = 8 * 1024 * 1024; // 8 MB (debe coincidir con el backend)
 
+/**
+ * Evento global con el que el FAB de acción rápida abre ESTE modal sin duplicar
+ * la lógica de subir receta. Lo despacha QuickActionFab; lo escucha la instancia
+ * de PrescriptionUpload marcada con `respondToFab`.
+ */
+export const PRESCRIPTION_OPEN_EVENT = 'botica:open-prescription';
+
 type Step = 'upload' | 'loading' | 'result' | 'error';
 
 // Fila editable de la pantalla de confirmación.
@@ -52,11 +59,19 @@ interface PrescriptionUploadProps {
   /** light = headers claros (storefront) · dark = top bars oscuras */
   variant?: 'light' | 'dark';
   className?: string;
+  /**
+   * Si es true, esta instancia abre el modal cuando el FAB despacha
+   * PRESCRIPTION_OPEN_EVENT. Solo UNA instancia debe tenerlo (el Navbar monta
+   * dos: desktop y móvil) para no abrir dos diálogos a la vez. El Dialog usa
+   * portal, así que la instancia desktop también funciona en móvil.
+   */
+  respondToFab?: boolean;
 }
 
 export function PrescriptionUpload({
   variant = 'light',
   className = '',
+  respondToFab = false,
 }: PrescriptionUploadProps) {
   const { addItems } = useCart();
 
@@ -88,6 +103,15 @@ export function PrescriptionUpload({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // El FAB de acción rápida abre ESTE mismo modal (no se duplica la función):
+  // escucha un evento global y abre el diálogo de subir receta.
+  useEffect(() => {
+    if (!respondToFab) return;
+    const openFromFab = () => setOpen(true);
+    window.addEventListener(PRESCRIPTION_OPEN_EVENT, openFromFab);
+    return () => window.removeEventListener(PRESCRIPTION_OPEN_EVENT, openFromFab);
+  }, [respondToFab]);
 
   const resetState = useCallback(() => {
     setStep('upload');
