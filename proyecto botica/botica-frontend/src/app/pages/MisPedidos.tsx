@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ChevronRight, Clock, CheckCircle2, XCircle, Truck, ShoppingBag } from 'lucide-react';
+import { ChevronRight, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { Container } from '../components/Container';
 import { PageHeader } from '../components/PageHeader';
+import { isPaymentConfirmed } from '../lib/orderStatus';
 import type { Order, OrderState } from '../lib/types';
 
 type BadgeIcon = typeof Clock;
@@ -135,9 +136,17 @@ export function MisPedidos() {
                     {dateStr} · {detailsCount} {detailsCount === 1 ? 'producto' : 'productos'} · {paymentLabel}
                   </p>
 
-                  <p className="text-xl font-bold text-brand mt-2">
-                    S/ {Number(order.total_price).toFixed(2)}
-                  </p>
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <p className="text-xl font-bold text-brand">
+                      S/ {Number(order.total_price).toFixed(2)}
+                    </p>
+                    {isPaymentConfirmed(order) && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                        <FileText size={13} />
+                        Comprobante disponible
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="hidden sm:flex items-center text-muted">

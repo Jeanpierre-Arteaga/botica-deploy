@@ -57,7 +57,10 @@
       "Bash(node _tz_diag_tmp.js)",
       "Bash(rm -f _tz_diag_tmp.js)",
       "Bash(node _tz_verify_tmp.js)",
-      "Bash(rm -f _tz_verify_tmp.js)"
+      "Bash(rm -f _tz_verify_tmp.js)",
+      "Bash(ls /mnt/skills/public/frontend-design/SKILL.md /mnt/skills/public/pdf/SKILL.md 2>&1 | head; echo \"---\"; ls \"c:/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica/botica-frontend/src/app/pages/checkout\" 2>&1 | head)",
+      "Read(//mnt/skills/public/frontend-design/**)",
+      "Bash(grep -iE \"^tsc$|^vue-tsc$|typescript\")"
     ]
   }
 }

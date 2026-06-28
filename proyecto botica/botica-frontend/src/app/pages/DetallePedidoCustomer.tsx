@@ -16,7 +16,8 @@ import { toast } from 'sonner';
 import { api, ApiError } from '../lib/api';
 import { Container } from '../components/Container';
 import { PageHeader } from '../components/PageHeader';
-import type { Order, OrderState } from '../lib/types';
+import { isPaymentConfirmed, pendingVoucherNote } from '../lib/orderStatus';
+import type { Order, OrderState, PaymentMethod } from '../lib/types';
 
 type BadgeIcon = typeof Clock;
 
@@ -207,13 +208,16 @@ export function DetallePedidoCustomer() {
             )}
           </section>
 
-          {order.payment && (
-            <CustomerVoucher
-              orderId={order.order_id}
-              initialUrl={order.payment.voucher_pdf_url || null}
-              voucherType={order.payment.voucher_type || 'boleta'}
-            />
-          )}
+          {order.payment &&
+            (isPaymentConfirmed(order) ? (
+              <CustomerVoucher
+                orderId={order.order_id}
+                initialUrl={order.payment.voucher_pdf_url || null}
+                voucherType={order.payment.voucher_type || 'boleta'}
+              />
+            ) : (
+              <VoucherPending method={order.payment.payment_method} />
+            ))}
 
           {paymentMethod === 'tarjeta' &&
             ['pendiente', 'en proceso'].includes(order.order_state) && (
@@ -333,6 +337,30 @@ export function DetallePedidoCustomer() {
         </div>
       </div>
     </Container>
+  );
+}
+
+// ============================================================
+// Comprobante pendiente: el pago aún no está confirmado/validado.
+// No exponemos el PDF hasta que el staff valide el pago manual
+// (yape/plin/transferencia) o se entregue el pedido (efectivo).
+// ============================================================
+
+function VoucherPending({ method }: { method?: PaymentMethod | null }) {
+  return (
+    <section className="bg-surface rounded-xl border border-line p-6">
+      <h2 className="font-bold text-text flex items-center gap-2 mb-4">
+        <FileText size={18} className="text-brand" />
+        Comprobante
+      </h2>
+      <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning-soft p-4">
+        <Clock size={20} className="text-warning shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-text">Pago pendiente de validación</p>
+          <p className="text-sm text-muted mt-0.5">{pendingVoucherNote(method)}</p>
+        </div>
+      </div>
+    </section>
   );
 }
 

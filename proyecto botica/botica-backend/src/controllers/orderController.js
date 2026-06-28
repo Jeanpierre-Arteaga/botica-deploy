@@ -78,6 +78,28 @@ const orderController = {
         return res.status(400).json({ message: 'El pedido aún no tiene un pago registrado.' });
       }
 
+      // Guardia defensiva: al CLIENTE no se le expone el comprobante hasta que
+      // el pago esté confirmado/validado (tarjeta aprobada, manual validado por
+      // el staff → 'en proceso'/'entregado', efectivo → solo 'entregado').
+      // El staff/admin siempre pueden generarlo. Espeja isPaymentConfirmed del
+      // frontend (lib/orderStatus.ts).
+      if (req.user.role === 'cust') {
+        const method = order.payment.payment_method;
+        const state = order.order_state;
+        const confirmed =
+          state !== 'cancelado' &&
+          (method === 'tarjeta'
+            ? state !== 'pendiente'
+            : method === 'efectivo'
+            ? state === 'entregado'
+            : state === 'en proceso' || state === 'entregado');
+        if (!confirmed) {
+          return res.status(403).json({
+            message: 'El comprobante estará disponible cuando se valide tu pago.',
+          });
+        }
+      }
+
       // Ya generado → reutilizar (no regenerar).
       if (order.payment.voucher_pdf_url) {
         return res.json({
