@@ -8,7 +8,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { User, LogOut, Package, ChevronDown } from 'lucide-react';
+import { User, LogOut, Package, ChevronDown, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../lib/AuthContext';
 
@@ -17,9 +17,11 @@ interface UserMenuProps {
   variant?: 'light' | 'dark';
   /** Si se muestra el nombre al lado del avatar. Por defecto true en desktop. */
   showName?: boolean;
+  /** Abre el modal "Mi perfil" (solo aplica al cliente). Lo provee el navbar. */
+  onOpenProfile?: () => void;
 }
 
-export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) {
+export function UserMenu({ variant = 'light', showName = true, onOpenProfile }: UserMenuProps) {
   const { user, logout, getInitial } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -66,12 +68,20 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
         className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${buttonStyles}`}
         aria-label="Menú de usuario"
       >
-        {/* Avatar circular con inicial */}
-        <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm ${avatarBg}`}
-        >
-          {getInitial()}
-        </div>
+        {/* Avatar circular: foto/avatar si existe, si no la inicial */}
+        {user.photo_url ? (
+          <img
+            src={user.photo_url}
+            alt=""
+            className="w-9 h-9 rounded-full object-cover border border-line bg-surface"
+          />
+        ) : (
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm ${avatarBg}`}
+          >
+            {getInitial()}
+          </div>
+        )}
 
         {/* Nombre */}
         {showName && (
@@ -92,9 +102,13 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
           {/* Header con nombre y rol */}
           <div className="px-4 py-3 border-b border-line">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center font-semibold">
-                {getInitial()}
-              </div>
+              {user.photo_url ? (
+                <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover border border-line bg-surface" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center font-semibold">
+                  {getInitial()}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-text truncate">
                   {user.full_name}
@@ -110,7 +124,7 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
 
           {/* Opciones del menú */}
           <div className="py-1">
-            {/* Customer ve sus pedidos y perfil */}
+            {/* Customer: Mis Pedidos → Mi perfil */}
             {user.role === 'cust' && (
               <>
                 <button
@@ -119,6 +133,13 @@ export function UserMenu({ variant = 'light', showName = true }: UserMenuProps) 
                 >
                   <Package className="w-4 h-4 text-muted" />
                   Mis Pedidos
+                </button>
+                <button
+                  onClick={() => { setOpen(false); onOpenProfile?.(); }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text hover:bg-surface-2 transition-colors"
+                >
+                  <UserCog className="w-4 h-4 text-muted" />
+                  Mi perfil
                 </button>
               </>
             )}

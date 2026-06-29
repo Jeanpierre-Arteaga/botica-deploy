@@ -23,6 +23,7 @@ import type {
   ProfileUpdatePayload,
   Customer,
   CustomerCreatePayload,
+  CustomerProfileUpdatePayload,
   CustomerCheckResponse,
   Product,
   ProductFilters,
@@ -553,6 +554,24 @@ const customers = {
       method: 'PUT',
       body: payload,
     });
+  },
+
+  /** PUT /api/customers/me — editar el PERFIL PROPIO del cliente (datos, foto/
+   *  avatar y, opcional, contraseña). El backend verifica la contraseña actual. */
+  updateMe(payload: CustomerProfileUpdatePayload): Promise<Customer> {
+    return request<Customer>('/customers/me', { method: 'PUT', body: payload });
+  },
+
+  /** POST /api/customers/me/photo — sube la foto de perfil propia a S3/CloudFront. */
+  uploadMyPhoto(file: File): Promise<{ photo_url: string }> {
+    const form = new FormData();
+    form.append('image', file);
+    return uploadRequest<{ photo_url: string }>('/customers/me/photo', form);
+  },
+
+  /** PATCH /api/customers/me/deactivate — desactiva la PROPIA cuenta (is_active=false). */
+  deactivateMe(): Promise<{ message: string }> {
+    return request<{ message: string }>('/customers/me/deactivate', { method: 'PATCH' });
   },
 
   /** DELETE /api/customers/:id (admin) */

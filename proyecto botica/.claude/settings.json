@@ -122,7 +122,26 @@
       "Bash(curl -s --max-time 3 \"http://localhost:5173/\" -o /dev/null -w \"5173 HTTP %{http_code}\\\\n\")",
       "Bash(ls /mnt/skills/public/frontend-design/SKILL.md 2>/dev/null && echo \"SKILL EXISTS\" || echo \"no mnt skill\"; echo \"---\"; ls \"c:/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica/\")",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\); console.log\\('radix-slider:', \\(p.dependencies||{}\\)['@radix-ui/react-slider']\\)\")",
-      "Bash(node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json)"
+      "Bash(node node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json)",
+      "Bash(ls -la /mnt/skills/public/frontend-design/SKILL.md 2>/dev/null && echo \"EXISTS\" || echo \"NOT FOUND on /mnt\")",
+      "Bash(ls node_modules/sharp)",
+      "Bash(which python *)",
+      "Bash(node -e \"const f=require\\('fs'\\); for \\(const n of ['public/logo-botica.png','public/hola.png']\\){const b=f.readFileSync\\(n\\); const w=b.readUInt32BE\\(16\\),h=b.readUInt32BE\\(20\\),bd=b[24],ct=b[25]; console.log\\(n,w+'x'+h,'bitDepth='+bd,'colorType='+ct,'\\(6=RGBA,2=RGB\\)'\\);}\")",
+      "Bash(/c/Python314/python -)",
+      "Bash(ls src/)",
+      "Bash(find \"/c/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica/botica-backend/src\" -maxdepth 2 -type d)",
+      "Bash(grep -rln createPortal __TRACKED_VAR__/src/app/components __TRACKED_VAR__/src/app/pages)",
+      "Bash(/c/Python314/python -c \"import cairosvg; print\\('CAIROSVG_OK'\\)\")",
+      "Bash(/c/Python314/python -m pip install --quiet cairosvg)",
+      "Bash(/c/Python314/python -c \"import cairosvg; print\\('NOW_OK'\\)\")",
+      "Bash(echo \"EXIT_TSC=$?\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./package.json'\\).scripts,null,2\\)\\)\")",
+      "Bash(ls node_modules/.bin/tsc)",
+      "Bash(node -e \"try{console.log\\(require\\('typescript'\\).version\\)}catch\\(e\\){console.log\\('no typescript dep'\\)}\")",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright dep'\\)}catch{try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer dep'\\)}catch{console.log\\('neither installed'\\)}}\")",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft/Edge/Application/**)",
+      "Bash(/c/Python314/python -c \"import scipy; print\\('SCIPY', scipy.__version__\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\jeana\\.claude\\projects\\c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica\\memory"

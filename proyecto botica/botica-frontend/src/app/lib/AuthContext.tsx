@@ -39,6 +39,8 @@ export interface AuthUser {
   dni?: string | null;
   phone?: string | null;
   address?: string | null;
+  /** True si la cuenta del cliente tiene contraseña (login con email). False = Google. */
+  has_password?: boolean;
 }
 
 interface AuthContextValue {
@@ -172,8 +174,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Token válido en formato → validar contra backend que aún es aceptado
       try {
         if (storedUser.role === 'cust') {
-          await api.customers.getMe();
-          // Sesión válida, mantener el user actual
+          // Sesión válida → enriquecemos con datos frescos (foto, has_password,
+          // datos editables) por si cambiaron o la sesión es anterior a este fix.
+          const c = await api.customers.getMe();
+          const enriched: AuthUser = {
+            ...storedUser,
+            full_name: c.full_name ?? storedUser.full_name,
+            email: c.email ?? storedUser.email,
+            dni: c.dni ?? null,
+            phone: c.phone ?? null,
+            address: c.address ?? null,
+            photo_url: c.photo_url ?? null,
+            has_password: c.has_password ?? storedUser.has_password,
+          };
+          setUser(enriched);
+          saveUserToStorage(enriched, !!localStorage.getItem(USER_STORAGE_KEY));
         } else {
           // Enriquecemos el user con datos frescos del backend (p. ej. location_name,
           // que sesiones anteriores a este fix podían no tener guardado).
@@ -278,6 +293,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dni: res.customer.dni,
           phone: res.customer.phone,
           address: res.customer.address,
+          photo_url: res.customer.photo_url ?? null,
+          has_password: true, // entró con email + contraseña
         };
         setUser(authUser);
         saveUserToStorage(authUser, remember);
@@ -302,6 +319,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dni: res.customer.dni,
           phone: res.customer.phone,
           address: res.customer.address,
+          photo_url: res.customer.photo_url ?? null,
+          // La cuenta de Google puede no tener contraseña; /customers/me lo
+          // confirma al validar la sesión (has_password real).
+          has_password: false,
         };
         setUser(authUser);
         saveUserToStorage(authUser, remember);
@@ -333,6 +354,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dni: res.customer.dni,
           phone: res.customer.phone,
           address: res.customer.address,
+          photo_url: res.customer.photo_url ?? null,
+          has_password: true, // se registró con contraseña
         };
         setUser(authUser);
         saveUserToStorage(authUser);
@@ -356,9 +379,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dni: customer.dni,
           phone: customer.phone,
           address: customer.address,
+          photo_url: customer.photo_url ?? null,
+          has_password: customer.has_password ?? user.has_password,
         };
         setUser(updated);
-        saveUserToStorage(updated);
+        saveUserToStorage(updated, !!localStorage.getItem(USER_STORAGE_KEY));
       } else {
         const u = await api.users.getMe();
         const updated: AuthUser = {

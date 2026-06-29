@@ -23,10 +23,14 @@ import { ProfileModal } from '../components/ProfileModal';
 import { formatLimaDate } from '../lib/dates';
 
 /**
- * Mismo logo de marca que el panel de personal. El archivo vive en
- * `botica-frontend/public/`. El PNG trae aire blanco propio, así que el
- * recuadro lleva altura fija + object-cover para recortarlo (idéntico a staff).
+ * Mismo logo de marca que el panel de personal (idéntico tratamiento).
+ * - `LOGO_MARK`: versión TRANSPARENTE (sin recuadro/halo blanco) para el
+ *   sidebar OSCURO; el arte ya viene con el navy exacto del panel y se integra
+ *   sin costuras sobre `bg-ink`.
+ * - `LOGO_SRC`: versión con fondo propio para el chip claro de la cabecera
+ *   móvil. Ambos viven en `botica-frontend/public/`.
  */
+const LOGO_MARK = '/logo-botica-mark.png';
 const LOGO_SRC = '/logo-botica.png';
 
 interface NavItem {
@@ -95,24 +99,28 @@ export function AdminLayout() {
           cerrar sesión) quede SIEMPRE visible.
           ============================================================ */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-ink text-white h-screen sticky top-0">
-        {/* Logo sobre chip blanco ajustado (mismo patrón que staff) */}
-        <div className="px-3 py-2 border-b border-white/10">
+        {/* Marca: logo con fondo TRANSPARENTE integrado al navy del sidebar
+            (sin recuadro ni halo blanco; la estrella de Gemini se recortó del
+            propio asset). Centrado, grande, con aire arriba y separado del
+            bloque de usuario por el borde inferior + padding generoso. */}
+        <div className="flex justify-center px-4 pt-6 pb-7 border-b border-white/10">
           <Link
             to="/admin/dashboard"
-            className="flex items-center justify-center h-14 rounded-xl bg-white shadow-sm overflow-hidden transition-transform hover:scale-[1.02]"
             aria-label="Ir al inicio del panel"
+            className="block rounded-lg transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             <img
-              src={LOGO_SRC}
+              src={LOGO_MARK}
               alt="Boticas Central — Salud y ahorro"
-              className="w-full h-full object-cover object-center"
+              className="h-16 w-auto object-contain select-none"
+              draggable={false}
             />
           </Link>
         </div>
 
         {/* Identidad del admin: nombre, rol y alcance "Ambas sedes". El lápiz
             (editar perfil) queda justificado a la derecha (space-between). */}
-        <div className="px-3 py-3 border-b border-white/10">
+        <div className="px-3 pt-5 pb-3.5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
             {user?.photo_url ? (
               <img src={user.photo_url} alt="" className="w-9 h-9 shrink-0 rounded-full object-cover border border-white/20" />
@@ -274,9 +282,7 @@ export function AdminLayout() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
-              <div className="rounded-lg bg-white px-2.5 py-1.5 shadow-sm">
-                <img src={LOGO_SRC} alt="Boticas Central" className="h-7 w-auto" />
-              </div>
+              <img src={LOGO_MARK} alt="Boticas Central" className="h-11 w-auto object-contain select-none" draggable={false} />
               <button
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Cerrar menú"

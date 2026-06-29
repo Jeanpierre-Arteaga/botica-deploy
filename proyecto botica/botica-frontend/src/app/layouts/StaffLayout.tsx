@@ -10,9 +10,14 @@ import { ProfileModal } from '../components/ProfileModal';
 
 /**
  * Logo de marca ("Boticas Central — Salud y ahorro").
- * El archivo vive en `botica-frontend/public/`. Para cambiarlo basta con
- * reemplazar el PNG o editar este path (se sirve desde la raíz pública).
+ * - `LOGO_MARK`: versión con FONDO TRANSPARENTE (sin recuadro/halo blanco),
+ *   pensada para el sidebar OSCURO. El arte ya viene con el navy exacto del
+ *   panel (#0F172A), por eso se integra sin costuras sobre `bg-ink`.
+ * - `LOGO_SRC`: versión con fondo propio, para el chip claro de la cabecera
+ *   móvil (superficie blanca), donde el texto claro del logo necesita base.
+ * Ambos viven en `botica-frontend/public/`.
  */
+const LOGO_MARK = '/logo-botica-mark.png';
 const LOGO_SRC = '/logo-botica.png';
 
 const navItems = [
@@ -49,27 +54,28 @@ export default function StaffLayout() {
           sesión) quede SIEMPRE visible aunque haya listas largas.
           ============================================================ */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-ink text-white h-screen sticky top-0">
-        {/* Logo sobre chip claro: el PNG trae bastante aire blanco propio, así que
-            el recuadro lleva ALTURA FIJA + object-cover para recortar ese margen
-            vertical. Resultado: contenedor más bajo y el logo se ve más grande y
-            legible (sin deformar el arte, gracias a object-cover/center). */}
-        <div className="px-3 py-2.5 border-b border-white/10">
+        {/* Marca: logo con fondo TRANSPARENTE integrado al navy del sidebar
+            (sin recuadro ni halo blanco; la estrella de Gemini se recortó del
+            propio asset). Centrado, grande, con aire arriba y separado del
+            bloque de usuario por el borde inferior + padding generoso. */}
+        <div className="flex justify-center px-4 pt-6 pb-7 border-b border-white/10">
           <Link
             to="/staff/dashboard"
-            className="flex items-center justify-center h-16 rounded-xl bg-white shadow-sm overflow-hidden transition-transform hover:scale-[1.02]"
             aria-label="Ir al inicio del panel"
+            className="block rounded-lg transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             <img
-              src={LOGO_SRC}
+              src={LOGO_MARK}
               alt="Boticas Central — Salud y ahorro"
-              className="w-full h-full object-cover object-center"
+              className="h-16 w-auto object-contain select-none"
+              draggable={false}
             />
           </Link>
         </div>
 
         {/* Tarjeta de usuario: nombre, rol y sede asignada. El lápiz (editar
             perfil) queda justificado a la derecha (space-between). */}
-        <div className="p-4 border-b border-white/10">
+        <div className="px-4 pt-5 pb-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             {user?.photo_url ? (
               <img src={user.photo_url} alt="" className="w-10 h-10 shrink-0 rounded-full object-cover border border-white/20" />
@@ -212,9 +218,7 @@ export default function StaffLayout() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
-              <div className="rounded-lg bg-white px-2.5 py-1.5 shadow-sm">
-                <img src={LOGO_SRC} alt="Boticas Central" className="h-7 w-auto" />
-              </div>
+              <img src={LOGO_MARK} alt="Boticas Central" className="h-11 w-auto object-contain select-none" draggable={false} />
               <button
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Cerrar menú"

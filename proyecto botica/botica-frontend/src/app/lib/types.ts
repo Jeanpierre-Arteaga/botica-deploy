@@ -77,6 +77,8 @@ export interface CustomerAuthResponse {
     email: string;
     is_active: boolean;
     created_at: string;
+    /** Foto de perfil (CloudFront) o avatar predefinido ("/avatars/..."). */
+    photo_url?: string | null;
   };
 }
 
@@ -154,6 +156,10 @@ export interface Customer {
   email: string | null;
   is_active: boolean;
   created_at: string;
+  /** Foto de perfil (CloudFront) o avatar predefinido ("/avatars/..."). NULL = iniciales. */
+  photo_url?: string | null;
+  /** True si la cuenta tiene contraseña (login con email). False = cuenta de Google. */
+  has_password?: boolean;
 }
 
 export interface CustomerCreatePayload {
@@ -162,6 +168,19 @@ export interface CustomerCreatePayload {
   address?: string;
   phone?: string;
   email?: string;
+  customer_password?: string;
+}
+
+/** Datos editables del PERFIL PROPIO del cliente (modal "Mi perfil"). */
+export interface CustomerProfileUpdatePayload {
+  full_name?: string;
+  email?: string;
+  phone?: string | null;
+  address?: string | null;
+  dni?: string | null;
+  photo_url?: string | null;
+  /** Solo al cambiar contraseña: requerida si la cuenta ya tiene una. */
+  current_password?: string;
   customer_password?: string;
 }
 

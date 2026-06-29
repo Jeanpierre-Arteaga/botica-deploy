@@ -1,12 +1,13 @@
 import image_botica_icono from '@/imports/botica_icono.jpeg'
 import { Link, useNavigate } from "react-router";
-import { Search, MapPin, Package, User, ShoppingCart, Menu, X, LogOut, Check, ChevronDown } from "lucide-react";
+import { Search, MapPin, Package, User, ShoppingCart, Menu, X, LogOut, Check, ChevronDown, UserCog } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
 import { useCart } from "../lib/CartContext";
 import { useLocations } from "../lib/LocationContext";
 import { UserMenu } from "./UserMenu";
+import { CustomerProfileModal } from "./CustomerProfileModal";
 import { AccessibilityMenu } from "./AccessibilityMenu";
 import { PrescriptionUpload } from "./PrescriptionUpload";
 import { ProductSearchAutocomplete } from "./ProductSearchAutocomplete";
@@ -20,6 +21,7 @@ export function Navbar() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const locationDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -59,12 +61,14 @@ export function Navbar() {
     <nav className="bg-surface border-b border-line">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-6">
-          {/* Logo */}
+          {/* Logo — a color sobre fondo claro. Escala progresiva: en móvil se
+              mantiene contenido para no desbordar la fila junto a los iconos;
+              en sm/desktop crece. object-contain para no deformarlo. */}
           <Link to="/" className="flex-shrink-0">
             <img
               src={image_botica_icono}
-              alt="Boticas Central BM"
-              className="h-14 md:h-16 w-auto"
+              alt="Boticas Central — Salud y ahorro"
+              className="h-14 sm:h-16 md:h-20 w-auto object-contain"
             />
           </Link>
 
@@ -166,7 +170,7 @@ export function Navbar() {
             {isCheckingSession ? (
               <div className="w-28 h-10 bg-surface-2 rounded-lg animate-pulse" />
             ) : user ? (
-              <UserMenu variant="light" />
+              <UserMenu variant="light" onOpenProfile={() => setProfileOpen(true)} />
             ) : (
               <Link
                 to="/login"
@@ -265,16 +269,25 @@ export function Navbar() {
                 </div>
               )}
 
-              {/* Mis Pedidos Mobile (solo customer) */}
+              {/* Mis Pedidos + Mi perfil Mobile (solo customer) */}
               {user?.role === 'cust' && (
-                <Link
-                  to="/mis-pedidos"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-muted hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
-                >
-                  <Package className="w-5 h-5" />
-                  <span>Mis Pedidos</span>
-                </Link>
+                <>
+                  <Link
+                    to="/mis-pedidos"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-muted hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <Package className="w-5 h-5" />
+                    <span>Mis Pedidos</span>
+                  </Link>
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); setProfileOpen(true); }}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-muted hover:bg-brand-soft rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <UserCog className="w-5 h-5" />
+                    <span>Mi perfil</span>
+                  </button>
+                </>
               )}
 
               {/* Login / Logout Mobile */}
@@ -283,9 +296,13 @@ export function Navbar() {
               ) : user ? (
                 <>
                   <div className="flex items-center gap-3 px-4 py-3 text-text">
-                    <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center font-semibold text-sm">
-                      {user.full_name.trim().charAt(0).toUpperCase() || '?'}
-                    </div>
+                    {user.photo_url ? (
+                      <img src={user.photo_url} alt="" className="w-9 h-9 rounded-full object-cover border border-line bg-surface" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center font-semibold text-sm">
+                        {user.full_name.trim().charAt(0).toUpperCase() || '?'}
+                      </div>
+                    )}
                     <span className="font-medium text-sm truncate">{user.full_name}</span>
                   </div>
                   <button
@@ -310,6 +327,11 @@ export function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Modal "Mi perfil" del cliente (portal a body, por encima del header) */}
+      {profileOpen && user?.role === 'cust' && (
+        <CustomerProfileModal onClose={() => setProfileOpen(false)} />
+      )}
     </nav>
   );
 }
