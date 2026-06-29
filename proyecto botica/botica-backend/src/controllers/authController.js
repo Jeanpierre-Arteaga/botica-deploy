@@ -28,8 +28,13 @@ const login = async (req, res) => {
 
     const user = result.rows[0];
 
-    // ¿Cuenta bloqueada todavía? → 423 con el tiempo restante.
-    if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
+    // El bloqueo por intentos aplica SOLO a staff ('emp'). El administrador ES
+    // quien restablece contraseñas: nunca se le cuenta ni se le bloquea, puede
+    // reintentar indefinidamente.
+    const enforceLockout = user.role === 'emp';
+
+    // ¿Cuenta bloqueada todavía? → 423 con el tiempo restante. (Solo staff.)
+    if (enforceLockout && user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
       const retry = Math.ceil((new Date(user.locked_until).getTime() - Date.now()) / 1000);
       return res.status(423).json({
         message: 'Demasiados intentos fallidos. Tu acceso está bloqueado temporalmente.',
@@ -41,6 +46,10 @@ const login = async (req, res) => {
     // Verificar contraseña
     const validPassword = await bcrypt.compare(user_password, user.user_password);
     if (!validPassword) {
+      // Admin: no se cuenta ni se bloquea. Mensaje simple, sin contador.
+      if (!enforceLockout) {
+        return res.status(401).json({ message: NEUTRAL });
+      }
       const failed = (user.failed_attempts || 0) + 1;
       if (failed >= MAX_ATTEMPTS) {
         // Tercer fallo → bloquear por LOCK_MINUTES.

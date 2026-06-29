@@ -73,6 +73,16 @@ const UserModel = {
     return result.rows[0];
   },
 
+  // Devuelve el hash bcrypt de la contraseña (para verificar identidad en el
+  // auto-cambio de contraseña del perfil). NO se expone en findById/findAll.
+  getPasswordHashById: async (id) => {
+    const result = await pool.query(
+      `SELECT user_password FROM users WHERE user_id = $1`,
+      [id]
+    );
+    return result.rows[0] ? result.rows[0].user_password : null;
+  },
+
   // Devuelve la URL de foto actual (para limpiar la anterior de S3 al reemplazar).
   getPhotoUrl: async (id) => {
     const result = await pool.query(`SELECT photo_url FROM users WHERE user_id = $1`, [id]);

@@ -6,6 +6,7 @@ const { todayInLima } = require('../utils/dates');
 const { processCardPayment } = require('../services/paymentService');
 const { buildVoucherPdf } = require('../services/voucherService');
 const { uploadBuffer } = require('../config/s3');
+const { rucError, billingNameError, sanitizeRuc } = require('../utils/billing');
 
 const VALID_ORDER_STATES = ['pendiente', 'en proceso', 'entregado', 'cancelado'];
 const VALID_DELIVERY_TYPES = ['delivery', 'pickup'];
@@ -133,6 +134,8 @@ const orderController = {
         payment: {
           payment_method: order.payment.payment_method,
           voucher_type: order.payment.voucher_type,
+          billing_ruc: order.payment.billing_ruc,
+          billing_name: order.payment.billing_name,
         },
       });
 
@@ -238,6 +241,8 @@ const orderController = {
       phone,
       payment_method,
       voucher_type,
+      billing_ruc,
+      billing_name,
       location_id,
       card_token,
       mp_payment_method_id,
@@ -268,6 +273,20 @@ const orderController = {
         message: `voucher_type inválido. Debe ser: ${VALID_VOUCHER_TYPES.join(', ')}.`,
       });
     }
+
+    // Datos fiscales: SOLO aplican a "factura" y se re-validan en backend (no se
+    // confía en el front). Para boleta/ticket quedan en NULL.
+    let billingRuc = null;
+    let billingName = null;
+    if (voucher_type === 'factura') {
+      const rErr = rucError(billing_ruc);
+      if (rErr) return res.status(400).json({ message: rErr });
+      const nErr = billingNameError(billing_name);
+      if (nErr) return res.status(400).json({ message: nErr });
+      billingRuc = sanitizeRuc(billing_ruc);
+      billingName = String(billing_name).trim();
+    }
+
     if (payment_method === 'tarjeta' && !card_token) {
       return res.status(400).json({ message: 'Token de tarjeta requerido.' });
     }
@@ -394,14 +413,17 @@ const orderController = {
       await client.query(
         `INSERT INTO payment
           (payment_method, total_price, voucher_type, email_pay, phone_pay,
+           billing_ruc, billing_name,
            mp_payment_id, mp_status, mp_status_detail, order_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           payment_method,
           total,
           voucher_type || null,
           payer_email || req.user.email || null,
           phone || null,
+          billingRuc,
+          billingName,
           mpResult ? mpResult.mp_payment_id : null,
           mpResult ? mpResult.status : null,
           mpResult ? mpResult.status_detail : null,

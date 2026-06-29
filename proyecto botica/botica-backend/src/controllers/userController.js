@@ -158,7 +158,27 @@ const userController = {
         return res.status(403).json({ message: 'Este endpoint es solo para personal.' });
       }
       const id = req.user.user_id;
-      const { full_name, user_code, user_password, photo_url } = req.body;
+      const { full_name, user_code, user_password, current_password, photo_url } = req.body;
+
+      // Auto-cambio de contraseña: verificar identidad con la CONTRASEÑA ACTUAL
+      // ANTES de tocar cualquier dato (bcrypt.compare). Esto NO aplica al reset
+      // del admin a terceros, que usa PATCH /users/:id/password (sin actual).
+      let newHashed = null;
+      if (user_password) {
+        if (String(user_password).length < 8) {
+          return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
+        }
+        if (!current_password) {
+          return res.status(400).json({ message: 'Ingresa tu contraseña actual para confirmar el cambio.' });
+        }
+        const currentHash = await UserModel.getPasswordHashById(id);
+        const ok = currentHash && await bcrypt.compare(String(current_password), currentHash);
+        if (!ok) {
+          return res.status(400).json({ message: 'La contraseña actual no es correcta.' });
+        }
+        const salt = await bcrypt.genSalt(10);
+        newHashed = await bcrypt.hash(String(user_password), salt);
+      }
 
       const data = {};
       if (full_name != null) {
@@ -184,14 +204,9 @@ const userController = {
         await UserModel.update(id, data);
       }
 
-      // Cambio de contraseña (opcional).
-      if (user_password) {
-        if (String(user_password).length < 8) {
-          return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres.' });
-        }
-        const salt = await bcrypt.genSalt(10);
-        const hashed = await bcrypt.hash(String(user_password), salt);
-        await UserModel.updatePassword(id, hashed);
+      // Cambio de contraseña (ya verificada y hasheada arriba).
+      if (newHashed) {
+        await UserModel.updatePassword(id, newHashed);
       }
 
       const usuario = await UserModel.findById(id);

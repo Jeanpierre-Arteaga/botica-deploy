@@ -118,6 +118,8 @@ export interface User {
 export interface ProfileUpdatePayload {
   full_name?: string;
   user_code?: string;
+  /** Solo al cambiar la contraseña propia: requerida para verificar identidad. */
+  current_password?: string;
   user_password?: string;
   photo_url?: string | null;
 }
@@ -356,6 +358,9 @@ export interface OrderCreatePayload {
   notes?: string;
   payment_method: PaymentMethod;
   voucher_type?: VoucherType;
+  // Datos fiscales: SOLO se envían cuando voucher_type === 'factura'.
+  billing_ruc?: string;
+  billing_name?: string;
   location_id: number;
 
   // Solo si payment_method === 'tarjeta' (lo genera el Card Payment Brick de MP)
@@ -400,6 +405,9 @@ export interface Payment {
   voucher_type: VoucherType | null;
   email_pay: string | null;
   phone_pay: string | null;
+  // Datos fiscales del cliente (solo si voucher_type === 'factura')
+  billing_ruc?: string | null;
+  billing_name?: string | null;
   order_id: number;
   // Campos MercadoPago (solo si payment_method === 'tarjeta')
   mp_payment_id?: string | null;

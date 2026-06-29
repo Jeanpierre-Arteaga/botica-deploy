@@ -143,9 +143,19 @@ function renderTicket(doc, data, geom, logoBuf) {
   dashed(doc, geom);
 
   // ---------- Cliente ----------
+  // En FACTURA, los datos fiscales (RUC + Razón social) encabezan el bloque y
+  // debajo se mantiene el nombre de contacto. En boleta/ticket solo nombre + DNI.
   doc.font('Courier').fontSize(7.5).fillColor(INK);
-  doc.text(`Cliente: ${data.customer?.full_name || '—'}`, x, doc.y, { width: w });
-  doc.text(`DNI: ${data.customer?.dni || '—'}`, x, doc.y, { width: w });
+  if (voucherType === 'factura' && (data.payment?.billing_ruc || data.payment?.billing_name)) {
+    doc.font('Courier-Bold').fontSize(7.5).fillColor(INK);
+    doc.text(`Razon social: ${data.payment.billing_name || '—'}`, x, doc.y, { width: w });
+    doc.text(`RUC: ${data.payment.billing_ruc || '—'}`, x, doc.y, { width: w });
+    doc.font('Courier').fontSize(7.5).fillColor(INK);
+    doc.text(`Contacto: ${data.customer?.full_name || '—'}`, x, doc.y, { width: w });
+  } else {
+    doc.text(`Cliente: ${data.customer?.full_name || '—'}`, x, doc.y, { width: w });
+    doc.text(`DNI: ${data.customer?.dni || '—'}`, x, doc.y, { width: w });
+  }
   const deliveryLabel =
     data.order.delivery_type === 'delivery' ? 'Delivery'
     : data.order.delivery_type === 'pickup' ? 'Recojo en sede'

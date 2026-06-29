@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/AuthContext";
+import { PasswordInput } from "./PasswordInput";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_PHOTO = 5 * 1024 * 1024; // 5 MB
@@ -37,7 +38,7 @@ function initials(name?: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "U";
 }
 
-type FieldKey = "full_name" | "user_code" | "password" | "confirm";
+type FieldKey = "full_name" | "user_code" | "current" | "password" | "confirm";
 
 export function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, applyUserPatch, logout } = useAuth();
@@ -46,6 +47,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [fullName, setFullName] = useState(user?.full_name ?? "");
   const [userCode, setUserCode] = useState(user?.user_code ?? "");
   const [changePwd, setChangePwd] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
@@ -85,11 +87,12 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     if (!userCode.trim()) e.user_code = "El email/acceso es obligatorio.";
     else if (!codeUnchangedLegacy && !EMAIL_RE.test(userCode.trim())) e.user_code = "Ingresa un email válido (ej. nombre@boticas.pe).";
     if (changePwd) {
+      if (!currentPwd) e.current = "Ingresa tu contraseña actual.";
       if (password.length < 8) e.password = "Mínimo 8 caracteres.";
       else if (confirm !== password) e.confirm = "Las contraseñas no coinciden.";
     }
     return e;
-  }, [fullName, userCode, codeUnchangedLegacy, changePwd, password, confirm]);
+  }, [fullName, userCode, codeUnchangedLegacy, changePwd, currentPwd, password, confirm]);
 
   const isValid = Object.keys(errors).length === 0;
   const showErr = (k: FieldKey) => ((submitAttempted || touched.has(k)) ? errors[k] : undefined);
@@ -137,7 +140,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       const updated = await api.users.updateMe({
         full_name: fullName.trim(),
         user_code: userCode.trim(),
-        ...(changePwd && password ? { user_password: password } : {}),
+        ...(changePwd && password ? { user_password: password, current_password: currentPwd } : {}),
         ...(photoChanged ? { photo_url: newPhotoUrl ?? null } : {}),
       });
 
@@ -235,15 +238,22 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             ) : (
               <div className="rounded-xl border border-line bg-page p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-text flex items-center gap-2"><KeyRound className="w-4 h-4 text-brand" /> Nueva contraseña</p>
-                  <button type="button" onClick={() => { setChangePwd(false); setPassword(""); setConfirm(""); }} className="text-xs font-semibold text-muted hover:text-error transition-colors">Cancelar</button>
+                  <p className="text-sm font-semibold text-text flex items-center gap-2"><KeyRound className="w-4 h-4 text-brand" /> Cambiar contraseña</p>
+                  <button type="button" onClick={() => { setChangePwd(false); setCurrentPwd(""); setPassword(""); setConfirm(""); }} className="text-xs font-semibold text-muted hover:text-error transition-colors">Cancelar</button>
                 </div>
                 <div>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => touch("password")} className={fieldCls(!!showErr("password"))} placeholder="Mínimo 8 caracteres" autoComplete="new-password" />
+                  <label className="block text-xs font-semibold mb-1 text-muted" htmlFor="pf-current">Contraseña actual</label>
+                  <PasswordInput id="pf-current" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} onBlur={() => touch("current")} inputClassName={fieldCls(!!showErr("current"))} placeholder="Tu contraseña actual" autoComplete="current-password" />
+                  <ErrText msg={showErr("current")} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-muted" htmlFor="pf-new">Nueva contraseña</label>
+                  <PasswordInput id="pf-new" value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => touch("password")} inputClassName={fieldCls(!!showErr("password"))} placeholder="Mínimo 8 caracteres" autoComplete="new-password" />
                   <ErrText msg={showErr("password")} />
                 </div>
                 <div>
-                  <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} onBlur={() => touch("confirm")} className={fieldCls(!!showErr("confirm"))} placeholder="Repite la contraseña" autoComplete="new-password" />
+                  <label className="block text-xs font-semibold mb-1 text-muted" htmlFor="pf-confirm">Repite la nueva contraseña</label>
+                  <PasswordInput id="pf-confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} onBlur={() => touch("confirm")} inputClassName={fieldCls(!!showErr("confirm"))} placeholder="Repite la nueva contraseña" autoComplete="new-password" />
                   <ErrText msg={showErr("confirm")} />
                 </div>
               </div>

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ArrowLeft, ArrowRight, Truck, Store, CreditCard, Banknote, Smartphone,
-  Building2, ShieldCheck, Package, Landmark, type LucideIcon,
+  Building2, ShieldCheck, Package, Landmark, CheckCircle2, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CardPayment } from '@mercadopago/sdk-react';
 import { api } from '../lib/api';
 import { ApiError } from '../lib/api';
+import { rucError, billingNameError, sanitizeRuc, isBillingValid } from '../lib/billing';
 import { useCart } from '../lib/CartContext';
 import { useAuth } from '../lib/AuthContext';
 import { useLocations } from '../lib/LocationContext';
@@ -70,10 +71,26 @@ export function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('tarjeta');
   const [voucherType, setVoucherType] = useState<VoucherType>('boleta');
 
+  // Datos fiscales (solo aplican a "factura"). Se limpian al cambiar de tipo.
+  const [billingRuc, setBillingRuc] = useState('');
+  const [billingName, setBillingName] = useState('');
+
   const [feedback, setFeedback] = useState<Feedback>({ kind: 'idle' });
 
   const shippingCost = deliveryType === 'pickup' ? 0 : (subtotal >= 50 ? 0 : 8);
   const total = subtotal + shippingCost;
+
+  // En boleta/ticket no hay datos fiscales que validar → siempre válido.
+  const billingValid = voucherType !== 'factura' || isBillingValid(billingRuc, billingName);
+
+  // Al salir de "factura" se ocultan y limpian los datos fiscales.
+  const handleVoucherChange = (v: VoucherType) => {
+    setVoucherType(v);
+    if (v !== 'factura') {
+      setBillingRuc('');
+      setBillingName('');
+    }
+  };
 
   useEffect(() => {
     // No redirigir mientras hay un flujo de pago en curso o un modal de
@@ -100,7 +117,8 @@ export function Checkout() {
       return phone.trim().length >= 9;
     }
     if (currentStep === 2) {
-      return !!paymentMethod;
+      // Con "factura", exige RUC + razón social válidos antes de continuar.
+      return !!paymentMethod && billingValid;
     }
     return true;
   };
@@ -133,6 +151,10 @@ export function Checkout() {
     notes,
     payment_method: paymentMethod,
     voucher_type: voucherType,
+    // Datos fiscales SOLO en factura (en otros comprobantes van ausentes/null).
+    ...(voucherType === 'factura'
+      ? { billing_ruc: sanitizeRuc(billingRuc), billing_name: billingName.trim() }
+      : {}),
     location_id: selectedLocation?.location_id ?? 0,
     ...extra,
   });
@@ -205,6 +227,10 @@ export function Checkout() {
       toast.error('Selecciona una sede primero.');
       return;
     }
+    if (!billingValid) {
+      toast.error('Completa los datos de facturación (RUC y razón social).');
+      return;
+    }
     const count = itemCount;
     setFeedback({ kind: 'processing', method: 'tarjeta' });
     try {
@@ -230,6 +256,10 @@ export function Checkout() {
   const handleManualPaymentSubmit = async () => {
     if (!selectedLocation?.location_id) {
       toast.error('Selecciona una sede primero.');
+      return;
+    }
+    if (!billingValid) {
+      toast.error('Completa los datos de facturación (RUC y razón social).');
       return;
     }
     const count = itemCount;
@@ -293,7 +323,11 @@ export function Checkout() {
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
                 voucherType={voucherType}
-                setVoucherType={setVoucherType}
+                setVoucherType={handleVoucherChange}
+                billingRuc={billingRuc}
+                setBillingRuc={setBillingRuc}
+                billingName={billingName}
+                setBillingName={setBillingName}
               />
             )}
             {currentStep === 3 && (
@@ -306,6 +340,8 @@ export function Checkout() {
                   notes={notes}
                   paymentMethod={paymentMethod}
                   voucherType={voucherType}
+                  billingRuc={billingRuc}
+                  billingName={billingName}
                   customer={user}
                   location={selectedLocation}
                 />
@@ -541,10 +577,17 @@ interface StepPagoProps {
   setPaymentMethod: (v: PaymentMethod) => void;
   voucherType: VoucherType;
   setVoucherType: (v: VoucherType) => void;
+  billingRuc: string;
+  setBillingRuc: (v: string) => void;
+  billingName: string;
+  setBillingName: (v: string) => void;
 }
 
 function StepPago(props: StepPagoProps) {
-  const { paymentMethod, setPaymentMethod, voucherType, setVoucherType } = props;
+  const {
+    paymentMethod, setPaymentMethod, voucherType, setVoucherType,
+    billingRuc, setBillingRuc, billingName, setBillingName,
+  } = props;
 
   const methods: { id: PaymentMethod; label: string; icon: LucideIcon; desc: string }[] = [
     { id: 'tarjeta', label: 'Tarjeta de crédito/débito', icon: CreditCard, desc: 'Visa, Mastercard, Amex' },
@@ -617,6 +660,135 @@ function StepPago(props: StepPagoProps) {
             </button>
           );
         })}
+      </div>
+
+      {/* Datos fiscales: aparecen solo con "Factura", con entrada suave. */}
+      {voucherType === 'factura' && (
+        <BillingFields
+          ruc={billingRuc}
+          setRuc={setBillingRuc}
+          name={billingName}
+          setName={setBillingName}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Datos fiscales para "Factura" (RUC + Razón social)
+// ============================================================
+// Validación en vivo (sin servicios externos): el error aparece al salir del
+// campo y se actualiza mientras se corrige. RUC: 11 dígitos + prefijo válido +
+// dígito verificador (módulo 11). Razón social: texto libre que escribe el
+// usuario. Orden pedido: primero RUC, luego Razón social.
+function BillingFields({
+  ruc,
+  setRuc,
+  name,
+  setName,
+}: {
+  ruc: string;
+  setRuc: (v: string) => void;
+  name: string;
+  setName: (v: string) => void;
+}) {
+  const [rucTouched, setRucTouched] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+
+  const rucErr = rucError(ruc);
+  const nameErr = billingNameError(name);
+  const rucOk = rucErr === null;
+
+  const showRucErr = rucTouched && rucErr;
+  const showNameErr = nameTouched && nameErr;
+
+  return (
+    <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4 animate-fade-in-up">
+      <h4 className="font-semibold text-text mb-1 flex items-center gap-2">
+        <Building2 size={16} className="text-secondary-brand" />
+        Datos de facturación
+      </h4>
+      <p className="text-xs text-muted mb-4">
+        Necesarios para emitir la factura a nombre de tu empresa.
+      </p>
+
+      <div className="space-y-4">
+        {/* 1 · RUC */}
+        <div>
+          <label htmlFor="billing-ruc" className="block text-sm font-medium text-text mb-1">
+            RUC <span className="text-error">*</span>
+          </label>
+          <div className="relative">
+            <input
+              id="billing-ruc"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={ruc}
+              onChange={(e) => setRuc(sanitizeRuc(e.target.value))}
+              onBlur={() => setRucTouched(true)}
+              maxLength={11}
+              placeholder="20512345678"
+              aria-invalid={!!showRucErr}
+              aria-describedby="billing-ruc-help billing-ruc-error"
+              className={`w-full h-11 px-3 pr-10 border rounded-md tabular-nums tracking-wide focus:outline-none focus:ring-2 ${
+                showRucErr
+                  ? 'border-error focus:ring-error/40'
+                  : 'border-line focus:ring-brand'
+              }`}
+            />
+            {rucOk && ruc.length === 11 && (
+              <CheckCircle2
+                size={20}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-success"
+                aria-hidden="true"
+              />
+            )}
+          </div>
+          {showRucErr ? (
+            <p id="billing-ruc-error" className="mt-1 text-xs text-error" role="alert">
+              {rucErr}
+            </p>
+          ) : (
+            <p id="billing-ruc-help" className="mt-1 text-xs text-muted">
+              Ingresa el RUC de 11 dígitos de la empresa.
+            </p>
+          )}
+        </div>
+
+        {/* 2 · Razón social */}
+        <div>
+          <label htmlFor="billing-name" className="block text-sm font-medium text-text mb-1">
+            Razón social <span className="text-error">*</span>
+          </label>
+          <input
+            id="billing-name"
+            type="text"
+            autoComplete="organization"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => setNameTouched(true)}
+            maxLength={200}
+            placeholder="Mi Empresa S.A.C."
+            aria-invalid={!!showNameErr}
+            aria-describedby="billing-name-help billing-name-error"
+            className={`w-full h-11 px-3 border rounded-md focus:outline-none focus:ring-2 ${
+              showNameErr
+                ? 'border-error focus:ring-error/40'
+                : 'border-line focus:ring-brand'
+            }`}
+          />
+          {showNameErr ? (
+            <p id="billing-name-error" className="mt-1 text-xs text-error" role="alert">
+              {nameErr}
+            </p>
+          ) : (
+            <p id="billing-name-help" className="mt-1 text-xs text-muted">
+              Nombre legal de la empresa, tal como figura en SUNAT.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -816,12 +988,17 @@ interface StepResumenProps {
   notes: string;
   paymentMethod: PaymentMethod;
   voucherType: VoucherType;
+  billingRuc: string;
+  billingName: string;
   customer: NonNullable<ReturnType<typeof useAuth>['user']>;
   location: ReturnType<typeof useLocations>['selectedLocation'];
 }
 
 function StepResumen(props: StepResumenProps) {
-  const { items, deliveryType, address, phone, notes, paymentMethod, voucherType, customer, location } = props;
+  const {
+    items, deliveryType, address, phone, notes, paymentMethod, voucherType,
+    billingRuc, billingName, customer, location,
+  } = props;
 
   const paymentLabels: Record<PaymentMethod, string> = {
     tarjeta: 'Tarjeta',
@@ -862,6 +1039,18 @@ function StepResumen(props: StepResumenProps) {
           <p className="text-xs text-muted mb-1">Pago</p>
           <p className="font-semibold text-text">{paymentLabels[paymentMethod]}</p>
           <p className="text-sm text-muted capitalize">Comprobante: {voucherType}</p>
+          {voucherType === 'factura' && (
+            <div className="mt-2 pt-2 border-t border-line text-sm">
+              <p className="text-text">
+                <span className="text-muted">RUC: </span>
+                <span className="font-medium tabular-nums">{billingRuc}</span>
+              </p>
+              <p className="text-text">
+                <span className="text-muted">Razón social: </span>
+                <span className="font-medium">{billingName}</span>
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

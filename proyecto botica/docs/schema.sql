@@ -239,6 +239,10 @@ CREATE TABLE payment (
     mp_payment_id    VARCHAR(50),
     mp_status        VARCHAR(50),
     mp_status_detail VARCHAR(100),
+    -- Datos fiscales del cliente cuando voucher_type = 'factura' (NULL en otros
+    -- comprobantes). billing_ruc: RUC de 11 dígitos; billing_name: razón social.
+    billing_ruc      VARCHAR(11),
+    billing_name     VARCHAR(200),
     order_id         INTEGER NOT NULL UNIQUE,
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
