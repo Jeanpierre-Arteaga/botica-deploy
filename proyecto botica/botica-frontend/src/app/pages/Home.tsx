@@ -570,7 +570,7 @@ export function Home() {
                 · tarjeta promo (der, ~40%) → countdown + CTA a Mamá & Bebé
               La imagen izquierda se auto-detecta (ver homeImages.ts):
                 · src/assets/home/promo-wide.webp */}
-          <div className="mt-4 md:mt-5">
+          <div className="mt-8 md:mt-12 mb-4 md:mb-6">
             <PromoImageRow
               left={{
                 img: "promo-wide",

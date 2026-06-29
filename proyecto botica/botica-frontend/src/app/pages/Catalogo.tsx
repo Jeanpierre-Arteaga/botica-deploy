@@ -11,6 +11,8 @@ import { ProductCard } from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { Container } from "../components/Container";
 import { PageHeader } from "../components/PageHeader";
+import { FilterSelect } from "../components/FilterSelect";
+import { PriceRangeSlider } from "../components/PriceRangeSlider";
 import { api } from "../lib/api";
 import { useLocations } from "../lib/LocationContext";
 import type {
@@ -21,6 +23,16 @@ import type {
 } from "../lib/types";
 
 type SortKey = "relevance" | "price-asc" | "price-desc" | "name";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "relevance", label: "Relevancia" },
+  { value: "price-asc", label: "Precio: menor a mayor" },
+  { value: "price-desc", label: "Precio: mayor a menor" },
+  { value: "name", label: "Nombre A-Z" },
+];
+
+const formatPrice = (n: number) =>
+  `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 function readFilters(searchParams: URLSearchParams): ProductFilters {
   const nombre = searchParams.get("nombre")?.trim() || undefined;
@@ -64,6 +76,20 @@ export function Catalogo() {
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Rango de precio (client-side). El TOPE es DINÁMICO: el precio del producto
+  // más caro del conjunto actualmente filtrado por el backend (categoría, lab,
+  // oferta, búsqueda, sede). Cuando cambia ese conjunto, el rango se resetea al
+  // máximo nuevo (lo hace el handler del fetch, en el mismo batch que
+  // setProductos, para no filtrar con un rango viejo durante un frame).
+  const maxPrice = useMemo(
+    () =>
+      Math.ceil(
+        productos.reduce((m, p) => Math.max(m, Number(p.product_price) || 0), 0),
+      ),
+    [productos],
+  );
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
+
   // Cargar categorías y laboratorios una sola vez
   useEffect(() => {
     Promise.all([api.categories.getAll(), api.laboratories.getAll()])
@@ -91,12 +117,19 @@ export function Catalogo() {
       .then((data) => {
         if (cancelled) return;
         setProductos(data);
+        // Resetea el rango de precio al tope de la nueva sección, en el mismo
+        // batch que setProductos (sin frame intermedio con rango desajustado).
+        const mp = Math.ceil(
+          data.reduce((m, p) => Math.max(m, Number(p.product_price) || 0), 0),
+        );
+        setPriceRange(mp > 0 ? [0, mp] : null);
       })
       .catch((err) => {
         if (cancelled) return;
         console.error("Error cargando productos:", err);
         setProductsError("No se pudieron cargar los productos.");
         setProductos([]);
+        setPriceRange(null);
       })
       .finally(() => {
         if (!cancelled) setIsLoadingProducts(false);
@@ -115,13 +148,21 @@ export function Catalogo() {
     reloadKey,
   ]);
 
-  // Filtro extra client-side: solo con stock
+  // Filtros extra client-side: stock disponible + rango de precio
   const productosVisibles = useMemo(() => {
-    const arr = onlyInStock
+    let arr = onlyInStock
       ? productos.filter(
           (p) => p.current_stock === undefined || p.current_stock > 0,
         )
       : productos;
+
+    if (priceRange) {
+      const [lo, hi] = priceRange;
+      arr = arr.filter((p) => {
+        const price = Number(p.product_price) || 0;
+        return price >= lo && price <= hi;
+      });
+    }
 
     const sorted = [...arr];
     if (sortBy === "price-asc") {
@@ -136,7 +177,7 @@ export function Catalogo() {
       );
     }
     return sorted;
-  }, [productos, onlyInStock, sortBy]);
+  }, [productos, onlyInStock, sortBy, priceRange]);
 
   const updateParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -148,17 +189,29 @@ export function Catalogo() {
     setSearchParams(next, { replace: true });
   };
 
+  // Resetea el rango al máximo de la sección actual (slider "abierto del todo").
+  const resetPrice = () => setPriceRange(maxPrice > 0 ? [0, maxPrice] : null);
+
   const clearFilters = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
     setOnlyInStock(false);
+    resetPrice();
   };
+
+  // El rango de precio cuenta como filtro activo solo cuando se ha estrechado
+  // respecto a los límites completos [0, maxPrice].
+  const priceFilterActive =
+    priceRange != null &&
+    maxPrice > 0 &&
+    (priceRange[0] > 0 || priceRange[1] < maxPrice);
 
   const hasActiveFilters =
     !!filters.nombre ||
     filters.category_id !== undefined ||
     filters.laboratory_id !== undefined ||
     !!filters.is_offer ||
-    onlyInStock;
+    onlyInStock ||
+    priceFilterActive;
 
   const activeCategory = categorias.find(
     (c) => c.category_id === filters.category_id,
@@ -170,7 +223,11 @@ export function Catalogo() {
   // ============================================================
   // FILTERS PANEL — usado en desktop y mobile (drawer)
   // ============================================================
-  const FiltersPanel = ({ onApply }: { onApply?: () => void }) => (
+  // Se define como FUNCIÓN que devuelve JSX (no como componente inline) para que
+  // sus nodos se reconcilien en su sitio entre renders. Un componente definido
+  // dentro del cuerpo tendría una identidad nueva cada render y remontaría su
+  // subárbol, lo que rompería el arrastre del slider de precio.
+  const renderFiltersPanel = (onApply?: () => void) => (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <SlidersHorizontal className="w-5 h-5 text-brand" />
@@ -213,60 +270,106 @@ export function Catalogo() {
         </div>
       </div>
 
-      {/* Laboratorio */}
+      {/* Laboratorio — mismo patrón que Categoría: radios con scroll. La lista
+          viene del backend (tabla laboratory, orden alfabético) vía
+          api.laboratories.getAll(), así que los laboratorios nuevos aparecen
+          aquí automáticamente. Escala con una barra desplazadora. */}
       <div>
         <label className="block font-semibold mb-3 text-sm text-text">
           Laboratorio
         </label>
-        <select
-          value={filters.laboratory_id ?? ""}
-          onChange={(e) =>
-            updateParam(
-              "laboratory_id",
-              e.target.value === "" ? null : e.target.value,
-            )
-          }
-          className="w-full px-3 py-2.5 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand text-sm bg-surface text-text"
-        >
-          <option value="">Todos los laboratorios</option>
+        <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+          <label className="flex items-center gap-2 cursor-pointer text-sm py-1">
+            <input
+              type="radio"
+              name="lab"
+              checked={filters.laboratory_id === undefined}
+              onChange={() => updateParam("laboratory_id", null)}
+              className="accent-brand"
+            />
+            <span className="text-muted">Todos los laboratorios</span>
+          </label>
           {laboratorios.map((l) => (
-            <option key={l.laboratory_id} value={l.laboratory_id}>
-              {l.laboratory_name}
-            </option>
+            <label
+              key={l.laboratory_id}
+              className="flex items-center gap-2 cursor-pointer text-sm py-1"
+            >
+              <input
+                type="radio"
+                name="lab"
+                checked={filters.laboratory_id === l.laboratory_id}
+                onChange={() =>
+                  updateParam("laboratory_id", String(l.laboratory_id))
+                }
+                className="accent-brand"
+              />
+              <span className="text-text">{l.laboratory_name}</span>
+            </label>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Ofertas */}
-      <div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!filters.is_offer}
-            onChange={(e) =>
-              updateParam("is_offer", e.target.checked ? "true" : null)
-            }
-            className="accent-brand w-4 h-4"
+      {/* Precio — rango con TOPE DINÁMICO: el máximo es el precio del producto
+          más caro del conjunto filtrado actual (se recalcula al cambiar de
+          categoría/laboratorio/sede). */}
+      {maxPrice > 0 && priceRange && (
+        <div>
+          <label className="block font-semibold mb-3 text-sm text-text">
+            Precio
+          </label>
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span className="font-semibold text-brand">
+              {formatPrice(priceRange[0])}
+            </span>
+            <span className="font-semibold text-brand">
+              {formatPrice(priceRange[1])}
+            </span>
+          </div>
+          <PriceRangeSlider
+            min={0}
+            max={maxPrice}
+            value={priceRange}
+            onChange={setPriceRange}
           />
-          <span className="text-sm font-medium text-text">
-            Solo productos en oferta
-          </span>
-        </label>
-      </div>
+          <div className="flex items-center justify-between mt-1 text-xs text-faint">
+            <span>{formatPrice(0)}</span>
+            <span>{formatPrice(maxPrice)}</span>
+          </div>
+        </div>
+      )}
 
-      {/* Stock */}
+      {/* Disponibilidad — agrupa los dos toggles bajo un título de sección
+          coherente con "Categoría" / "Laboratorio". */}
       <div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={onlyInStock}
-            onChange={(e) => setOnlyInStock(e.target.checked)}
-            className="accent-brand w-4 h-4"
-          />
-          <span className="text-sm font-medium text-text">
-            Solo con stock disponible
-          </span>
-        </label>
+        <span className="block font-semibold mb-3 text-sm text-text">
+          Disponibilidad
+        </span>
+        <div className="space-y-2.5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!filters.is_offer}
+              onChange={(e) =>
+                updateParam("is_offer", e.target.checked ? "true" : null)
+              }
+              className="accent-brand w-4 h-4"
+            />
+            <span className="text-sm font-medium text-text">
+              Solo productos en oferta
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={onlyInStock}
+              onChange={(e) => setOnlyInStock(e.target.checked)}
+              className="accent-brand w-4 h-4"
+            />
+            <span className="text-sm font-medium text-text">
+              Solo con stock disponible
+            </span>
+          </label>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 pt-2 border-t border-line">
@@ -389,6 +492,19 @@ export function Catalogo() {
                 </button>
               </span>
             )}
+            {priceFilterActive && priceRange && (
+              <span className="inline-flex items-center gap-1.5 bg-surface border border-line text-text text-xs font-medium px-3 py-1.5 rounded-full">
+                {formatPrice(priceRange[0])} – {formatPrice(priceRange[1])}
+                <button
+                  type="button"
+                  onClick={resetPrice}
+                  aria-label="Quitar filtro de precio"
+                  className="text-faint hover:text-error"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
             <button
               type="button"
               onClick={clearFilters}
@@ -403,7 +519,7 @@ export function Catalogo() {
           {/* Sidebar Desktop */}
           <aside className="hidden lg:block lg:col-span-1">
             <div className="bg-surface rounded-2xl shadow-sm border border-line p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
-              <FiltersPanel />
+              {renderFiltersPanel()}
             </div>
           </aside>
 
@@ -427,20 +543,14 @@ export function Catalogo() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <label htmlFor="sort" className="text-sm text-muted">
-                  Ordenar
-                </label>
-                <select
-                  id="sort"
+                <span className="text-sm text-muted">Ordenar</span>
+                <FilterSelect
+                  ariaLabel="Ordenar productos"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand text-sm bg-surface"
-                >
-                  <option value="relevance">Relevancia</option>
-                  <option value="price-asc">Precio: menor a mayor</option>
-                  <option value="price-desc">Precio: mayor a menor</option>
-                  <option value="name">Nombre A-Z</option>
-                </select>
+                  onChange={setSortBy}
+                  options={SORT_OPTIONS}
+                  align="right"
+                />
               </div>
             </div>
 
@@ -522,7 +632,7 @@ export function Catalogo() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <FiltersPanel onApply={() => setMobileFiltersOpen(false)} />
+            {renderFiltersPanel(() => setMobileFiltersOpen(false))}
           </div>
         </div>
       )}
