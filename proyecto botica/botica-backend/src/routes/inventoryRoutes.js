@@ -11,5 +11,6 @@ router.post('/', verifyToken, verifyRole('admin'), inventoryController.create);
 router.put('/upsert', verifyToken, verifyRole('admin'), inventoryController.upsert);
 router.put('/:id', verifyToken, verifyRole('admin'), inventoryController.update);
 router.post('/transfer', verifyToken, verifyRole('admin'), inventoryController.transfer);
+router.post('/restock', verifyToken, verifyRole('admin'), inventoryController.restock);
 
 module.exports = router;

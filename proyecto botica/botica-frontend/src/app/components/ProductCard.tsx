@@ -10,7 +10,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
-  const { speak } = useVoiceReader();
+  const { speak, speakAction } = useVoiceReader();
 
   const hasStock =
     product.current_stock === undefined || product.current_stock > 0;
@@ -54,6 +54,9 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       to={`/producto/${product.product_id}`}
+      // Esta tarjeta lee su propio contenido rico (nombre + precio + stock);
+      // el lector global de controles ignora este subárbol para no duplicar.
+      data-voice-skip
       className="group rounded-2xl overflow-hidden flex flex-col h-full transition-all duration-300 hover:-translate-y-1"
       style={{
         backgroundColor: "var(--c-surface)",
@@ -90,7 +93,7 @@ export function ProductCard({ product }: ProductCardProps) {
               className="w-full h-full flex flex-col items-center justify-center gap-2"
               style={{ color: "var(--c-faint)" }}
             >
-              <Pill className="w-10 h-10" />
+              <Pill className="w-10 h-10" aria-hidden="true" />
               <span className="text-xs">Sin imagen</span>
             </div>
           )}
@@ -175,6 +178,11 @@ export function ProductCard({ product }: ProductCardProps) {
             type="button"
             disabled={!hasStock}
             onClick={handleAdd}
+            aria-label={
+              hasStock
+                ? `Agregar ${product.product_name} al carrito`
+                : `${product.product_name}: agotado`
+            }
             className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed"
             style={
               hasStock
@@ -193,6 +201,14 @@ export function ProductCard({ product }: ProductCardProps) {
               if (!hasStock) return;
               e.currentTarget.style.backgroundColor = "var(--c-brand)";
               e.currentTarget.style.color = "#fff";
+              // Anuncio de ACCIÓN (rol + nombre): "Agregar X al carrito, botón".
+              speakAction(`Agregar ${product.product_name} al carrito`);
+            }}
+            onFocus={(e) => {
+              // Evita que el onFocus del Link (que lee el producto) pise el
+              // anuncio de acción del botón.
+              e.stopPropagation();
+              if (hasStock) speakAction(`Agregar ${product.product_name} al carrito`);
             }}
             onMouseLeave={(e) => {
               if (!hasStock) return;
@@ -200,7 +216,7 @@ export function ProductCard({ product }: ProductCardProps) {
               e.currentTarget.style.color = "var(--c-brand)";
             }}
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart className="w-4 h-4" aria-hidden="true" />
             {hasStock ? "Agregar" : "Agotado"}
           </button>
         </div>

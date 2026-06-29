@@ -135,8 +135,15 @@ export function AccessibilityMenu({
   const toggleVoice = () => {
     const next = !voiceOn;
     setVoiceOn(next);
-    // Confirmación hablada al ENCENDER (acción explícita del usuario).
-    if (next) speakNow("Lectura por voz activada");
+    // Al ENCENDER: presentación/bienvenida hablada (un único control, sin
+    // botones de play/pausa). Al APAGAR: setVoiceOn(false) ya cancela
+    // cualquier lectura en curso (speechSynthesis.cancel()).
+    if (next) {
+      speakNow(
+        "Lectura por voz activada. Soy el asistente de voz de Boticas Central. " +
+          "Pasa el cursor o muévete con el teclado sobre los productos y botones para escucharlos."
+      );
+    }
   };
 
   const triggerStyles =
@@ -339,7 +346,7 @@ export function AccessibilityMenu({
                         className="block text-[11.5px] leading-snug"
                         style={{ color: "var(--c-muted)" }}
                       >
-                        Lee en voz alta productos y precios al pasar el cursor.
+                        Lee productos, precios y botones al pasar el cursor o enfocarlos.
                       </span>
                     </div>
                   </div>
@@ -386,6 +393,13 @@ export function AccessibilityMenu({
             opacity: 1;
             transform: scale(1) translateY(0);
           }
+        }
+        @keyframes a11yPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.75); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .a11y-no-motion { animation: none !important; }
         }
       `}</style>
     </div>

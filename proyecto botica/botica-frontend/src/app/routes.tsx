@@ -3,8 +3,12 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "./lib/AuthContext";
 import { CartProvider } from "./lib/CartContext";
 import { LocationProvider } from "./lib/LocationContext";
+import { AdminScopeProvider } from "./lib/AdminScopeContext";
+import { AdminNotificationsProvider } from "./lib/AdminNotificationsContext";
 import { RequireRole } from "./components/RequireRole";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { CookieConsent } from "./components/CookieConsent";
+import { VoiceHoverReader } from "./components/VoiceHoverReader";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { StoreAuthLayout } from "./layouts/StoreAuthLayout";
 import StaffLayout from "./layouts/StaffLayout";
@@ -38,6 +42,7 @@ import { LibroReclamaciones } from "./pages/LibroReclamaciones";
 import { Privacidad } from "./pages/legal/Privacidad";
 import { Terminos } from "./pages/legal/Terminos";
 import { Cookies } from "./pages/legal/Cookies";
+import { Seguridad } from "./pages/legal/Seguridad";
 import { Devoluciones } from "./pages/legal/Devoluciones";
 
 // ============================================================
@@ -70,6 +75,10 @@ function RootProviders() {
               },
             }}
           />
+          {/* Lector de voz GLOBAL de controles (respeta el toggle de a11y) */}
+          <VoiceHoverReader />
+          {/* Banner de cookies GLOBAL: aparece en cualquier página del sitio */}
+          <CookieConsent />
         </CartProvider>
       </LocationProvider>
     </AuthProvider>
@@ -124,6 +133,7 @@ export const router = createBrowserRouter([
           { path: "privacidad", Component: Privacidad },
           { path: "terminos", Component: Terminos },
           { path: "cookies", Component: Cookies },
+          { path: "seguridad", Component: Seguridad },
           { path: "devoluciones", Component: Devoluciones },
           { path: "*", Component: NotFound },
         ],
@@ -169,7 +179,11 @@ export const router = createBrowserRouter([
             path: "",
             element: (
               <RequireRole roles={["admin"]}>
-                <AdminLayout />
+                <AdminScopeProvider>
+                  <AdminNotificationsProvider>
+                    <AdminLayout />
+                  </AdminNotificationsProvider>
+                </AdminScopeProvider>
               </RequireRole>
             ),
             children: [

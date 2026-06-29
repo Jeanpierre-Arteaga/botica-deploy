@@ -14,7 +14,12 @@ const ProductModel = {
       if (v === false || v === 'false') return false;
       return null;
     };
-    const toStr = (v) => (v === undefined || v === null || v === '' ? null : String(v));
+    // Recorta espacios: " parace " → "parace" (antes rompía la búsqueda).
+    const toStr = (v) => {
+      if (v === undefined || v === null) return null;
+      const s = String(v).trim();
+      return s === '' ? null : s;
+    };
 
     const location_id   = toInt(filtros.location_id);
     const nombre        = toStr(filtros.nombre);
@@ -45,8 +50,16 @@ const ProductModel = {
          LEFT JOIN inventory  i   ON i.product_id    = p.product_id
                                   AND ($1::int IS NULL OR i.location_id = $1::int)
         WHERE ($6::boolean = true OR p.is_active = true)
-          AND ($2::text    IS NULL OR p.product_name      ILIKE '%' || $2::text || '%'
-                                   OR p.active_ingredient ILIKE '%' || $2::text || '%')
+          -- Búsqueda por NOMBRE, PRINCIPIO ACTIVO, CATEGORÍA y LABORATORIO.
+          -- Parcial (ILIKE %..%), insensible a mayúsculas Y a tildes (unaccent
+          -- en ambos lados). Antes solo cubría nombre + principio activo y era
+          -- sensible a acentos → "analgesicos"/"genfar" no devolvían nada.
+          AND ($2::text IS NULL OR (
+                 unaccent(p.product_name)                  ILIKE '%' || unaccent($2::text) || '%'
+              OR unaccent(COALESCE(p.active_ingredient,'')) ILIKE '%' || unaccent($2::text) || '%'
+              OR unaccent(COALESCE(c.category_name,''))     ILIKE '%' || unaccent($2::text) || '%'
+              OR unaccent(COALESCE(l.laboratory_name,''))   ILIKE '%' || unaccent($2::text) || '%'
+          ))
           AND ($3::int     IS NULL OR p.laboratory_id = $3::int)
           AND ($4::int     IS NULL OR p.category_id   = $4::int)
           AND ($5::boolean IS NULL OR p.is_offer      = $5::boolean)
@@ -78,6 +91,37 @@ const ProductModel = {
       [id, location_id]
     );
     return result.rows[0];
+  },
+
+  // Sugerencias para el autocompletado (dropdown). Mismo criterio de búsqueda
+  // que findAll (nombre/principio/categoría/laboratorio, parcial, sin tildes),
+  // pero ordenado por RELEVANCIA (coincidencia al inicio del nombre primero) y
+  // limitado (top N). Solo productos activos.
+  searchSuggestions: async (q, limit = 8) => {
+    const result = await pool.query(
+      `SELECT p.product_id, p.product_name, p.product_price, p.old_price,
+              p.is_offer, p.active_ingredient,
+              c.category_name,
+              l.laboratory_name,
+              img.url AS image_url
+         FROM product p
+         LEFT JOIN category   c   ON c.category_id   = p.category_id
+         LEFT JOIN laboratory l   ON l.laboratory_id = p.laboratory_id
+         LEFT JOIN image      img ON img.product_id  = p.product_id AND img.type = 'main'
+        WHERE p.is_active = true
+          AND (
+                 unaccent(p.product_name)                  ILIKE '%' || unaccent($1::text) || '%'
+              OR unaccent(COALESCE(p.active_ingredient,'')) ILIKE '%' || unaccent($1::text) || '%'
+              OR unaccent(COALESCE(c.category_name,''))     ILIKE '%' || unaccent($1::text) || '%'
+              OR unaccent(COALESCE(l.laboratory_name,''))   ILIKE '%' || unaccent($1::text) || '%'
+          )
+        ORDER BY
+          CASE WHEN unaccent(p.product_name) ILIKE unaccent($1::text) || '%' THEN 0 ELSE 1 END,
+          p.product_name ASC
+        LIMIT $2::int`,
+      [q, limit]
+    );
+    return result.rows;
   },
 
   checkStock: async (product_id, location_id) => {

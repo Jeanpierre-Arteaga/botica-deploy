@@ -1,6 +1,93 @@
 const pool = require('../config/db');
 
+// Espeja la regla de "pago confirmado" del frontend (lib/orderStatus.ts) y del
+// guard de getVoucher: define CUÁNDO el pago de un pedido está confirmado y, por
+// tanto, cuándo corresponde que el stock esté descontado.
+//   - tarjeta  → aprobada al crear (cualquier estado salvo 'pendiente')
+//   - efectivo → se cobra al entregar ('entregado')
+//   - manual (yape/plin/transferencia) → al validar el staff ('en proceso'+)
+function isPaymentConfirmed(order_state, payment_method) {
+  if (order_state === 'cancelado') return false;
+  if (payment_method === 'tarjeta') return order_state !== 'pendiente';
+  if (payment_method === 'efectivo') return order_state === 'entregado';
+  return order_state === 'en proceso' || order_state === 'entregado';
+}
+
 const OrderModel = {
+
+  isPaymentConfirmed,
+
+  // Punto ÚNICO de descuento/reposición de stock, IDEMPOTENTE vía la bandera
+  // orders.stock_discounted. DEBE invocarse DENTRO de una transacción (recibe el
+  // client) tras crear el pedido o cambiar su estado:
+  //   - confirmado y aún NO descontado → descuenta (valida disponibilidad; lanza
+  //     error .status=409 si falta stock) y marca la bandera.
+  //   - NO confirmado (p. ej. cancelado) y SÍ descontado → repone y desmarca.
+  //   - cualquier otro caso → noop.
+  // Atómico sobre inventory, respetando UNIQUE(product_id, location_id).
+  syncStock: async (client, orderId) => {
+    const ordRes = await client.query(
+      `SELECT o.order_id, o.order_state, o.location_id, o.stock_discounted,
+              pay.payment_method
+         FROM orders o
+         LEFT JOIN payment pay ON pay.order_id = o.order_id
+        WHERE o.order_id = $1
+          FOR UPDATE OF o`,
+      [orderId]
+    );
+    const ord = ordRes.rows[0];
+    if (!ord) throw new Error('Pedido no encontrado para sincronizar stock.');
+
+    const confirmed = isPaymentConfirmed(ord.order_state, ord.payment_method);
+    const details = (
+      await client.query(
+        `SELECT product_id, amount FROM order_detail WHERE order_id = $1`,
+        [orderId]
+      )
+    ).rows;
+
+    if (confirmed && !ord.stock_discounted) {
+      for (const d of details) {
+        if (!d.product_id) continue; // producto eliminado: no se descuenta
+        const upd = await client.query(
+          `UPDATE inventory
+              SET current_stock = current_stock - $1
+            WHERE product_id = $2 AND location_id = $3 AND current_stock >= $1
+          RETURNING current_stock`,
+          [d.amount, d.product_id, ord.location_id]
+        );
+        if (upd.rowCount === 0) {
+          const e = new Error(`Stock insuficiente para el producto ID ${d.product_id}.`);
+          e.status = 409;
+          throw e;
+        }
+      }
+      await client.query(
+        `UPDATE orders SET stock_discounted = true WHERE order_id = $1`,
+        [orderId]
+      );
+      return 'discounted';
+    }
+
+    if (!confirmed && ord.stock_discounted) {
+      for (const d of details) {
+        if (!d.product_id) continue;
+        await client.query(
+          `UPDATE inventory
+              SET current_stock = current_stock + $1
+            WHERE product_id = $2 AND location_id = $3`,
+          [d.amount, d.product_id, ord.location_id]
+        );
+      }
+      await client.query(
+        `UPDATE orders SET stock_discounted = false WHERE order_id = $1`,
+        [orderId]
+      );
+      return 'restored';
+    }
+
+    return 'noop';
+  },
 
   findAll: async (filtros = {}) => {
     // Se incluye el pago (método, tipo de comprobante y URL del voucher PDF)
@@ -12,6 +99,7 @@ const OrderModel = {
              c.full_name AS customer_name, c.dni,
              l.location_name,
              u.full_name AS employee_name,
+             (SELECT COUNT(*)::int FROM order_detail od WHERE od.order_id = o.order_id) AS detail_count,
              pay.payment_method,
              pay.voucher_type,
              pay.voucher_pdf_url
@@ -150,11 +238,12 @@ const OrderModel = {
         total_price += detail.unit_price * detail.amount;
       }
 
-      // Crear pedido
+      // Crear pedido. Esta vía descuenta stock de inmediato (más abajo), así que
+      // marca stock_discounted = true para que una cancelación posterior reponga.
       const orderResult = await client.query(
-        `INSERT INTO orders 
-          (order_state, delivery_type, order_date, total_price, customer_id, user_id, location_id)
-         VALUES ($1, $2, NOW(), $3, $4, $5, $6)
+        `INSERT INTO orders
+          (order_state, delivery_type, order_date, total_price, customer_id, user_id, location_id, stock_discounted)
+         VALUES ($1, $2, NOW(), $3, $4, $5, $6, true)
          RETURNING *`,
         [order_state, delivery_type, total_price, customer_id, user_id, location_id]
       );

@@ -72,11 +72,50 @@ const inventoryController = {
     }
   },
 
+  // POST /api/inventory/restock — suma stock a una sede y sella la fecha.
+  restock: async (req, res) => {
+    try {
+      const product_id = parseInt(req.body.product_id, 10);
+      const location_id = parseInt(req.body.location_id, 10);
+      const amount = parseInt(req.body.amount, 10);
+      if (!product_id || !location_id) {
+        return res.status(400).json({ message: 'Se requiere product_id y location_id.' });
+      }
+      if (!Number.isInteger(amount) || amount <= 0) {
+        return res.status(400).json({ message: 'La cantidad a reponer debe ser mayor a 0.' });
+      }
+      const item = await InventoryModel.restock({ product_id, location_id, amount });
+      res.json(item);
+    } catch (err) {
+      console.error('[inventory/restock]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
   transfer: async (req, res) => {
     try {
-      const result = await InventoryModel.transfer(req.body);
+      const product_id = parseInt(req.body.product_id, 10);
+      const from_location = parseInt(req.body.from_location, 10);
+      const to_location = parseInt(req.body.to_location, 10);
+      const amount = parseInt(req.body.amount, 10);
+
+      if (!product_id || !from_location || !to_location) {
+        return res.status(400).json({ message: 'Se requiere producto y ambas sedes.' });
+      }
+      if (from_location === to_location) {
+        return res.status(400).json({ message: 'La sede de origen y destino deben ser distintas.' });
+      }
+      if (!Number.isInteger(amount) || amount <= 0) {
+        return res.status(400).json({ message: 'La cantidad a transferir debe ser mayor a 0.' });
+      }
+
+      const result = await InventoryModel.transfer({ product_id, from_location, to_location, amount });
       res.json(result);
     } catch (err) {
+      // Errores de validación de negocio (p. ej. stock insuficiente) → 400.
+      if (err.status === 400) {
+        return res.status(400).json({ message: err.message });
+      }
       console.error('[inventory/transfer]', err);
       return res.status(500).json({ message: 'Error en el servidor.' });
     }

@@ -547,6 +547,19 @@ const products = {
     return data.map(normalizeProduct);
   },
 
+  /**
+   * GET /api/products/search?q= — sugerencias para el autocompletado (top N,
+   * ordenadas por relevancia). Busca nombre/principio/categoría/laboratorio,
+   * parcial y sin tildes. Devuelve [] con menos de 2 caracteres.
+   */
+  async search(q: string, limit = 8): Promise<Product[]> {
+    const data = await request<Product[]>('/products/search', {
+      query: { q, limit },
+      skipAuth: true,
+    });
+    return data.map(normalizeProduct);
+  },
+
   /** GET /api/products/:id — detalle público */
   async getById(product_id: number, location_id?: number): Promise<Product> {
     const data = await request<Product>(`/products/${product_id}`, {
@@ -863,6 +876,17 @@ const inventory = {
     return data.map(normalizeInventory);
   },
 
+  /**
+   * GET /api/inventory/low-stock — productos en o por debajo del mínimo,
+   * de TODAS las sedes (current_stock <= min_stock). Cada fila trae
+   * product_name y location_name. Lo consume la campana del admin para
+   * alertar stock crítico/bajo por sede.
+   */
+  async getLowStock(): Promise<InventoryItem[]> {
+    const data = await request<InventoryItem[]>('/inventory/low-stock');
+    return data.map(normalizeInventory);
+  },
+
   /** POST /api/inventory (admin) */
   async create(payload: Omit<InventoryItem, 'inventory_id'>): Promise<InventoryItem> {
     const data = await request<InventoryItem>('/inventory', { method: 'POST', body: payload });
@@ -890,6 +914,36 @@ const inventory = {
   }): Promise<InventoryItem> {
     const data = await request<InventoryItem>('/inventory/upsert', {
       method: 'PUT',
+      body: payload,
+    });
+    return normalizeInventory(data);
+  },
+
+  /**
+   * POST /api/inventory/transfer (admin) — mueve stock de una sede a otra
+   * de forma atómica (descuenta origen, suma destino). Falla con 400 si el
+   * origen no tiene stock suficiente o si las sedes coinciden.
+   */
+  transfer(payload: {
+    product_id: number;
+    from_location: number;
+    to_location: number;
+    amount: number;
+  }): Promise<{ message: string; product_id: number; amount: number }> {
+    return request('/inventory/transfer', { method: 'POST', body: payload });
+  },
+
+  /**
+   * POST /api/inventory/restock (admin) — suma stock a una sede y sella la
+   * fecha de última reposición (last_restock = NOW(), zona Lima).
+   */
+  async restock(payload: {
+    product_id: number;
+    location_id: number;
+    amount: number;
+  }): Promise<InventoryItem> {
+    const data = await request<InventoryItem>('/inventory/restock', {
+      method: 'POST',
       body: payload,
     });
     return normalizeInventory(data);

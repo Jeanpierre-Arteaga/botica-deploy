@@ -387,17 +387,6 @@ const orderController = {
            VALUES ($1, $2, $3, $4, $5)`,
           [it.amount, it.unit_price, it.sub_total, it.product_id, order.order_id]
         );
-
-        const stockUpd = await client.query(
-          `UPDATE inventory
-           SET current_stock = current_stock - $1
-           WHERE product_id = $2 AND location_id = $3 AND current_stock >= $1
-           RETURNING current_stock`,
-          [it.amount, it.product_id, location_id]
-        );
-        if (stockUpd.rowCount === 0) {
-          throw new Error(`Stock insuficiente para producto ${it.product_id}`);
-        }
       }
 
       // Payment: incluye campos MP si era tarjeta (la tabla payment fue ampliada
@@ -419,6 +408,12 @@ const orderController = {
           order.order_id,
         ]
       );
+
+      // Descuento de stock SOLO si el pago ya quedó confirmado (tarjeta aprobada
+      // → estado 'en proceso'). Para métodos manuales (yape/plin/transferencia,
+      // 'pendiente') y efectivo contra entrega ('en proceso', se cobra al
+      // entregar) NO se descuenta aún: se hará al validar/entregar. Idempotente.
+      await OrderModel.syncStock(client, order.order_id);
 
       await client.query('COMMIT');
 
@@ -527,26 +522,14 @@ const orderController = {
       );
       const newOrder = orderResult.rows[0];
 
-      // 2. Detalles + descuento de stock con validación atómica
+      // 2. Detalles del pedido
       for (const d of details) {
         const sub_total = Number(d.unit_price) * Number(d.amount);
-
         await client.query(
           `INSERT INTO order_detail (amount, unit_price, sub_total_price, product_id, order_id)
            VALUES ($1, $2, $3, $4, $5)`,
           [d.amount, d.unit_price, sub_total, d.product_id, newOrder.order_id]
         );
-
-        const stockUpd = await client.query(
-          `UPDATE inventory
-           SET current_stock = current_stock - $1
-           WHERE product_id = $2 AND location_id = $3 AND current_stock >= $1
-           RETURNING current_stock`,
-          [d.amount, d.product_id, location_id]
-        );
-        if (stockUpd.rowCount === 0) {
-          throw new Error(`Stock insuficiente para el producto ID ${d.product_id}.`);
-        }
       }
 
       // 3. Pago presencial
@@ -556,6 +539,12 @@ const orderController = {
          VALUES ($1, $2, $3, $4)`,
         [payment.payment_method, total, payment.voucher_type || 'ticket', newOrder.order_id]
       );
+
+      // 4. POS: la venta YA ocurrió (estado 'entregado') → el pago está
+      // confirmado, así que se descuenta el stock ahora (validando disponibilidad
+      // de forma atómica). Idempotente y marca stock_discounted para que una
+      // cancelación futura reponga correctamente.
+      await OrderModel.syncStock(client, newOrder.order_id);
 
       await client.query('COMMIT');
 
@@ -848,8 +837,31 @@ const orderController = {
       }
       // Staff/admin: cualquier transición permitida
 
-      // Actualizar SOLO el estado (no tocar user_id original)
-      await OrderModel.updateStatus(orderId, order_state);
+      // Transacción: cambia el estado y SINCRONIZA el stock en un solo paso.
+      //  - Validar pago manual (pendiente → en proceso) o entregar efectivo
+      //    (→ entregado): el pago queda confirmado → DESCUENTA stock.
+      //  - Cancelar un pedido ya descontado (→ cancelado): REPONE stock.
+      //  - Idempotente vía orders.stock_discounted (no doble descuento/reposición).
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `UPDATE orders SET order_state = $1 WHERE order_id = $2`,
+          [order_state, orderId]
+        );
+        await OrderModel.syncStock(client, orderId);
+        await client.query('COMMIT');
+      } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (_) { /* noop */ }
+        // Stock insuficiente al validar el pago → 409 claro para el staff.
+        if (e && e.status === 409) {
+          return res.status(409).json({ message: e.message });
+        }
+        throw e;
+      } finally {
+        client.release();
+      }
+
       // Devolvemos el pedido COMPLETO (cliente, entrega, productos, pago) para
       // que el frontend no se quede con datos parciales tras la acción.
       const fullOrder = await OrderModel.findById(orderId);
@@ -905,7 +917,7 @@ const orderController = {
         });
       }
 
-      // 2. Transacción: cancelar + restaurar stock
+      // 2. Transacción: cancelar + (si corresponde) restaurar stock.
       await client.query('BEGIN');
 
       await client.query(
@@ -913,22 +925,10 @@ const orderController = {
         [orderId]
       );
 
-      const detailsResult = await client.query(
-        `SELECT product_id, amount FROM order_detail WHERE order_id = $1`,
-        [orderId]
-      );
-
-      for (const detail of detailsResult.rows) {
-        // product_id puede ser NULL si el producto fue eliminado: en ese caso no se restaura.
-        if (detail.product_id) {
-          await client.query(
-            `UPDATE inventory
-             SET current_stock = current_stock + $1
-             WHERE product_id = $2 AND location_id = $3`,
-            [detail.amount, detail.product_id, order.location_id]
-          );
-        }
-      }
+      // Repone stock SOLO si el pedido YA lo había descontado (idempotente).
+      // Un pedido manual aún 'pendiente' (sin validar) no descontó nada → no se
+      // toca el inventario.
+      await OrderModel.syncStock(client, orderId);
 
       await client.query('COMMIT');
 
@@ -1033,21 +1033,9 @@ const orderController = {
         [req.user.user_id, String(reason).trim(), orderId]
       );
 
-      const detailsResult = await client.query(
-        `SELECT product_id, amount FROM order_detail WHERE order_id = $1`,
-        [orderId]
-      );
-
-      for (const detail of detailsResult.rows) {
-        if (detail.product_id) {
-          await client.query(
-            `UPDATE inventory
-             SET current_stock = current_stock + $1
-             WHERE product_id = $2 AND location_id = $3`,
-            [detail.amount, detail.product_id, order.location_id]
-          );
-        }
-      }
+      // Repone stock si el pedido lo había descontado (tarjeta aprobada siempre
+      // descuenta al crear). Idempotente vía orders.stock_discounted.
+      await OrderModel.syncStock(client, orderId);
 
       await client.query('COMMIT');
 

@@ -20,8 +20,10 @@ function handleUpload(req, res, next) {
   });
 }
 
-// Lectura pública (catálogo)
+// Lectura pública (catálogo). /search y /stock van ANTES de /:id para que la
+// ruta paramétrica no los capture.
 router.get('/', productController.getAll);
+router.get('/search', productController.search);
 router.get('/stock', productController.checkStock);
 router.get('/:id', productController.getById);
 

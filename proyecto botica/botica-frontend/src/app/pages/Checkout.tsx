@@ -45,10 +45,13 @@ const PAY_INFO = {
 };
 
 // Máquina de estados de la retroalimentación post-pago.
+// En 'success' guardamos un SNAPSHOT del pedido (order + itemCount) y, para
+// tarjeta, la URL del comprobante ya generado, para que el cuadro de éxito no
+// dependa del carrito (que se vacía recién al salir de la confirmación).
 type Feedback =
   | { kind: 'idle' }
   | { kind: 'processing'; method: PaymentMethod }
-  | { kind: 'success'; order: Order; method: PaymentMethod; itemCount: number }
+  | { kind: 'success'; order: Order; method: PaymentMethod; itemCount: number; voucherUrl: string | null }
   | { kind: 'error'; title: string; message: string; canRetry: boolean };
 
 export function Checkout() {
@@ -74,7 +77,8 @@ export function Checkout() {
 
   useEffect(() => {
     // No redirigir mientras hay un flujo de pago en curso o un modal de
-    // resultado abierto (en éxito el carrito ya se vació a propósito).
+    // resultado abierto: en éxito el carrito sigue lleno (se vacía recién al
+    // salir con leave()), así el fondo del cuadro no se ve vaciándose.
     if (feedback.kind !== 'idle') return;
     if (isEmpty) {
       toast.error('Tu carrito está vacío');
@@ -179,7 +183,23 @@ export function Checkout() {
     };
   };
 
+  // Pre-genera el comprobante MIENTRAS sigue visible el "Procesando…", para
+  // que el botón del cuadro de éxito solo lo ABRA (sin una segunda carga).
+  // Si la generación falla, no bloquea el éxito: el botón lo pedirá al hacer
+  // click. Devuelve la URL del comprobante o null.
+  const prefetchVoucher = async (order: Order): Promise<string | null> => {
+    if (order.payment?.voucher_pdf_url) return order.payment.voucher_pdf_url;
+    try {
+      const res = await api.orders.getVoucher(order.order_id);
+      return res.voucher_pdf_url;
+    } catch {
+      return null;
+    }
+  };
+
   // Submit cuando el Card Brick devuelve el token (pago inmediato con MP).
+  // NO se vacía el carrito aquí: el fondo del cuadro de éxito debe quedar
+  // estable. El carrito se limpia recién al salir de la confirmación (leave()).
   const handleCardPaymentSubmit = async (formData: any) => {
     if (!selectedLocation?.location_id) {
       toast.error('Selecciona una sede primero.');
@@ -197,14 +217,16 @@ export function Checkout() {
           payer_identification: formData.payer?.identification,
         })
       );
-      clear();
-      setFeedback({ kind: 'success', order, method: 'tarjeta', itemCount: count });
+      // Seguimos en "Procesando…" mientras el comprobante se genera.
+      const voucherUrl = await prefetchVoucher(order);
+      setFeedback({ kind: 'success', order, method: 'tarjeta', itemCount: count, voucherUrl });
     } catch (err) {
       setFeedback(toErrorFeedback(err));
     }
   };
 
-  // Submit para métodos manuales (yape/plin/efectivo/transferencia)
+  // Submit para métodos manuales (yape/plin/efectivo/transferencia).
+  // Sin comprobante hasta que el staff valide el pago (voucherUrl = null).
   const handleManualPaymentSubmit = async () => {
     if (!selectedLocation?.location_id) {
       toast.error('Selecciona una sede primero.');
@@ -214,11 +236,16 @@ export function Checkout() {
     setFeedback({ kind: 'processing', method: paymentMethod });
     try {
       const order = await api.orders.create(buildOrderPayload());
-      clear();
-      setFeedback({ kind: 'success', order, method: paymentMethod, itemCount: count });
+      setFeedback({ kind: 'success', order, method: paymentMethod, itemCount: count, voucherUrl: null });
     } catch (err) {
       setFeedback(toErrorFeedback(err));
     }
+  };
+
+  // Salir de la confirmación: AHORA sí vaciamos el carrito y navegamos.
+  const leave = (path: string) => {
+    clear();
+    navigate(path);
   };
 
   const handleRetry = () => {
@@ -392,9 +419,10 @@ export function Checkout() {
           order={feedback.order}
           method={feedback.method}
           itemCount={feedback.itemCount}
-          onGoToOrder={() => navigate(`/mis-pedidos/${feedback.order.order_id}`)}
-          onKeepShopping={() => navigate('/catalogo')}
-          onClose={() => navigate(`/mis-pedidos/${feedback.order.order_id}`)}
+          voucherUrl={feedback.voucherUrl}
+          onGoToOrder={() => leave(`/mis-pedidos/${feedback.order.order_id}`)}
+          onKeepShopping={() => leave('/catalogo')}
+          onClose={() => leave(`/mis-pedidos/${feedback.order.order_id}`)}
         />
       )}
 

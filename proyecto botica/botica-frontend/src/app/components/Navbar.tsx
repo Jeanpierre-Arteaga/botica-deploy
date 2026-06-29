@@ -1,7 +1,7 @@
 import image_botica_icono from '@/imports/botica_icono.jpeg'
 import { Link, useNavigate } from "react-router";
 import { Search, MapPin, Package, User, ShoppingCart, Menu, X, LogOut, Check, ChevronDown } from "lucide-react";
-import { useState, useRef, useEffect, FormEvent } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../lib/AuthContext";
 import { useCart } from "../lib/CartContext";
@@ -9,6 +9,8 @@ import { useLocations } from "../lib/LocationContext";
 import { UserMenu } from "./UserMenu";
 import { AccessibilityMenu } from "./AccessibilityMenu";
 import { PrescriptionUpload } from "./PrescriptionUpload";
+import { ProductSearchAutocomplete } from "./ProductSearchAutocomplete";
+import type { Product } from "../lib/types";
 
 export function Navbar() {
   const { user, isCheckingSession, logout } = useAuth();
@@ -18,7 +20,6 @@ export function Navbar() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
-  const [query, setQuery] = useState("");
 
   const locationDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -40,14 +41,15 @@ export function Navbar() {
     toast.success('Sesión cerrada correctamente.');
   };
 
-  const handleSearch = (e: FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (q) {
-      navigate(`/catalogo?nombre=${encodeURIComponent(q)}`);
-      setQuery("");
-      setMobileMenuOpen(false);
-    }
+  // Sugerencia elegida → ficha del producto. Enter sin selección → catálogo
+  // filtrado por el término (búsqueda completa).
+  const goToProduct = (p: Product) => {
+    navigate(`/producto/${p.product_id}`);
+    setMobileMenuOpen(false);
+  };
+  const goToSearch = (q: string) => {
+    navigate(`/catalogo?nombre=${encodeURIComponent(q)}`);
+    setMobileMenuOpen(false);
   };
 
   const locationLabel =
@@ -66,25 +68,16 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Busca medicamentos, vitaminas, cuidado personal..."
-                className="w-full pl-4 pr-12 py-3 rounded-lg border border-line focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all bg-surface text-sm"
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand text-white rounded-md hover:bg-brand-hover transition-colors"
-                aria-label="Buscar"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
-          </form>
+          {/* Search Bar - Desktop (autocompletado con sugerencias) */}
+          <div className="hidden md:flex flex-1 max-w-xl">
+            <ProductSearchAutocomplete
+              className="w-full"
+              placeholder="Busca medicamentos, vitaminas, cuidado personal..."
+              onSelect={goToProduct}
+              onSubmitQuery={goToSearch}
+              clearOnSelect
+            />
+          </div>
 
           {/* Right Actions - Desktop */}
           <div className="hidden md:flex items-center gap-2">
@@ -223,25 +216,16 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Search Bar - Mobile */}
-        <form onSubmit={handleSearch} className="md:hidden mt-3">
-          <div className="relative">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar medicamentos..."
-              className="w-full pl-4 pr-12 py-3 rounded-lg border border-line focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all bg-surface text-sm"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-brand text-white rounded-md hover:bg-brand-hover transition-colors"
-              aria-label="Buscar"
-            >
-              <Search className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </form>
+        {/* Search Bar - Mobile (autocompletado con sugerencias) */}
+        <div className="md:hidden mt-3">
+          <ProductSearchAutocomplete
+            className="w-full"
+            placeholder="Buscar medicamentos..."
+            onSelect={goToProduct}
+            onSubmitQuery={goToSearch}
+            clearOnSelect
+          />
+        </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (

@@ -15,6 +15,7 @@ import {
   useMemo,
 } from 'react';
 import { toast } from 'sonner';
+import { announce } from './announce';
 import type { Product } from './types';
 
 // ============================================================
@@ -123,6 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           );
         }
         toast.success(`Cantidad actualizada en el carrito`);
+        announce(`${product.product_name}: cantidad actualizada a ${newAmount} en el carrito`);
         return prev.map((i) =>
           i.product_id === product.product_id ? { ...i, amount: newAmount } : i
         );
@@ -130,6 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Agregar nuevo item
       toast.success(`${product.product_name} agregado al carrito`);
+      announce(`${product.product_name} agregado al carrito`);
       const newItem: CartItem = {
         product_id: product.product_id,
         product_name: product.product_name,
@@ -187,6 +190,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const item = prev.find((i) => i.product_id === product_id);
       if (item) {
         toast.info(`${item.product_name} eliminado del carrito`);
+        announce(`${item.product_name} eliminado del carrito`);
       }
       return prev.filter((i) => i.product_id !== product_id);
     });

@@ -310,6 +310,8 @@ export interface Order {
   // Datos del user que registró (del JOIN, solo en walk-in):
   user_full_name?: string | null;
   employee_name?: string | null;
+  /** Nº de líneas de detalle del pedido (subquery en findAll; para "Prod."). */
+  detail_count?: number;
   // Campos de entrega:
   delivery_address?: string | null;
   delivery_phone?: string | null;
@@ -415,6 +417,14 @@ export interface InventoryItem {
   location_id: number;
   product_name?: string;
   location_name?: string;
+  /** URL de la imagen 'main' del producto (para la miniatura en alertas). */
+  image_url?: string | null;
+  /** Categoría del producto (JOIN en findAll). */
+  category_name?: string | null;
+  /** Principio activo del producto (JOIN en findAll). */
+  active_ingredient?: string | null;
+  /** Fecha de la última reposición en esa sede (NULL si nunca). */
+  last_restock?: string | null;
 }
 
 

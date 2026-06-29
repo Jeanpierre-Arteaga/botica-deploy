@@ -3,23 +3,31 @@
 // ============================================================
 // Reutiliza el lenguaje visual del modal de éxito del panel staff
 // (anillo de check, badge de pedido, filas de resumen, total en
-// naranja) adaptado al cliente y DIFERENCIADO por tipo de pago:
+// naranja) adaptado al cliente. El TÍTULO es UNIFICADO para todos los
+// métodos ("¡Pedido registrado!"); que la tarjeta se aprobó se muestra
+// como dato SECUNDARIO (badge verde "Pago aprobado" en el resumen).
 //
 //  - ProcessingOverlay   → overlay de carga ("Procesando tu pago…")
-//  - PaymentSuccessModal → éxito. Variante TARJETA (pago confirmado,
-//      ofrece generar/descargar comprobante) vs. MANUAL (pedido
-//      registrado, pendiente de validación, SIN comprobante).
+//  - PaymentSuccessModal → éxito. TARJETA: comprobante YA disponible
+//      (se generó durante el "Procesando…"), el botón solo lo ABRE —
+//      sin una segunda animación. MANUAL: pendiente de validación del
+//      staff, SIN comprobante.
 //  - PaymentErrorModal   → error claro con opción de reintentar.
 //
-// Accesibilidad: role/aria-modal, cierre con Escape (salvo durante
-// la carga), foco inicial en la acción primaria.
+// IMPORTANTE (posición): todos los cuadros se renderizan con PORTAL al
+// <body>, position:fixed cubriendo el viewport y z-index por ENCIMA del
+// header sticky (z-1100). Se bloquea el scroll del body mientras están
+// abiertos y, si el contenido es alto, el modal hace scroll interno.
+//
+// Accesibilidad: role/aria-modal, cierre con Escape (salvo durante la
+// carga), foco inicial en la acción primaria (sin saltar el scroll).
 // ============================================================
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Check,
   Receipt,
-  FileText,
   Download,
   Package,
   ShoppingBag,
@@ -27,6 +35,7 @@ import {
   XCircle,
   RotateCcw,
   X,
+  BadgeCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, ApiError } from '../../lib/api';
@@ -43,7 +52,7 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 };
 
 // ============================================================
-// Shell de modal centrado (backdrop + Escape + foco)
+// Shell de modal centrado (portal + backdrop + Escape + foco)
 // ============================================================
 
 function ModalShell({
@@ -61,6 +70,7 @@ function ModalShell({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Cierre con Escape (salvo durante la carga).
   useEffect(() => {
     if (!dismissable || !onClose) return;
     const onKey = (e: KeyboardEvent) => {
@@ -70,24 +80,35 @@ function ModalShell({
     return () => window.removeEventListener('keydown', onKey);
   }, [dismissable, onClose]);
 
+  // Bloquear el scroll del body mientras el modal está abierto.
   useEffect(() => {
-    // Foco inicial dentro del modal (acción primaria si existe).
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // Foco inicial dentro del modal (acción primaria) SIN mover el scroll.
+  useEffect(() => {
     const node = panelRef.current;
     if (!node) return;
     const target =
       node.querySelector<HTMLElement>('[data-autofocus]') ||
       node.querySelector<HTMLElement>('button, a[href]');
-    target?.focus();
+    target?.focus({ preventScroll: true });
   }, []);
 
-  return (
+  // Portal al <body>: escapa del header sticky / contenedores con transform
+  // y queda SIEMPRE fijo y centrado en el viewport, sin importar el scroll.
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto"
       onClick={dismissable ? onClose : undefined}
     >
       <div
         ref={panelRef}
-        className="bg-surface rounded-2xl shadow-pop max-w-sm w-full p-6 text-center animate-fade-in-up"
+        className="bg-surface rounded-2xl shadow-pop max-w-sm w-full p-6 text-center animate-fade-in-up my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         role={busy ? 'alertdialog' : 'dialog'}
         aria-modal="true"
@@ -96,7 +117,8 @@ function ModalShell({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -129,17 +151,21 @@ function SummaryRow({
   label,
   value,
   capitalize = false,
+  children,
 }: {
   label: string;
-  value: string;
+  value?: string;
   capitalize?: boolean;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="flex justify-between gap-3 text-sm px-4 py-2.5">
+    <div className="flex justify-between items-center gap-3 text-sm px-4 py-2.5">
       <span className="text-muted shrink-0">{label}</span>
-      <span className={`text-right font-medium text-text truncate ${capitalize ? 'capitalize' : ''}`}>
-        {value}
-      </span>
+      {children ?? (
+        <span className={`text-right font-medium text-text truncate ${capitalize ? 'capitalize' : ''}`}>
+          {value}
+        </span>
+      )}
     </div>
   );
 }
@@ -149,11 +175,14 @@ function OrderSummaryCard({
   method,
   itemCount,
   voucherType,
+  paymentApproved,
 }: {
   order: Order;
   method: PaymentMethod;
   itemCount: number;
   voucherType: VoucherType;
+  /** Solo tarjeta: el cargo fue aprobado → se muestra como dato secundario. */
+  paymentApproved?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-line overflow-hidden text-left mb-5">
@@ -161,6 +190,13 @@ function OrderSummaryCard({
         <SummaryRow label="Productos" value={`${itemCount} ${itemCount === 1 ? 'ítem' : 'ítems'}`} />
         <SummaryRow label="Método" value={PAYMENT_LABELS[method]} />
         <SummaryRow label="Comprobante" value={voucherType} capitalize />
+        {paymentApproved && (
+          <SummaryRow label="Estado de pago">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success bg-success-soft border border-success/30 rounded-full px-2.5 py-1">
+              <BadgeCheck size={13} /> Pago aprobado
+            </span>
+          </SummaryRow>
+        )}
       </div>
       <div className="flex items-center justify-between bg-surface-2 border-t border-line px-4 py-3">
         <span className="font-semibold text-text">Total</span>
@@ -204,6 +240,7 @@ export function PaymentSuccessModal({
   order,
   method,
   itemCount,
+  voucherUrl,
   onGoToOrder,
   onKeepShopping,
   onClose,
@@ -211,6 +248,8 @@ export function PaymentSuccessModal({
   order: Order;
   method: PaymentMethod;
   itemCount: number;
+  /** Tarjeta: URL del comprobante YA generado durante el "Procesando…". */
+  voucherUrl: string | null;
   onGoToOrder: () => void;
   onKeepShopping: () => void;
   onClose: () => void;
@@ -218,57 +257,42 @@ export function PaymentSuccessModal({
   const voucherType = (order.payment?.voucher_type as VoucherType) || 'boleta';
   const isCard = method === 'tarjeta';
 
-  // Generación del comprobante (solo tarjeta): mismo patrón del staff
-  // ("Generando boleta…" con animación mínima de ~3 s) → ver/descargar.
-  const [phase, setPhase] = useState<'idle' | 'generating' | 'ready'>('idle');
-  const [voucherUrl, setVoucherUrl] = useState<string | null>(
-    order.payment?.voucher_pdf_url || null
-  );
+  // Plan B: si por alguna razón el comprobante no llegó pre-generado, el
+  // botón lo pide en el momento (spinner EN el botón, NO una segunda
+  // pantalla de carga). En el flujo normal `voucherUrl` ya viene listo.
+  const [url, setUrl] = useState<string | null>(voucherUrl);
+  const [opening, setOpening] = useState(false);
 
-  async function handleGenerate() {
-    setPhase('generating');
+  async function openVoucher() {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setOpening(true);
     try {
-      const [, res] = await Promise.all([
-        new Promise((r) => setTimeout(r, 3000)),
-        api.orders.getVoucher(order.order_id),
-      ]);
-      setVoucherUrl(res.voucher_pdf_url);
-      setPhase('ready');
+      const res = await api.orders.getVoucher(order.order_id);
+      setUrl(res.voucher_pdf_url);
+      window.open(res.voucher_pdf_url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       const msg =
         err instanceof ApiError
           ? (err.body as { message?: string })?.message || err.message
-          : 'Error al generar el comprobante';
+          : 'No se pudo abrir el comprobante';
       toast.error(msg);
-      setPhase('idle');
+    } finally {
+      setOpening(false);
     }
   }
 
-  // Mientras se genera la boleta: pantalla de carga dedicada y no cerrable.
-  if (phase === 'generating') {
-    return (
-      <ModalShell label={`Generando ${voucherType}`} dismissable={false} busy>
-        <div className="py-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-soft flex items-center justify-center">
-            <div className="w-9 h-9 border-[3px] border-brand border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-lg font-bold text-text capitalize">Generando {voucherType}…</p>
-          <p className="text-sm text-muted mt-1">Preparando tu comprobante en PDF</p>
-        </div>
-      </ModalShell>
-    );
-  }
-
   return (
-    <ModalShell label={isCard ? 'Pago realizado' : 'Pedido registrado'} onClose={onClose}>
+    <ModalShell label="Pedido registrado" onClose={onClose}>
       <SuccessCheck />
 
-      <h2 className="text-xl font-bold text-text">
-        {isCard ? '¡Pago realizado!' : '¡Pedido registrado!'}
-      </h2>
+      {/* Título UNIFICADO para TODOS los métodos (incluida tarjeta). */}
+      <h2 className="text-xl font-bold text-text">¡Pedido registrado!</h2>
       <p className="text-sm text-muted mt-1">
         {isCard
-          ? 'Tu pedido fue confirmado y ya lo estamos preparando.'
+          ? 'Tu pago fue aprobado y ya estamos preparando tu pedido.'
           : 'Hemos recibido tu pedido correctamente.'}
       </p>
 
@@ -279,52 +303,44 @@ export function PaymentSuccessModal({
         method={method}
         itemCount={itemCount}
         voucherType={voucherType}
+        paymentApproved={isCard}
       />
 
       {isCard ? (
-        // --- TARJETA: comprobante disponible ---
-        phase === 'ready' && voucherUrl ? (
-          <div className="space-y-2">
+        // --- TARJETA: comprobante disponible, el botón solo lo abre ---
+        <div className="space-y-2.5">
+          {url ? (
             <a
-              href={voucherUrl}
+              href={url}
               target="_blank"
               rel="noopener noreferrer"
               data-autofocus
-              className="inline-flex w-full items-center justify-center gap-2 h-12 px-6 rounded-xl bg-brand text-white font-semibold shadow-soft hover:bg-brand-hover active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              className="inline-flex w-full items-center justify-center gap-2 h-12 px-6 rounded-xl bg-brand text-white font-semibold text-base shadow-soft hover:bg-brand-hover active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
               <Download size={18} /> Ver / Descargar comprobante
             </a>
-            <div className="flex gap-2">
-              <Button variant="secondary" fullWidth iconLeft={Package} onClick={onGoToOrder}>
-                Mis pedidos
-              </Button>
-              <Button variant="ghost" fullWidth iconLeft={ShoppingBag} onClick={onKeepShopping}>
-                Seguir comprando
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
+          ) : (
             <Button
               variant="primary"
               size="lg"
               fullWidth
-              iconLeft={FileText}
+              iconLeft={Download}
+              loading={opening}
               data-autofocus
-              onClick={handleGenerate}
+              onClick={openVoucher}
             >
               Ver / Descargar comprobante
             </Button>
-            <div className="flex gap-2">
-              <Button variant="secondary" fullWidth iconLeft={Package} onClick={onGoToOrder}>
-                Mis pedidos
-              </Button>
-              <Button variant="ghost" fullWidth iconLeft={ShoppingBag} onClick={onKeepShopping}>
-                Seguir comprando
-              </Button>
-            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" iconLeft={Package} onClick={onGoToOrder}>
+              Mis pedidos
+            </Button>
+            <Button variant="secondary" iconLeft={ShoppingBag} onClick={onKeepShopping}>
+              Seguir comprando
+            </Button>
           </div>
-        )
+        </div>
       ) : (
         // --- MANUAL: pendiente de validación, SIN comprobante ---
         <div className="space-y-4">
@@ -356,7 +372,7 @@ export function PaymentSuccessModal({
             >
               Ir a Mis pedidos
             </Button>
-            <Button variant="ghost" fullWidth iconLeft={ShoppingBag} onClick={onKeepShopping}>
+            <Button variant="secondary" fullWidth iconLeft={ShoppingBag} onClick={onKeepShopping}>
               Seguir comprando
             </Button>
           </div>

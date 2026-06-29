@@ -1,174 +1,158 @@
-import { Outlet, Link, useLocation } from "react-router";
-import { Home, Package, Warehouse, ShoppingBag, Users, BarChart3, Bell } from "lucide-react";
-import { useState } from "react";
-import { NotificationPanel } from "../components/NotificationPanel";
-import { UserMenu } from "../components/UserMenu";
-import { AccessibilityMenu } from "../components/AccessibilityMenu";
-import { useAuth } from "../lib/AuthContext";
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router';
+import {
+  Home,
+  Package,
+  Warehouse,
+  ShoppingBag,
+  Users,
+  BarChart3,
+  LogOut,
+  Store,
+  Menu,
+  X,
+  CalendarDays,
+  MapPin,
+} from 'lucide-react';
+import { useAuth } from '../lib/AuthContext';
+import { useAdminScope } from '../lib/AdminScopeContext';
+import { AccessibilityMenu } from '../components/AccessibilityMenu';
+import { AdminNotificationsBell } from '../components/AdminNotificationsBell';
+import { formatLimaDate } from '../lib/dates';
+
+/**
+ * Mismo logo de marca que el panel de personal. El archivo vive en
+ * `botica-frontend/public/`. El PNG trae aire blanco propio, así que el
+ * recuadro lleva altura fija + object-cover para recortarlo (idéntico a staff).
+ */
+const LOGO_SRC = '/logo-botica.png';
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof Home;
+}
+
+const menuSections: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'GENERAL',
+    items: [{ to: '/admin/dashboard', label: 'Dashboard', icon: Home }],
+  },
+  {
+    label: 'INVENTARIO',
+    items: [
+      { to: '/admin/productos', label: 'Gestión de Productos', icon: Package },
+      { to: '/admin/stock', label: 'Control de Stock', icon: Warehouse },
+    ],
+  },
+  {
+    label: 'OPERACIONES',
+    items: [
+      { to: '/admin/pedidos', label: 'Pedidos Web', icon: ShoppingBag },
+      { to: '/admin/usuarios', label: 'Gestión de Usuarios', icon: Users },
+    ],
+  },
+  {
+    label: 'REPORTES',
+    items: [{ to: '/admin/reportes', label: 'Ventas y Rotación', icon: BarChart3 }],
+  },
+];
+
+const allItems = menuSections.flatMap((s) => s.items);
 
 export function AdminLayout() {
+  const { user, logout, getInitial } = useAuth();
+  const { scopeLabel } = useAdminScope();
   const location = useLocation();
-  const { user, getInitial } = useAuth();
-  const [activeBranch, setActiveBranch] = useState<"both" | "ate" | "santa-anita">("both");
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: "1",
-      type: "warning" as const,
-      title: "Stock crítico",
-      message: "Paracetamol 500mg tiene solo 5 unidades en Ate",
-      time: "Hace 5 min",
-      read: false,
-    },
-    {
-      id: "2",
-      type: "order" as const,
-      title: "Nuevo pedido web",
-      message: "Pedido #0045 recibido - S/ 145.50",
-      time: "Hace 15 min",
-      read: false,
-    },
-    {
-      id: "3",
-      type: "success" as const,
-      title: "Reposición completada",
-      message: "Vitamina C 1000mg - Santa Anita",
-      time: "Hace 1 hora",
-      read: false,
-    },
-    {
-      id: "4",
-      type: "info" as const,
-      title: "Reporte mensual disponible",
-      message: "El reporte de ventas de marzo está listo",
-      time: "Hace 2 horas",
-      read: true,
-    },
-    {
-      id: "5",
-      type: "warning" as const,
-      title: "Usuario inactivo",
-      message: "Luis Mendoza no ha iniciado sesión en 7 días",
-      time: "Hace 3 horas",
-      read: true,
-    },
-  ]);
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Reloj/fecha en hora de Perú (refresca cada minuto).
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handleLogout = () => {
+    logout();
+    navigate('/admin', { replace: true });
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const menuSections = [
-    {
-      label: "GENERAL",
-      items: [
-        { path: "/admin/dashboard", icon: Home, label: "Dashboard" },
-      ],
-    },
-    {
-      label: "INVENTARIO",
-      items: [
-        { path: "/admin/productos", icon: Package, label: "Gestión de Productos" },
-        { path: "/admin/stock", icon: Warehouse, label: "Control de Stock" },
-      ],
-    },
-    {
-      label: "OPERACIONES",
-      items: [
-        { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos Web" },
-        { path: "/admin/usuarios", icon: Users, label: "Gestión de Usuarios" },
-      ],
-    },
-    {
-      label: "REPORTES",
-      items: [
-        { path: "/admin/reportes", icon: BarChart3, label: "Ventas y Rotación" },
-      ],
-    },
-  ];
-
-  const today = new Date();
-  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const dateStr = `${days[today.getDay()]} ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  // Título de la sección activa (para la topbar). startsWith cubre los
+  // detalles anidados (p. ej. /admin/pedidos/:id).
+  const activeItem = allItems.find((i) => location.pathname.startsWith(i.to));
+  const sectionTitle = activeItem?.label ?? 'Panel administrativo';
 
   return (
-    <div className="flex h-screen bg-page">
-      {/* Left Sidebar */}
-      <aside className="w-[296px] bg-ink flex flex-col border-r border-white/5 shadow-[8px_0_32px_-16px_rgba(15,23,42,0.45)]">
-        {/* Logo */}
-        <div className="px-6 py-6 border-b border-white/[0.07]">
-          <img
-            src="/src/imports/Gemini_Generated_Image_o2t61no2t61no2t6-1.png"
-            alt="Boticas Central"
-            className="h-16 w-auto"
-          />
+    <div className="min-h-screen flex bg-page">
+      {/* ============================================================
+          SIDEBAR DESKTOP — navy, altura completa y fijo. La navegación
+          scrollea de forma independiente para que el pie (ir a la web /
+          cerrar sesión) quede SIEMPRE visible.
+          ============================================================ */}
+      <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-ink text-white h-screen sticky top-0">
+        {/* Logo sobre chip blanco ajustado (mismo patrón que staff) */}
+        <div className="px-3 py-2.5 border-b border-white/10">
+          <Link
+            to="/admin/dashboard"
+            className="flex items-center justify-center h-16 rounded-xl bg-white shadow-sm overflow-hidden transition-transform hover:scale-[1.02]"
+            aria-label="Ir al inicio del panel"
+          >
+            <img
+              src={LOGO_SRC}
+              alt="Boticas Central — Salud y ahorro"
+              className="w-full h-full object-cover object-center"
+            />
+          </Link>
         </div>
 
-        {/* Owner Info */}
-        <div className="px-5 py-5 border-b border-white/[0.07]">
-          <div className="flex items-center gap-3 mb-3.5">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-hover flex items-center justify-center text-white font-bold text-lg shadow-[0_4px_14px_-2px_rgba(241,90,41,0.5)] ring-2 ring-white/10">
+        {/* Identidad del admin: nombre, rol y alcance "Ambas sedes" */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-full bg-brand text-white flex items-center justify-center font-bold">
               {getInitial()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm truncate leading-tight">
+              <p className="text-white font-semibold text-sm truncate">
                 {user?.full_name ?? '—'}
               </p>
-              <p className="text-slate-400 text-xs mt-0.5">Panel administrativo</p>
+              <p className="text-slate-400 text-xs">Administrador</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="text-[11px] bg-brand/15 text-brand border border-brand/25 px-2.5 py-1 rounded-full font-semibold">
-              Administrador
-            </span>
-            <span className="text-[11px] bg-success/15 text-emerald-300 border border-success/25 px-2.5 py-1 rounded-full font-semibold">
-              Ambas sedes
+          <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
+            <MapPin size={14} className="shrink-0 text-brand" />
+            <span className="text-[11px] font-medium text-slate-200 truncate">
+              {scopeLabel}
             </span>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-5 overflow-y-auto scrollbar-none">
-          {menuSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="mb-5 last:mb-0">
-              <p className="text-slate-500 text-[10px] font-bold mb-2 px-3.5 uppercase tracking-[0.14em]">
+        {/* Navegación agrupada (scrollea independiente) */}
+        <nav className="flex-1 overflow-y-auto scroll-navy p-4 space-y-5">
+          {menuSections.map((section) => (
+            <div key={section.label}>
+              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                 {section.label}
               </p>
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
                   return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
-                        isActive
-                          ? 'bg-gradient-to-r from-brand/[0.22] via-brand/[0.08] to-transparent text-white ring-1 ring-inset ring-brand/20'
-                          : 'text-slate-300 hover:bg-brand/[0.10] hover:text-white'
-                      }`}
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                          isActive
+                            ? 'bg-brand text-white font-medium'
+                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                        }`
+                      }
                     >
-                      {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-brand shadow-[0_0_12px_rgba(241,90,41,0.7)]" />
-                      )}
-                      <Icon
-                        className={`w-[18px] h-[18px] flex-shrink-0 transition-colors ${
-                          isActive ? 'text-brand' : 'text-slate-400 group-hover:text-brand'
-                        }`}
-                      />
-                      <span className={`text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                        {item.label}
-                      </span>
-                    </Link>
+                      <Icon size={18} className="shrink-0" />
+                      {item.label}
+                    </NavLink>
                   );
                 })}
               </div>
@@ -176,92 +160,230 @@ export function AdminLayout() {
           ))}
         </nav>
 
-        {/* Bottom Section */}
-        <div className="px-5 py-4 border-t border-white/[0.07]">
-          <p className="text-slate-500 text-xs">Última sesión: 20 Abr · 09:00 AM</p>
+        {/* Pie fijo: ir a la web + cerrar sesión (idéntico a staff) */}
+        <div className="p-3 border-t border-white/10 space-y-1">
+          <Link
+            to="/"
+            aria-label="Ir a la tienda (web pública)"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+          >
+            <Store size={18} className="shrink-0" />
+            Ir a la web
+          </Link>
+          <button
+            onClick={handleLogout}
+            aria-label="Cerrar sesión"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-error/15 hover:text-[#FCA5A5] transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+          >
+            <LogOut size={18} className="shrink-0" />
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-[#1E293B] h-16 flex items-center justify-between px-6">
-          <h1 className="font-bold text-lg text-white">
-            {menuSections.flatMap(s => s.items).find(item => item.path === location.pathname)?.label || 'Panel Administrativo'}
-          </h1>
-
-          <div className="flex items-center gap-4">
-            {/* Branch Toggle */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveBranch("both")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  activeBranch === "both"
-                    ? 'bg-brand text-white'
-                    : 'bg-[#0F172A] text-gray-300 hover:text-white'
-                }`}
-              >
-                Ambas sedes
-              </button>
-              <button
-                onClick={() => setActiveBranch("ate")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  activeBranch === "ate"
-                    ? 'bg-brand text-white'
-                    : 'bg-[#0F172A] text-gray-300 hover:text-white'
-                }`}
-              >
-                Ate
-              </button>
-              <button
-                onClick={() => setActiveBranch("santa-anita")}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  activeBranch === "santa-anita"
-                    ? 'bg-brand text-white'
-                    : 'bg-[#0F172A] text-gray-300 hover:text-white'
-                }`}
-              >
-                Santa Anita
-              </button>
+      {/* ============================================================
+          COLUMNA DE CONTENIDO
+          ============================================================ */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Topbar desktop — superficie clara con sección, selector de sede,
+            accesibilidad, campana y fecha de Lima */}
+        <header
+          className="hidden lg:flex sticky top-0 z-20 items-center justify-between gap-4 h-16 px-6 border-b border-line"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--c-surface) 88%, transparent)',
+            backdropFilter: 'saturate(180%) blur(8px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(8px)',
+          }}
+        >
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-faint leading-none">
+              Panel administrativo
+            </p>
+            <div className="text-lg font-bold text-text leading-tight truncate">
+              {sectionTitle}
             </div>
+          </div>
 
-            {/* Accesibilidad */}
-            <AccessibilityMenu variant="dark" />
-
-            {/* Notifications */}
-            <button
-              onClick={() => setShowNotifications(true)}
-              className="relative p-2 hover:bg-[#0F172A] rounded-full transition-colors"
-            >
-              <Bell className="w-5 h-5 text-white" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-brand text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Date */}
-            <span className="text-white text-sm">{dateStr}</span>
-
-            <UserMenu variant="dark" showName={false} />
+          <div className="flex items-center gap-2">
+            <SedeSegmented />
+            <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-line bg-page px-3 py-1.5 text-xs font-medium text-muted">
+              <CalendarDays size={14} className="text-brand" />
+              {formatLimaDate(now)}
+            </span>
+            <AccessibilityMenu variant="light" align="right" />
+            <AdminNotificationsBell />
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto">
+        {/* Header móvil — claro, con logo en chip + acciones */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-2.5 bg-surface border-b border-line">
+          <Link
+            to="/admin/dashboard"
+            className="rounded-lg bg-white px-2.5 py-1.5 shadow-sm"
+          >
+            <img src={LOGO_SRC} alt="Boticas Central" className="h-7 w-auto" />
+          </Link>
+          <div className="flex items-center gap-1">
+            <AccessibilityMenu variant="light" align="right" />
+            <AdminNotificationsBell />
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir menú"
+              className="flex items-center justify-center w-10 h-10 rounded-xl text-ink-2 hover:bg-line-2 transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* Selector de sede en móvil (la topbar desktop ya lo tiene) */}
+        <div className="lg:hidden px-4 py-2.5 bg-surface border-b border-line overflow-x-auto">
+          <SedeSegmented />
+        </div>
+
+        {/* Área de contenido con fondo de puntos sutil (igual que staff) */}
+        <main className="flex-1 bg-app-canvas">
           <Outlet />
         </main>
       </div>
 
-      {/* Notification Panel */}
-      <NotificationPanel
-        isOpen={showNotifications}
-        onClose={() => setShowNotifications(false)}
-        notifications={notifications}
-        onMarkAsRead={handleMarkAsRead}
-        onMarkAllAsRead={handleMarkAllAsRead}
-      />
+      {/* ============================================================
+          DRAWER MÓVIL
+          ============================================================ */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setSidebarOpen(false)}
+        >
+          <aside
+            className="w-72 max-w-[85%] h-full bg-ink text-white flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2">
+              <div className="rounded-lg bg-white px-2.5 py-1.5 shadow-sm">
+                <img src={LOGO_SRC} alt="Boticas Central" className="h-7 w-auto" />
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Cerrar menú"
+                className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Identidad */}
+            <div className="p-4 border-b border-white/10">
+              <p className="text-white font-semibold text-sm truncate">
+                {user?.full_name ?? '—'}
+              </p>
+              <p className="text-slate-400 text-xs">Administrador</p>
+              <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
+                <MapPin size={14} className="shrink-0 text-brand" />
+                <span className="text-[11px] font-medium text-slate-200 truncate">
+                  {scopeLabel}
+                </span>
+              </div>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto scroll-navy p-4 space-y-5">
+              {menuSections.map((section) => (
+                <div key={section.label}>
+                  <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                    {section.label}
+                  </p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setSidebarOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                              isActive
+                                ? 'bg-brand text-white font-medium'
+                                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                            }`
+                          }
+                        >
+                          <Icon size={18} className="shrink-0" />
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            <div className="p-3 border-t border-white/10 space-y-1">
+              <Link
+                to="/"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Ir a la tienda (web pública)"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <Store size={18} className="shrink-0" />
+                Ir a la web
+              </Link>
+              <button
+                onClick={() => {
+                  setSidebarOpen(false);
+                  handleLogout();
+                }}
+                aria-label="Cerrar sesión"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-error/15 hover:text-[#FCA5A5] transition-colors"
+              >
+                <LogOut size={18} className="shrink-0" />
+                Cerrar sesión
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Selector de sede (segmented control). Fija el alcance global del admin
+ * que consumen Dashboard, Control de Stock y la campana. "Ambas sedes"
+ * (null) primero, luego cada sede activa.
+ */
+function SedeSegmented() {
+  const { locations, selectedLocationId, setScope } = useAdminScope();
+
+  const options: { id: number | null; label: string }[] = [
+    { id: null, label: 'Ambas sedes' },
+    ...locations.map((l) => ({ id: l.location_id, label: l.location_name })),
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label="Filtrar por sede"
+      className="inline-flex items-center gap-1 rounded-full border border-line bg-page p-1"
+    >
+      {options.map((opt) => {
+        const active = (opt.id ?? null) === (selectedLocationId ?? null);
+        return (
+          <button
+            key={opt.id ?? 'both'}
+            type="button"
+            onClick={() => setScope(opt.id)}
+            aria-pressed={active}
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${
+              active
+                ? 'bg-brand text-white shadow-sm'
+                : 'text-muted hover:text-text'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

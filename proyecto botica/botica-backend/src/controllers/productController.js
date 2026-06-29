@@ -21,6 +21,24 @@ const productController = {
     }
   },
 
+  // GET /api/products/search?q=&limit=  (público)
+  // Sugerencias para el autocompletado: top N por relevancia. Con menos de 2
+  // caracteres devuelve [] para no listar todo el catálogo.
+  search: async (req, res) => {
+    try {
+      const q = (req.query.q || '').toString().trim();
+      if (q.length < 2) return res.json([]);
+      let limit = parseInt(req.query.limit, 10);
+      if (!Number.isFinite(limit) || limit < 1) limit = 8;
+      if (limit > 20) limit = 20;
+      const rows = await ProductModel.searchSuggestions(q, limit);
+      res.json(rows);
+    } catch (err) {
+      console.error('[products/search]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
+
   getById: async (req, res) => {
     try {
       const id = parseInt(req.params.id, 10);

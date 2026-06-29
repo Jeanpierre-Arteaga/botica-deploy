@@ -7,8 +7,13 @@
 // Captura los campos obligatorios del Anexo I, genera un código
 // único correlativo (HRP-AAAA-NNNNN) y muestra una constancia
 // imprimible. El envío al backend está PREPARADO pero deshabilitado:
-// no existe endpoint todavía (ver `persistComplaint` y el SQL
-// sugerido en la entrega). Por ahora la constancia vive en frontend.
+// no existe endpoint todavía (ver `persistComplaint`). Por ahora la
+// constancia vive en frontend.
+//
+// UX/A11y: validación EN VIVO (al salir de cada campo y al enviar),
+// contadores de caracteres, labels asociados (htmlFor/id), aria-invalid
+// + aria-describedby, errores anunciados a lectores de pantalla, y
+// botón de envío deshabilitado hasta que el formulario sea válido.
 // ============================================================
 
 import { useState, useMemo, FormEvent } from "react";
@@ -29,9 +34,9 @@ import {
   FileText,
 } from "lucide-react";
 import { Container } from "../components/Container";
+import { announce } from "../lib/announce";
 
 // ── Datos FIJOS del proveedor (Anexo I, sección 1) ──────────────────
-// ⚠️ Confirmar la dirección legal exacta de la sede principal.
 const PROVEEDOR = {
   razon_social: "BOTICAS CENTRAL MOREL S.A.C.",
   ruc: "20614687259",
@@ -90,6 +95,9 @@ const INITIAL_FORM: FormState = {
   accepted: false,
 };
 
+// Límites de caracteres (con contador visible).
+const LIMITS = { good_description: 600, detail: 1200, request: 600 } as const;
+
 interface Constancia {
   code: string;
   created_at: Date;
@@ -97,9 +105,6 @@ interface Constancia {
 }
 
 // ── Generación del código correlativo ───────────────────────────────
-// El correlativo REAL debe vivir en el backend (secuencia atómica por
-// año). Aquí usamos un contador en localStorage solo para demostrar el
-// formato HRP-AAAA-NNNNN mientras no exista el endpoint.
 function nextCode(): string {
   const year = new Date().getFullYear();
   const key = `hrp_seq_${year}`;
@@ -114,11 +119,8 @@ function nextCode(): string {
 }
 
 // ── Envío al backend (PREPARADO, sin conexión todavía) ──────────────
-// Cuando exista el endpoint, descomentar la llamada a `api`.
 async function persistComplaint(_payload: Record<string, unknown>): Promise<void> {
-  // TODO(backend): POST /api/complaints  → ver SQL sugerido en la entrega.
-  // import { api } from "../lib/api";
-  // return api.complaints.create(_payload);
+  // TODO(backend): POST /api/complaints
   return Promise.resolve();
 }
 
@@ -128,68 +130,79 @@ const DOC_RULES: Record<DocType, { re: RegExp; msg: string; maxLength: number }>
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Validación pura (sin tocar estado): devuelve { campo: mensaje }.
+function computeErrors(form: FormState): Record<string, string> {
+  const e: Record<string, string> = {};
+
+  if (!form.full_name.trim()) e.full_name = "Ingresa el nombre completo del consumidor.";
+
+  const docRule = DOC_RULES[form.doc_type];
+  if (!form.doc_number.trim()) e.doc_number = "El número de documento es obligatorio.";
+  else if (!docRule.re.test(form.doc_number.trim())) e.doc_number = docRule.msg;
+
+  if (!form.address.trim()) e.address = "El domicilio es obligatorio.";
+
+  if (!form.email.trim()) e.email = "El email es obligatorio para enviarte copia de la constancia.";
+  else if (!EMAIL_RE.test(form.email.trim())) e.email = "Ingresa un email válido (ej. nombre@dominio.com).";
+
+  if (form.phone && !/^\d{9}$/.test(form.phone.trim())) e.phone = "El teléfono debe tener 9 dígitos.";
+
+  if (form.is_minor) {
+    if (!form.guardian_name.trim()) e.guardian_name = "Indica el nombre del padre, madre o apoderado.";
+    const gRule = DOC_RULES[form.guardian_doc_type];
+    if (!form.guardian_doc_number.trim()) e.guardian_doc_number = "El documento del apoderado es obligatorio.";
+    else if (!gRule.re.test(form.guardian_doc_number.trim())) e.guardian_doc_number = gRule.msg;
+  }
+
+  if (form.claimed_amount && !/^\d+(\.\d{1,2})?$/.test(form.claimed_amount.trim()))
+    e.claimed_amount = "Ingresa un monto válido (ej. 49.90).";
+
+  if (!form.good_description.trim()) e.good_description = "Describe el producto o servicio contratado.";
+
+  if (!form.detail.trim()) e.detail = `Describe el detalle del ${form.kind}.`;
+  if (!form.request.trim()) e.request = "Indica tu pedido como consumidor.";
+
+  if (!form.accepted) e.accepted = "Debes declarar la conformidad para enviar el reclamo.";
+
+  return e;
+}
+
 export function LibroReclamaciones() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [constancia, setConstancia] = useState<Constancia | null>(null);
 
+  // Errores derivados (en vivo) del estado actual del formulario.
+  const allErrors = useMemo(() => computeErrors(form), [form]);
+  const isFormValid = Object.keys(allErrors).length === 0;
+
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
-    setErrors((e) => {
-      if (!(key in e)) return e;
-      const { [key]: _omit, ...rest } = e;
-      return rest;
-    });
   };
 
-  const validate = (): boolean => {
-    const e: Record<string, string> = {};
+  const markTouched = (key: string) =>
+    setTouched((t) => (t[key] ? t : { ...t, [key]: true }));
 
-    if (!form.full_name.trim()) e.full_name = "Ingresa el nombre completo del consumidor.";
-
-    const docRule = DOC_RULES[form.doc_type];
-    if (!form.doc_number.trim()) e.doc_number = "El número de documento es obligatorio.";
-    else if (!docRule.re.test(form.doc_number.trim())) e.doc_number = docRule.msg;
-
-    if (!form.address.trim()) e.address = "El domicilio es obligatorio.";
-
-    if (!form.email.trim()) e.email = "El email es obligatorio para enviarte copia de la constancia.";
-    else if (!EMAIL_RE.test(form.email.trim())) e.email = "Ingresa un email válido (ej. nombre@dominio.com).";
-
-    if (form.phone && !/^\d{9}$/.test(form.phone.trim()))
-      e.phone = "El teléfono debe tener 9 dígitos.";
-
-    if (form.is_minor) {
-      if (!form.guardian_name.trim()) e.guardian_name = "Indica el nombre del padre, madre o apoderado.";
-      const gRule = DOC_RULES[form.guardian_doc_type];
-      if (!form.guardian_doc_number.trim()) e.guardian_doc_number = "El documento del apoderado es obligatorio.";
-      else if (!gRule.re.test(form.guardian_doc_number.trim())) e.guardian_doc_number = gRule.msg;
-    }
-
-    if (form.claimed_amount && !/^\d+(\.\d{1,2})?$/.test(form.claimed_amount.trim()))
-      e.claimed_amount = "Ingresa un monto válido (ej. 49.90).";
-
-    if (!form.good_description.trim()) e.good_description = "Describe el producto o servicio contratado.";
-
-    if (!form.detail.trim()) e.detail = `Describe el detalle del ${form.kind}.`;
-    if (!form.request.trim()) e.request = "Indica tu pedido como consumidor.";
-
-    if (!form.accepted) e.accepted = "Debes declarar la conformidad para enviar el reclamo.";
-
-    setErrors(e);
-    if (Object.keys(e).length > 0) {
-      // Lleva al usuario al primer error.
-      const first = document.querySelector(`[data-field="${Object.keys(e)[0]}"]`);
-      first?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return false;
-    }
-    return true;
-  };
+  // Un error se MUESTRA si el campo ya fue tocado o si se intentó enviar.
+  const visibleError = (key: string): string | undefined =>
+    submitAttempted || touched[key] ? allErrors[key] : undefined;
 
   const handleSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
-    if (!validate()) return;
+    setSubmitAttempted(true);
+
+    if (!isFormValid) {
+      const keys = Object.keys(allErrors);
+      announce(
+        `No se pudo enviar: ${keys.length} ${keys.length === 1 ? "campo" : "campos"} por corregir.`,
+        true
+      );
+      const first = document.querySelector(`[data-field="${keys[0]}"]`);
+      first?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
 
     setSubmitting(true);
     const code = nextCode();
@@ -203,6 +216,7 @@ export function LibroReclamaciones() {
         provider_ruc: PROVEEDOR.ruc,
       });
       setConstancia({ code, created_at, data: form });
+      announce(`Reclamo registrado correctamente. Código ${code}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
@@ -211,7 +225,8 @@ export function LibroReclamaciones() {
 
   const resetForm = () => {
     setForm(INITIAL_FORM);
-    setErrors({});
+    setTouched({});
+    setSubmitAttempted(false);
     setConstancia(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -229,7 +244,7 @@ export function LibroReclamaciones() {
           className="inline-flex items-center gap-2 text-sm font-medium mb-8 transition-colors hover:opacity-80"
           style={{ color: "var(--c-brand)" }}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           Volver al inicio
         </Link>
 
@@ -239,7 +254,7 @@ export function LibroReclamaciones() {
             className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: "var(--c-brand-soft)" }}
           >
-            <BookOpen className="w-7 h-7" style={{ color: "var(--c-brand)" }} />
+            <BookOpen className="w-7 h-7" style={{ color: "var(--c-brand)" }} aria-hidden="true" />
           </div>
           <div>
             <h1
@@ -259,7 +274,7 @@ export function LibroReclamaciones() {
           className="rounded-2xl p-5 md:p-6 mb-6 border flex gap-4"
           style={{ backgroundColor: "var(--c-info-soft)", borderColor: "var(--c-line)" }}
         >
-          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--c-info)" }} />
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--c-info)" }} aria-hidden="true" />
           <div>
             <h2 className="text-sm font-bold mb-1" style={{ color: "var(--c-text)" }}>
               Aviso del Libro de Reclamaciones
@@ -289,22 +304,27 @@ export function LibroReclamaciones() {
           {/* 2 · Identificación del consumidor */}
           <Section icon={User} title="2. Identificación del consumidor reclamante">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field className="sm:col-span-2" label="Nombre completo" required error={errors.full_name} name="full_name">
+              <Field className="sm:col-span-2" label="Nombre completo" required error={visibleError("full_name")} name="full_name">
                 <input
+                  id="full_name"
                   type="text"
                   value={form.full_name}
                   onChange={(e) => set("full_name", e.target.value)}
+                  onBlur={() => markTouched("full_name")}
                   placeholder="Nombres y apellidos"
-                  className={inputClass(!!errors.full_name)}
-                  style={inputStyle(!!errors.full_name)}
+                  aria-invalid={!!visibleError("full_name")}
+                  aria-describedby={visibleError("full_name") ? "full_name-error" : undefined}
+                  className={inputClass()}
+                  style={inputStyle(!!visibleError("full_name"))}
                 />
               </Field>
 
               <Field label="Tipo de documento" required name="doc_type">
                 <select
+                  id="doc_type"
                   value={form.doc_type}
                   onChange={(e) => set("doc_type", e.target.value as DocType)}
-                  className={inputClass(false)}
+                  className={inputClass()}
                   style={inputStyle(false)}
                 >
                   <option value="DNI">DNI</option>
@@ -312,56 +332,69 @@ export function LibroReclamaciones() {
                 </select>
               </Field>
 
-              <Field label="N.° de documento" required error={errors.doc_number} name="doc_number">
+              <Field label="N.° de documento" required error={visibleError("doc_number")} name="doc_number">
                 <input
+                  id="doc_number"
                   type="text"
                   inputMode={form.doc_type === "DNI" ? "numeric" : "text"}
                   value={form.doc_number}
                   maxLength={DOC_RULES[form.doc_type].maxLength}
                   onChange={(e) =>
-                    set(
-                      "doc_number",
-                      form.doc_type === "DNI" ? e.target.value.replace(/\D/g, "") : e.target.value
-                    )
+                    set("doc_number", form.doc_type === "DNI" ? e.target.value.replace(/\D/g, "") : e.target.value)
                   }
+                  onBlur={() => markTouched("doc_number")}
                   placeholder={form.doc_type === "DNI" ? "12345678" : "001234567"}
-                  className={inputClass(!!errors.doc_number)}
-                  style={inputStyle(!!errors.doc_number)}
+                  aria-invalid={!!visibleError("doc_number")}
+                  aria-describedby={visibleError("doc_number") ? "doc_number-error" : undefined}
+                  className={inputClass()}
+                  style={inputStyle(!!visibleError("doc_number"))}
                 />
               </Field>
 
-              <Field className="sm:col-span-2" label="Domicilio" required error={errors.address} name="address">
+              <Field className="sm:col-span-2" label="Domicilio" required error={visibleError("address")} name="address">
                 <input
+                  id="address"
                   type="text"
                   value={form.address}
                   onChange={(e) => set("address", e.target.value)}
+                  onBlur={() => markTouched("address")}
                   placeholder="Av. / Jr. / Calle, número, distrito"
-                  className={inputClass(!!errors.address)}
-                  style={inputStyle(!!errors.address)}
+                  aria-invalid={!!visibleError("address")}
+                  aria-describedby={visibleError("address") ? "address-error" : undefined}
+                  className={inputClass()}
+                  style={inputStyle(!!visibleError("address"))}
                 />
               </Field>
 
-              <Field label="Teléfono" hint="(opcional)" error={errors.phone} name="phone">
+              <Field label="Teléfono" hint="(opcional)" error={visibleError("phone")} name="phone">
                 <input
+                  id="phone"
                   type="text"
                   inputMode="numeric"
                   value={form.phone}
                   maxLength={9}
                   onChange={(e) => set("phone", e.target.value.replace(/\D/g, ""))}
+                  onBlur={() => markTouched("phone")}
                   placeholder="987654321"
-                  className={inputClass(!!errors.phone)}
-                  style={inputStyle(!!errors.phone)}
+                  aria-invalid={!!visibleError("phone")}
+                  aria-describedby={visibleError("phone") ? "phone-error" : undefined}
+                  className={inputClass()}
+                  style={inputStyle(!!visibleError("phone"))}
                 />
               </Field>
 
-              <Field label="Email" required error={errors.email} name="email">
+              <Field label="Email" required error={visibleError("email")} name="email">
                 <input
+                  id="email"
                   type="email"
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
+                  onBlur={() => markTouched("email")}
                   placeholder="tu@email.com"
-                  className={inputClass(!!errors.email)}
-                  style={inputStyle(!!errors.email)}
+                  aria-invalid={!!visibleError("email")}
+                  aria-describedby={visibleError("email") ? "email-error" : undefined}
+                  className={inputClass()}
+                  style={inputStyle(!!visibleError("email"))}
                 />
               </Field>
             </div>
@@ -375,7 +408,7 @@ export function LibroReclamaciones() {
                 type="checkbox"
                 checked={form.is_minor}
                 onChange={(e) => set("is_minor", e.target.checked)}
-                className="w-4 h-4 rounded accent-[color:var(--c-brand)]"
+                className="w-4 h-4 rounded"
                 style={{ accentColor: "var(--c-brand)" }}
               />
               <span className="text-sm" style={{ color: "var(--c-text)" }}>
@@ -385,42 +418,48 @@ export function LibroReclamaciones() {
 
             {form.is_minor && (
               <div className="grid gap-4 sm:grid-cols-2 mt-4 animate-fade-in-up">
-                <Field className="sm:col-span-2" label="Nombre del padre / madre / apoderado" required error={errors.guardian_name} name="guardian_name">
+                <Field className="sm:col-span-2" label="Nombre del padre / madre / apoderado" required error={visibleError("guardian_name")} name="guardian_name">
                   <input
+                    id="guardian_name"
                     type="text"
                     value={form.guardian_name}
                     onChange={(e) => set("guardian_name", e.target.value)}
+                    onBlur={() => markTouched("guardian_name")}
                     placeholder="Nombres y apellidos del apoderado"
-                    className={inputClass(!!errors.guardian_name)}
-                    style={inputStyle(!!errors.guardian_name)}
+                    aria-invalid={!!visibleError("guardian_name")}
+                    aria-describedby={visibleError("guardian_name") ? "guardian_name-error" : undefined}
+                    className={inputClass()}
+                    style={inputStyle(!!visibleError("guardian_name"))}
                   />
                 </Field>
                 <Field label="Tipo de documento (apoderado)" required name="guardian_doc_type">
                   <select
+                    id="guardian_doc_type"
                     value={form.guardian_doc_type}
                     onChange={(e) => set("guardian_doc_type", e.target.value as DocType)}
-                    className={inputClass(false)}
+                    className={inputClass()}
                     style={inputStyle(false)}
                   >
                     <option value="DNI">DNI</option>
                     <option value="CE">Carné de extranjería (CE)</option>
                   </select>
                 </Field>
-                <Field label="N.° de documento (apoderado)" required error={errors.guardian_doc_number} name="guardian_doc_number">
+                <Field label="N.° de documento (apoderado)" required error={visibleError("guardian_doc_number")} name="guardian_doc_number">
                   <input
+                    id="guardian_doc_number"
                     type="text"
                     inputMode={form.guardian_doc_type === "DNI" ? "numeric" : "text"}
                     value={form.guardian_doc_number}
                     maxLength={DOC_RULES[form.guardian_doc_type].maxLength}
                     onChange={(e) =>
-                      set(
-                        "guardian_doc_number",
-                        form.guardian_doc_type === "DNI" ? e.target.value.replace(/\D/g, "") : e.target.value
-                      )
+                      set("guardian_doc_number", form.guardian_doc_type === "DNI" ? e.target.value.replace(/\D/g, "") : e.target.value)
                     }
+                    onBlur={() => markTouched("guardian_doc_number")}
                     placeholder={form.guardian_doc_type === "DNI" ? "12345678" : "001234567"}
-                    className={inputClass(!!errors.guardian_doc_number)}
-                    style={inputStyle(!!errors.guardian_doc_number)}
+                    aria-invalid={!!visibleError("guardian_doc_number")}
+                    aria-describedby={visibleError("guardian_doc_number") ? "guardian_doc_number-error" : undefined}
+                    className={inputClass()}
+                    style={inputStyle(!!visibleError("guardian_doc_number"))}
                   />
                 </Field>
               </div>
@@ -430,97 +469,117 @@ export function LibroReclamaciones() {
           {/* 3 · Identificación del bien contratado */}
           <Section icon={Package} title="3. Identificación del bien contratado">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Tipo" required name="good_type">
+              <Field label="Tipo" required name="good_type" isGroup>
                 <div className="grid grid-cols-2 gap-3">
-                  <ChoicePill
-                    active={form.good_type === "producto"}
-                    label="Producto"
-                    onClick={() => set("good_type", "producto")}
-                  />
-                  <ChoicePill
-                    active={form.good_type === "servicio"}
-                    label="Servicio"
-                    onClick={() => set("good_type", "servicio")}
-                  />
+                  <ChoicePill active={form.good_type === "producto"} label="Producto" onClick={() => set("good_type", "producto")} />
+                  <ChoicePill active={form.good_type === "servicio"} label="Servicio" onClick={() => set("good_type", "servicio")} />
                 </div>
               </Field>
 
-              <Field label="Monto reclamado" hint="(opcional)" error={errors.claimed_amount} name="claimed_amount">
+              <Field label="Monto reclamado" hint="(opcional)" error={visibleError("claimed_amount")} name="claimed_amount">
                 <div className="relative">
-                  <span
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium"
-                    style={{ color: "var(--c-faint)" }}
-                  >
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: "var(--c-faint)" }}>
                     S/
                   </span>
                   <input
+                    id="claimed_amount"
                     type="text"
                     inputMode="decimal"
                     value={form.claimed_amount}
                     onChange={(e) => set("claimed_amount", e.target.value.replace(/[^\d.]/g, ""))}
+                    onBlur={() => markTouched("claimed_amount")}
                     placeholder="0.00"
-                    className={inputClass(!!errors.claimed_amount) + " pl-9"}
-                    style={inputStyle(!!errors.claimed_amount)}
+                    aria-invalid={!!visibleError("claimed_amount")}
+                    aria-describedby={visibleError("claimed_amount") ? "claimed_amount-error" : undefined}
+                    className={inputClass() + " pl-9"}
+                    style={inputStyle(!!visibleError("claimed_amount"))}
                   />
                 </div>
               </Field>
 
-              <Field
-                className="sm:col-span-2"
-                label="Descripción del producto / servicio"
-                required
-                error={errors.good_description}
-                name="good_description"
-              >
+              <Field className="sm:col-span-2" label="Descripción del producto / servicio" required error={visibleError("good_description")} name="good_description">
                 <textarea
+                  id="good_description"
                   rows={3}
                   value={form.good_description}
+                  maxLength={LIMITS.good_description}
                   onChange={(e) => set("good_description", e.target.value)}
+                  onBlur={() => markTouched("good_description")}
                   placeholder="Ej. Paracetamol 500 mg caja x 100, comprado el 20/06/2026 en la sede de Ate."
-                  className={textareaClass(!!errors.good_description)}
-                  style={inputStyle(!!errors.good_description)}
+                  aria-invalid={!!visibleError("good_description")}
+                  aria-describedby={visibleError("good_description") ? "good_description-error" : undefined}
+                  className={textareaClass()}
+                  style={inputStyle(!!visibleError("good_description"))}
                 />
+                <CharCount value={form.good_description} max={LIMITS.good_description} />
               </Field>
             </div>
           </Section>
 
           {/* 4 · Detalle del reclamo / queja */}
           <Section icon={MessageSquareWarning} title="4. Detalle de la reclamación">
-            <div className="grid gap-3 sm:grid-cols-2 mb-5">
+            <div className="grid gap-3 sm:grid-cols-2 mb-4">
               <KindCard
                 active={form.kind === "reclamo"}
                 title="Reclamo"
-                desc="Disconformidad relacionada al producto o servicio."
+                desc="Disconformidad con el producto o servicio recibido."
                 onClick={() => set("kind", "reclamo")}
               />
               <KindCard
                 active={form.kind === "queja"}
                 title="Queja"
-                desc="Malestar respecto a la atención al público o el proceso de venta."
+                desc="Malestar por la atención al público o el proceso, no por el producto."
                 onClick={() => set("kind", "queja")}
               />
             </div>
 
+            {/* Microcopy: diferencia legal en lenguaje simple */}
+            <div
+              className="flex items-start gap-2 rounded-xl p-3 mb-5 text-xs leading-relaxed"
+              style={{ backgroundColor: "var(--c-info-soft)", color: "var(--c-muted)" }}
+            >
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--c-info)" }} aria-hidden="true" />
+              <span>
+                <strong style={{ color: "var(--c-text)" }}>¿Reclamo o queja?</strong> Un{" "}
+                <strong style={{ color: "var(--c-text)" }}>reclamo</strong> es tu disconformidad con el
+                producto o servicio. Una <strong style={{ color: "var(--c-text)" }}>queja</strong> expresa
+                tu malestar por la atención recibida, no relacionado directamente con el producto. La ley
+                los diferencia.
+              </span>
+            </div>
+
             <div className="space-y-4">
-              <Field label={`Detalle del ${form.kind}`} required error={errors.detail} name="detail">
+              <Field label={`Detalle del ${form.kind}`} required error={visibleError("detail")} name="detail">
                 <textarea
+                  id="detail"
                   rows={4}
                   value={form.detail}
+                  maxLength={LIMITS.detail}
                   onChange={(e) => set("detail", e.target.value)}
+                  onBlur={() => markTouched("detail")}
                   placeholder="Describe con el mayor detalle posible lo sucedido."
-                  className={textareaClass(!!errors.detail)}
-                  style={inputStyle(!!errors.detail)}
+                  aria-invalid={!!visibleError("detail")}
+                  aria-describedby={visibleError("detail") ? "detail-error" : undefined}
+                  className={textareaClass()}
+                  style={inputStyle(!!visibleError("detail"))}
                 />
+                <CharCount value={form.detail} max={LIMITS.detail} />
               </Field>
-              <Field label="Pedido del consumidor" required error={errors.request} name="request">
+              <Field label="Pedido del consumidor" required error={visibleError("request")} name="request">
                 <textarea
+                  id="request"
                   rows={3}
                   value={form.request}
+                  maxLength={LIMITS.request}
                   onChange={(e) => set("request", e.target.value)}
+                  onBlur={() => markTouched("request")}
                   placeholder="¿Qué solicitas? Ej. cambio del producto, devolución del monto, etc."
-                  className={textareaClass(!!errors.request)}
-                  style={inputStyle(!!errors.request)}
+                  aria-invalid={!!visibleError("request")}
+                  aria-describedby={visibleError("request") ? "request-error" : undefined}
+                  className={textareaClass()}
+                  style={inputStyle(!!visibleError("request"))}
                 />
+                <CharCount value={form.request} max={LIMITS.request} />
               </Field>
             </div>
           </Section>
@@ -531,14 +590,19 @@ export function LibroReclamaciones() {
               className="flex items-start gap-3 cursor-pointer select-none rounded-xl p-4 border transition-colors"
               data-field="accepted"
               style={{
-                borderColor: errors.accepted ? "var(--c-error)" : "var(--c-line)",
+                borderColor: visibleError("accepted") ? "var(--c-error)" : "var(--c-line)",
                 backgroundColor: "var(--c-bg)",
               }}
             >
               <input
                 type="checkbox"
                 checked={form.accepted}
-                onChange={(e) => set("accepted", e.target.checked)}
+                onChange={(e) => {
+                  set("accepted", e.target.checked);
+                  markTouched("accepted");
+                }}
+                aria-invalid={!!visibleError("accepted")}
+                aria-describedby={visibleError("accepted") ? "accepted-error" : undefined}
                 className="w-5 h-5 mt-0.5 rounded"
                 style={{ accentColor: "var(--c-brand)" }}
               />
@@ -548,23 +612,28 @@ export function LibroReclamaciones() {
                 en el Libro de Reclamaciones virtual.
               </span>
             </label>
-            {errors.accepted && <ErrorText>{errors.accepted}</ErrorText>}
+            {visibleError("accepted") && <ErrorText id="accepted-error">{visibleError("accepted")}</ErrorText>}
 
             <p className="mt-4 flex items-start gap-2 text-xs" style={{ color: "var(--c-faint)" }}>
-              <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
               Al enviar, generaremos un código único de identificación y recibirás una constancia
               que podrás imprimir. El proveedor responderá en un plazo máximo de 15 días hábiles.
             </p>
 
             <button
               type="submit"
-              disabled={submitting}
-              className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-white transition-all shadow-md hover:shadow-lg disabled:opacity-60"
-              style={{ backgroundColor: "var(--c-brand)" }}
+              disabled={submitting || !isFormValid}
+              className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-white transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ backgroundColor: "var(--c-brand)", outlineColor: "var(--c-brand)" }}
             >
-              <FileText className="w-5 h-5" />
+              <FileText className="w-5 h-5" aria-hidden="true" />
               {submitting ? "Registrando..." : "Enviar y generar constancia"}
             </button>
+            {!isFormValid && (
+              <p className="mt-2.5 text-xs" style={{ color: "var(--c-faint)" }}>
+                Completa los campos obligatorios para habilitar el envío.
+              </p>
+            )}
           </Section>
         </form>
 
@@ -614,10 +683,10 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
             style={{ backgroundColor: "var(--c-success-soft)" }}
           >
-            <CheckCircle2 className="w-9 h-9" style={{ color: "var(--c-success)" }} />
+            <CheckCircle2 className="w-9 h-9" style={{ color: "var(--c-success)" }} aria-hidden="true" />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
-            Reclamo registrado
+            {data.kind === "reclamo" ? "Reclamo registrado" : "Queja registrada"}
           </h1>
           <p className="text-sm mt-2" style={{ color: "var(--c-muted)" }}>
             Guarda tu código de identificación. Enviaremos una copia de esta constancia a{" "}
@@ -636,7 +705,7 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--c-brand-soft)" }}>
-                  <BookOpen className="w-6 h-6" style={{ color: "var(--c-brand)" }} />
+                  <BookOpen className="w-6 h-6" style={{ color: "var(--c-brand)" }} aria-hidden="true" />
                 </div>
                 <div>
                   <p className="text-sm font-bold" style={{ color: "var(--c-text)" }}>
@@ -647,10 +716,7 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
                   </p>
                 </div>
               </div>
-              <div
-                className="px-4 py-2 rounded-xl text-right"
-                style={{ backgroundColor: "var(--c-brand-soft)" }}
-              >
+              <div className="px-4 py-2 rounded-xl text-right" style={{ backgroundColor: "var(--c-brand-soft)" }}>
                 <p className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: "var(--c-brand)" }}>
                   Código de identificación
                 </p>
@@ -660,7 +726,7 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
               </div>
             </div>
             <p className="text-xs mt-4 flex items-center gap-1.5" style={{ color: "var(--c-faint)" }}>
-              <Clock className="w-3.5 h-3.5" />
+              <Clock className="w-3.5 h-3.5" aria-hidden="true" />
               Fecha y hora de registro: <strong style={{ color: "var(--c-muted)" }}>{fecha}</strong>
             </p>
           </div>
@@ -703,7 +769,7 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
               className="rounded-xl p-4 text-xs flex items-start gap-2"
               style={{ backgroundColor: "var(--c-info-soft)", color: "var(--c-muted)" }}
             >
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--c-info)" }} />
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--c-info)" }} aria-hidden="true" />
               <span>
                 El proveedor responderá este {data.kind} en un plazo máximo de{" "}
                 <strong style={{ color: "var(--c-text)" }}>15 días hábiles</strong>. La presente
@@ -720,14 +786,14 @@ function ConstanciaView({ constancia, onReset }: { constancia: Constancia; onRes
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-md hover:shadow-lg"
             style={{ backgroundColor: "var(--c-brand)" }}
           >
-            <Printer className="w-5 h-5" />
+            <Printer className="w-5 h-5" aria-hidden="true" />
             Imprimir constancia
           </button>
           <div
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium text-sm border"
             style={{ borderColor: "var(--c-line)", color: "var(--c-muted)", backgroundColor: "var(--c-surface)" }}
           >
-            <Mail className="w-4 h-4" style={{ color: "var(--c-success)" }} />
+            <Mail className="w-4 h-4" style={{ color: "var(--c-success)" }} aria-hidden="true" />
             Se enviará copia a {data.email}
           </div>
           <button
@@ -791,6 +857,7 @@ function Field({
   hint,
   error,
   name,
+  isGroup = false,
   className = "",
   children,
 }: {
@@ -799,25 +866,47 @@ function Field({
   hint?: string;
   error?: string;
   name: string;
+  /** true para grupos de botones (sin input asociado): el label no usa htmlFor. */
+  isGroup?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
+  const labelContent = (
+    <>
+      {label}
+      {required && <span style={{ color: "var(--c-brand)" }}> *</span>}
+      {hint && <span className="font-normal ml-1" style={{ color: "var(--c-faint)" }}>{hint}</span>}
+    </>
+  );
   return (
     <div className={className} data-field={name}>
-      <label className="block mb-1.5 text-sm font-medium" style={{ color: "var(--c-text)" }}>
-        {label}
-        {required && <span style={{ color: "var(--c-brand)" }}> *</span>}
-        {hint && <span className="font-normal ml-1" style={{ color: "var(--c-faint)" }}>{hint}</span>}
-      </label>
+      {isGroup ? (
+        <span className="block mb-1.5 text-sm font-medium" style={{ color: "var(--c-text)" }}>
+          {labelContent}
+        </span>
+      ) : (
+        <label htmlFor={name} className="block mb-1.5 text-sm font-medium" style={{ color: "var(--c-text)" }}>
+          {labelContent}
+        </label>
+      )}
       {children}
-      {error && <ErrorText>{error}</ErrorText>}
+      {error && <ErrorText id={`${name}-error`}>{error}</ErrorText>}
     </div>
   );
 }
 
-function ErrorText({ children }: { children: React.ReactNode }) {
+function CharCount({ value, max }: { value: string; max: number }) {
+  const near = value.length >= max * 0.9;
   return (
-    <p className="mt-1.5 text-xs font-medium" style={{ color: "var(--c-error)" }}>
+    <p className="mt-1 text-right text-[11px] tabular-nums" style={{ color: near ? "var(--c-warning)" : "var(--c-faint)" }}>
+      {value.length} / {max}
+    </p>
+  );
+}
+
+function ErrorText({ children, id }: { children: React.ReactNode; id?: string }) {
+  return (
+    <p id={id} className="mt-1.5 text-xs font-medium" style={{ color: "var(--c-error)" }}>
       {children}
     </p>
   );
@@ -842,6 +931,7 @@ function ChoicePill({ active, label, onClick }: { active: boolean; label: string
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className="h-11 rounded-[10px] text-sm font-semibold border transition-all"
       style={{
         borderColor: active ? "var(--c-brand)" : "var(--c-line)",
@@ -869,6 +959,7 @@ function KindCard({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className="text-left rounded-xl p-4 border transition-all"
       style={{
         borderColor: active ? "var(--c-brand)" : "var(--c-line)",
@@ -918,15 +1009,11 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 // ── Estilos compartidos de inputs ───────────────────────────────────
-function inputClass(error: boolean) {
-  return `w-full h-11 rounded-[10px] px-3.5 text-sm border transition-colors outline-none ${
-    error ? "" : ""
-  }`;
+function inputClass() {
+  return "w-full h-11 rounded-[10px] px-3.5 text-sm border transition-colors outline-none";
 }
-function textareaClass(error: boolean) {
-  return `w-full rounded-[10px] px-3.5 py-2.5 text-sm border transition-colors outline-none resize-y ${
-    error ? "" : ""
-  }`;
+function textareaClass() {
+  return "w-full rounded-[10px] px-3.5 py-2.5 text-sm border transition-colors outline-none resize-y";
 }
 function inputStyle(error: boolean): React.CSSProperties {
   return {

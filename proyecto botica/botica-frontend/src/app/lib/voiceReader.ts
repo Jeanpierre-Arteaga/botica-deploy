@@ -1,17 +1,25 @@
 // ============================================================
 // voiceReader — Lectura por voz (Web Speech API nativa)
 // ------------------------------------------------------------
-// Gratis, sin librerías externas. Pensado para adultos mayores.
+// Gratis, sin librerías externas. Pensado para adultos mayores y como
+// COMPLEMENTO de la base semántica (aria-live, roles, foco). El lector
+// de pantalla del sistema sigue siendo la capa principal; esto es un
+// extra "leer en voz alta" controlado por el usuario.
+//
 //   - speechSynthesis del navegador, voz en español (es-PE / es-ES).
-//   - SIEMPRE opt-in: el toggle vive aquí y por defecto está APAGADO.
-//     Nunca se lee algo solo al cargar; solo al hover/focus o al pulsar
-//     un botón explícito ("Escuchar").
-//   - Cancela la lectura anterior antes de cada nueva (no se enciman).
+//   - SIEMPRE opt-in: UN ÚNICO control (el toggle del menú de accesibilidad)
+//     enciende/apaga la lectura; por defecto está APAGADO. No hay botones de
+//     play / pausa / detener: encender da la bienvenida hablada y apagar
+//     cancela cualquier lectura en curso (speechSynthesis.cancel()).
+//   - Nunca se lee algo solo al cargar; solo al hover/focus (si el toggle
+//     está activo) o al pulsar un botón explícito ("Escuchar").
+//   - Anuncia CONTENIDO (nombre + precio + "requiere receta"...) y, para
+//     controles, ACCIÓN con rol + nombre ("Agregar X al carrito, botón").
+//     El lector global de controles vive en components/VoiceHoverReader.
+//   - Cancela la lectura anterior antes de cada nueva (no se enciman) y
+//     se detiene al navegar de página (ver cancelSpeech / route change).
 //   - Si el navegador no soporta speechSynthesis, `isSpeechSupported()`
 //     devuelve false y la UI oculta la opción.
-//
-// Estado compartido por un pequeño observable (igual de ligero que el
-// resto del menú de accesibilidad, que usa localStorage sin Context).
 // ============================================================
 
 import { useCallback, useEffect, useState } from "react";
@@ -35,7 +43,7 @@ function readInitial(): boolean {
   }
 }
 
-// Estado del módulo (single source of truth) + suscriptores.
+// ── Estado del toggle (lectura pasiva on/off) ───────────────────────
 let enabled = isSpeechSupported() ? readInitial() : false;
 const listeners = new Set<(v: boolean) => void>();
 
@@ -61,6 +69,28 @@ function subscribe(fn: (v: boolean) => void): () => void {
   };
 }
 
+// ── Estado de reproducción (idle | speaking | paused) ───────────────
+export type VoiceStatus = "idle" | "speaking" | "paused";
+let status: VoiceStatus = "idle";
+const statusListeners = new Set<(s: VoiceStatus) => void>();
+
+export function getVoiceStatus(): VoiceStatus {
+  return status;
+}
+
+function setStatus(next: VoiceStatus): void {
+  if (status === next) return;
+  status = next;
+  statusListeners.forEach((fn) => fn(next));
+}
+
+function subscribeStatus(fn: (s: VoiceStatus) => void): () => void {
+  statusListeners.add(fn);
+  return () => {
+    statusListeners.delete(fn);
+  };
+}
+
 // Elegir una voz en español: preferimos es-PE, luego es-ES, luego cualquier es-*.
 function pickSpanishVoice(): SpeechSynthesisVoice | null {
   if (!isSpeechSupported()) return null;
@@ -74,6 +104,11 @@ function pickSpanishVoice(): SpeechSynthesisVoice | null {
   );
 }
 
+// Referencia a la locución vigente: los callbacks de una locución cancelada
+// (cuyo onend/onerror llega tarde) se ignoran para no apagar el indicador
+// "leyendo" mientras ya empezó otra.
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+
 // Emisión real del audio. Cancela lo anterior para que no se encimen.
 function utter(text: string): void {
   const clean = text.trim();
@@ -81,12 +116,21 @@ function utter(text: string): void {
   const synth = window.speechSynthesis;
   synth.cancel();
   const u = new SpeechSynthesisUtterance(clean);
+  currentUtterance = u;
   const voice = pickSpanishVoice();
   if (voice) u.voice = voice;
   u.lang = voice?.lang || "es-PE";
   u.rate = 0.95; // un punto más lento, más claro para adultos mayores
   u.pitch = 1;
+  // Reflejar el estado de reproducción para los controles del widget.
+  u.onstart = () => u === currentUtterance && setStatus("speaking");
+  u.onend = () => u === currentUtterance && setStatus("idle");
+  u.onerror = () => u === currentUtterance && setStatus("idle");
+  u.onpause = () => u === currentUtterance && setStatus("paused");
+  u.onresume = () => u === currentUtterance && setStatus("speaking");
   synth.speak(u);
+  // Algunos navegadores no disparan onstart de inmediato; marcamos optimista.
+  setStatus("speaking");
 }
 
 // Último texto leído. Mientras no cambie NO se vuelve a leer: así, al mover el
@@ -111,9 +155,42 @@ export function speakNow(text: string): void {
   utter(clean);
 }
 
+/**
+ * Anuncio de un CONTROL como ACCIÓN: rol + nombre + contexto.
+ * Pasiva (respeta el toggle). Ej: speakAction("Agregar Paracetamol al carrito")
+ * → "Agregar Paracetamol al carrito, botón".
+ */
+export function speakAction(label: string, role: string = "botón"): void {
+  const clean = label.trim();
+  if (!clean) return;
+  speak(`${clean}, ${role}`);
+}
+
 export function cancelSpeech(): void {
   lastText = ""; // reinicia para permitir releer al reactivar
+  currentUtterance = null;
   if (isSpeechSupported()) window.speechSynthesis.cancel();
+  setStatus("idle");
+}
+
+/** Pausa la lectura en curso (si el navegador lo soporta). */
+export function pauseSpeech(): void {
+  if (!isSpeechSupported()) return;
+  const synth = window.speechSynthesis;
+  if (synth.speaking && !synth.paused) {
+    synth.pause();
+    setStatus("paused");
+  }
+}
+
+/** Reanuda una lectura pausada. */
+export function resumeSpeech(): void {
+  if (!isSpeechSupported()) return;
+  const synth = window.speechSynthesis;
+  if (synth.paused) {
+    synth.resume();
+    setStatus("speaking");
+  }
 }
 
 /**
@@ -133,13 +210,16 @@ export function formatPriceForSpeech(value: number | string): string {
 }
 
 // ------------------------------------------------------------
-// Hook React: estado reactivo del toggle + helpers de lectura.
+// Hook React: estado reactivo del toggle + estado de reproducción
+// + helpers de lectura y controles.
 // ------------------------------------------------------------
 export function useVoiceReader() {
   const supported = isSpeechSupported();
   const [voiceEnabled, setEnabledState] = useState<boolean>(getVoiceEnabled);
+  const [playback, setPlayback] = useState<VoiceStatus>(getVoiceStatus);
 
   useEffect(() => subscribe(setEnabledState), []);
+  useEffect(() => subscribeStatus(setPlayback), []);
 
   // Algunos navegadores cargan las voces de forma asíncrona: las "calentamos"
   // y reaccionamos a `voiceschanged` para que la primera lectura ya tenga voz es-*.
@@ -154,5 +234,16 @@ export function useVoiceReader() {
 
   const setEnabled = useCallback((v: boolean) => setVoiceEnabled(v), []);
 
-  return { supported, enabled: voiceEnabled, setEnabled, speak, speakNow, cancel: cancelSpeech };
+  return {
+    supported,
+    enabled: voiceEnabled,
+    status: playback,
+    setEnabled,
+    speak,
+    speakNow,
+    speakAction,
+    pause: pauseSpeech,
+    resume: resumeSpeech,
+    cancel: cancelSpeech,
+  };
 }

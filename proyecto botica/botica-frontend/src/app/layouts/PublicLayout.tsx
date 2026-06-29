@@ -4,7 +4,7 @@ import { TopBar } from "../components/TopBar";
 import { SecondaryNav } from "../components/SecondaryNav";
 import { Footer } from "../components/Footer";
 import { QuickActionFab } from "../components/QuickActionFab";
-import { CookieConsent } from "../components/CookieConsent";
+import { LiveRegion } from "../components/LiveRegion";
 
 /**
  * Layout del CLIENTE (home, catálogo, PDP, carrito, checkout).
@@ -34,8 +34,8 @@ export function PublicLayout() {
       <Footer />
       {/* FAB de acción rápida (asesoría + subir receta) — solo cliente */}
       <QuickActionFab />
-      {/* Banner de consentimiento de cookies (primera visita) */}
-      <CookieConsent />
+      {/* Regiones aria-live globales (anuncios a lectores de pantalla) */}
+      <LiveRegion />
     </div>
   );
 }
