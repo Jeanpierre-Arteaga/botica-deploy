@@ -10,6 +10,7 @@ import {
   AuthSubmit,
   authInputClass,
 } from '../components/AuthLayout';
+import { LockoutNotice } from '../components/LockoutNotice';
 
 export function StaffLogin() {
   const { loginStaff, isLoading } = useAuth();
@@ -17,10 +18,13 @@ export function StaffLogin() {
   const [userCode, setUserCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [retrySeconds, setRetrySeconds] = useState<number | undefined>(undefined);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setLocked(false);
 
     if (!userCode.trim() || !password) {
       setError('Por favor completa todos los campos.');
@@ -33,10 +37,17 @@ export function StaffLogin() {
       navigate('/staff/dashboard', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 401) {
-          setError('Código o contraseña incorrectos.');
-        } else if (err.status === 403) {
-          setError(err.message);
+        const body = err.body as { locked?: boolean; retry_after_seconds?: number; attempts_left?: number } | undefined;
+        if (err.status === 423 || body?.locked) {
+          setLocked(true);
+          setRetrySeconds(body?.retry_after_seconds);
+        } else if (err.status === 401) {
+          const left = body?.attempts_left;
+          setError(
+            typeof left === 'number'
+              ? `Código o contraseña incorrectos. Te ${left === 1 ? 'queda' : 'quedan'} ${left} intento${left === 1 ? '' : 's'} antes del bloqueo.`
+              : 'Código o contraseña incorrectos.',
+          );
         } else {
           setError(err.message);
         }
@@ -83,7 +94,9 @@ export function StaffLogin() {
           />
         </AuthField>
 
-        {error && (
+        {locked ? (
+          <LockoutNotice retrySeconds={retrySeconds} />
+        ) : error ? (
           <div
             className="flex items-start gap-2.5 rounded-xl border p-3 text-sm"
             style={{
@@ -95,7 +108,7 @@ export function StaffLogin() {
             <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
-        )}
+        ) : null}
 
         <AuthSubmit disabled={isLoading} loading={isLoading}>
           {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}

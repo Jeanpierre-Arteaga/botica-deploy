@@ -137,3 +137,12 @@ export function useAdminScope(): AdminScopeValue {
   }
   return ctx;
 }
+
+/**
+ * Igual que useAdminScope pero NO lanza si está fuera del provider: devuelve
+ * undefined. Útil en componentes COMPARTIDOS entre staff (sin provider) y admin
+ * (con provider), p. ej. la página de Pedidos.
+ */
+export function useAdminScopeOptional(): AdminScopeValue | undefined {
+  return useContext(AdminScopeContext);
+}

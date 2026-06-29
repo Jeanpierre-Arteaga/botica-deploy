@@ -1,12 +1,12 @@
 import {
   Search, Plus, Edit2, Trash2, Package, Pill, AlertCircle, AlertTriangle,
   CheckCircle2, TrendingDown, Tag, X, Upload, Link2, Loader2, ChevronDown,
-  ChevronLeft, ChevronRight, ImageOff, PackageX, RotateCcw, ZoomIn, LayoutGrid,
+  ChevronLeft, ChevronRight, ImageOff, PackageX, RotateCcw, ZoomIn,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../lib/api";
-import { CategoryChip } from "../../components/CategoryChip";
+import { CategoryChipsBar } from "../../components/CategoryChipsBar";
 import { Segmented } from "../../components/Segmented";
 import type { Product, Category, Laboratory, InventoryItem } from "../../lib/types";
 
@@ -188,6 +188,7 @@ export function GestionProductos() {
 
       {/* Filtros estilo staff: búsqueda + chips de categoría + estado + orden */}
       <div className="bg-surface rounded-2xl shadow-soft border border-line p-3 sm:p-4 mb-4">
+        {/* Búsqueda (ancho completo) */}
         <div className="relative">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
           <input
@@ -199,27 +200,10 @@ export function GestionProductos() {
           />
         </div>
 
-        {/* Chips de categoría con scroll horizontal (mismo patrón del staff) */}
-        {categories.length > 0 && (
-          <div className="mt-3 -mb-1 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <CategoryChip
-              label="Todas"
-              icon={LayoutGrid}
-              active={categoryFilter === ""}
-              onClick={() => setCategoryFilter("")}
-            />
-            {categories.map((c) => (
-              <CategoryChip
-                key={c.category_id}
-                label={c.category_name}
-                iconName={c.icon_name}
-                colorHex={c.color_hex}
-                active={categoryFilter === String(c.category_id)}
-                onClick={() => setCategoryFilter(String(c.category_id))}
-              />
-            ))}
-          </div>
-        )}
+        {/* Chips de categoría DEBAJO de la barra, alineados al borde izquierdo */}
+        <div className="mt-3">
+          <CategoryChipsBar categories={categories} selected={categoryFilter} onSelect={setCategoryFilter} />
+        </div>
 
         {/* Estado + orden alfabético */}
         <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -340,7 +324,7 @@ function ProductsTable({
           </colgroup>
           <thead>
             <tr className="bg-surface-2 text-center text-[11px] font-semibold uppercase tracking-wider text-faint border-b border-line">
-              <th className="px-4 py-3 text-left">Producto</th>
+              <th className="px-4 py-3">Producto</th>
               <th className="px-4 py-3">Categoría</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Ate</th>
@@ -601,7 +585,7 @@ const MAX_IMG_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 interface ProductForm {
-  product_name: string; category_id: string; laboratory_id: string;
+  product_name: string; category_id: string; laboratory_name: string;
   product_price: string; old_price: string;
   stock_ate: string; stock_sa: string; min_stock: string;
   is_offer: boolean; is_generic: boolean;
@@ -630,7 +614,7 @@ function ProductModal({ product, categories, laboratories, stockMap, onClose, on
   const [form, setForm] = useState<ProductForm>({
     product_name: product?.product_name ?? "",
     category_id: product?.category_id != null ? String(product.category_id) : "",
-    laboratory_id: product?.laboratory_id != null ? String(product.laboratory_id) : "",
+    laboratory_name: product?.laboratory_name ?? "",
     product_price: product != null ? String(product.product_price) : "",
     old_price: product?.old_price != null ? String(product.old_price) : "",
     stock_ate: String(ate.current ?? 0),
@@ -760,7 +744,7 @@ function ProductModal({ product, categories, laboratories, stockMap, onClose, on
         is_generic: form.is_generic,
         product_price: price,
         old_price: oldPrice,
-        laboratory_id: form.laboratory_id ? Number(form.laboratory_id) : null,
+        laboratory_name: form.laboratory_name.trim() || null,
         category_id: Number(form.category_id),
         is_offer: form.is_offer,
       };
@@ -825,10 +809,15 @@ function ProductModal({ product, categories, laboratories, stockMap, onClose, on
             </div>
             <div>
               <label className={LABEL_CLS} htmlFor="pf-lab">Laboratorio</label>
-              <select id="pf-lab" value={form.laboratory_id} onChange={(e) => set("laboratory_id", e.target.value)} className={fieldCls(false)}>
-                <option value="">Sin especificar</option>
-                {laboratories.map((l) => <option key={l.laboratory_id} value={l.laboratory_id}>{l.laboratory_name}</option>)}
-              </select>
+              <input
+                id="pf-lab"
+                type="text"
+                value={form.laboratory_name}
+                onChange={(e) => set("laboratory_name", e.target.value)}
+                className={fieldCls(false)}
+                placeholder="Escribe el laboratorio"
+                autoComplete="off"
+              />
             </div>
             <div>
               <label className={LABEL_CLS} htmlFor="pf-price">Precio (S/) *</label>

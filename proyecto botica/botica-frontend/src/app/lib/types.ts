@@ -61,6 +61,7 @@ export interface StaffLoginResponse {
     location_id: number | null;
     location_name?: string | null;
     is_active: boolean;
+    photo_url?: string | null;
   };
 }
 
@@ -106,7 +107,19 @@ export interface User {
   /** Nombre de la sede (viene del LEFT JOIN con location en /users/me y /users) */
   location_name?: string | null;
   is_active: boolean;
+  /** Fecha del último inicio de sesión (NULL = nunca). */
+  last_login?: string | null;
+  /** URL pública (CloudFront) de la foto de perfil. NULL = avatar de iniciales. */
+  photo_url?: string | null;
   // user_password nunca viene en respuestas (sanitizado en backend)
+}
+
+/** Datos editables del PERFIL PROPIO (modal del sidebar). */
+export interface ProfileUpdatePayload {
+  full_name?: string;
+  user_code?: string;
+  user_password?: string;
+  photo_url?: string | null;
 }
 
 export interface UserCreatePayload {
@@ -489,7 +502,16 @@ export interface SalesReport {
   totalSales: number;
   totalOrders: number;
   averageTicket: number;
+  /** Unidades totales vendidas en el período (suma de cantidades). */
+  totalUnits: number;
   byDay: Array<{ date: string; total: number; count: number }>;
+  /** Ventas diarias segmentadas por categoría (para la gráfica de evolución). */
+  byDayCategory: Array<{
+    date: string;
+    category_id: number | null;
+    category_name: string;
+    total: number;
+  }>;
   byCategory: Array<{
     category_id: number | null;
     category_name: string;
@@ -505,6 +527,9 @@ export interface SalesReport {
   topProducts: Array<{
     product_id: number;
     product_name: string;
+    category_name?: string;
+    /** URL de la imagen principal (CloudFront) para la miniatura. */
+    image_url?: string | null;
     quantity_sold: number;
     total: number;
   }>;

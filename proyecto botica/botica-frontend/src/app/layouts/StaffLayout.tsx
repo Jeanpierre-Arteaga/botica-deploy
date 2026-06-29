@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router';
 import {
   LayoutDashboard, ShoppingBag, ShoppingCart, ClipboardList,
-  LogOut, Menu, X, MapPin, Store,
+  LogOut, Menu, X, MapPin, Store, Pencil,
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { AccessibilityMenu } from '../components/AccessibilityMenu';
+import { ProfileModal } from '../components/ProfileModal';
 
 /**
  * Logo de marca ("Boticas Central — Salud y ahorro").
@@ -22,10 +23,11 @@ const navItems = [
 ];
 
 export default function StaffLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, getInitial } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -65,16 +67,29 @@ export default function StaffLayout() {
           </Link>
         </div>
 
-        {/* Tarjeta de usuario: nombre, rol y sede asignada */}
+        {/* Tarjeta de usuario: nombre, rol y sede asignada. El lápiz (editar
+            perfil) queda justificado a la derecha (space-between). */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-brand text-white flex items-center justify-center font-bold">
-              {user?.full_name?.[0]?.toUpperCase() || 'U'}
-            </div>
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="" className="w-10 h-10 shrink-0 rounded-full object-cover border border-white/20" />
+            ) : (
+              <div className="w-10 h-10 shrink-0 rounded-full bg-brand text-white flex items-center justify-center font-bold">
+                {getInitial()}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold text-sm truncate">{user?.full_name}</p>
               <p className="text-slate-400 text-xs">{roleLabel}</p>
             </div>
+            <button
+              onClick={() => setProfileOpen(true)}
+              aria-label="Editar mi perfil"
+              title="Editar mi perfil"
+              className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              <Pencil size={15} />
+            </button>
           </div>
           {sede && (
             <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
@@ -144,10 +159,9 @@ export default function StaffLayout() {
           }}
         >
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-faint leading-none">
+            <p className="text-base font-bold uppercase tracking-[0.12em] text-muted leading-none">
               Panel de personal
             </p>
-            <div className="text-lg font-bold text-text leading-tight truncate">{sectionTitle}</div>
           </div>
           <div className="flex items-center gap-3">
             {sede && (
@@ -212,8 +226,27 @@ export default function StaffLayout() {
 
             {/* Usuario + sede */}
             <div className="p-4 border-b border-white/10">
-              <p className="text-white font-semibold text-sm truncate">{user?.full_name}</p>
-              <p className="text-slate-400 text-xs">{roleLabel}</p>
+              <div className="flex items-center gap-3">
+                {user?.photo_url ? (
+                  <img src={user.photo_url} alt="" className="w-9 h-9 shrink-0 rounded-full object-cover border border-white/20" />
+                ) : (
+                  <div className="w-9 h-9 shrink-0 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold">
+                    {getInitial()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">{user?.full_name}</p>
+                  <p className="text-slate-400 text-xs">{roleLabel}</p>
+                </div>
+                <button
+                  onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
+                  aria-label="Editar mi perfil"
+                  title="Editar mi perfil"
+                  className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Pencil size={15} />
+                </button>
+              </div>
               {sede && (
                 <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
                   <MapPin size={14} className="shrink-0 text-brand" />
@@ -269,6 +302,9 @@ export default function StaffLayout() {
           </aside>
         </div>
       )}
+
+      {/* Modal de perfil propio (editar datos / foto / contraseña / desactivar) */}
+      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }

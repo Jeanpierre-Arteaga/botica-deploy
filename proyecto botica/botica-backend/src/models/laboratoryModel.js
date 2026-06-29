@@ -27,6 +27,27 @@ const LaboratoryModel = {
     return result.rows[0];
   },
 
+  // Resuelve un NOMBRE de laboratorio (texto libre) a su laboratory_id:
+  // reutiliza el existente (case-insensitive) o crea uno nuevo. Devuelve null
+  // si el nombre viene vacío. Permite que el admin escriba laboratorios nuevos
+  // sin romper la FK product.laboratory_id → laboratory.laboratory_id.
+  findOrCreateByName: async (rawName) => {
+    const name = (rawName == null ? '' : String(rawName)).trim();
+    if (!name) return null;
+    const found = await pool.query(
+      `SELECT laboratory_id FROM laboratory
+       WHERE lower(laboratory_name) = lower($1)
+       ORDER BY laboratory_id LIMIT 1`,
+      [name]
+    );
+    if (found.rows[0]) return found.rows[0].laboratory_id;
+    const created = await pool.query(
+      `INSERT INTO laboratory (laboratory_name) VALUES ($1) RETURNING laboratory_id`,
+      [name]
+    );
+    return created.rows[0].laboratory_id;
+  },
+
   update: async (id, { laboratory_name, laboratory_country }) => {
     const result = await pool.query(
       `UPDATE laboratory

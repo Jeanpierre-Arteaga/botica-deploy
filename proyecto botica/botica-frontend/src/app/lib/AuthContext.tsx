@@ -32,6 +32,8 @@ export interface AuthUser {
   location_id?: number | null;
   /** Nombre de la sede asignada (para mostrar "Sede: ..." en el panel) */
   location_name?: string | null;
+  /** Foto de perfil (CloudFront). Si existe, reemplaza el avatar de iniciales. */
+  photo_url?: string | null;
   // Específico de customer:
   email?: string;
   dni?: string | null;
@@ -59,6 +61,8 @@ interface AuthContextValue {
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
   refreshUser: () => Promise<void>;
+  /** Aplica cambios al user en memoria + storage (p. ej. tras editar el perfil). */
+  applyUserPatch: (patch: Partial<AuthUser>) => void;
   /** Obtiene la inicial del nombre (para avatar) */
   getInitial: () => string;
 }
@@ -174,11 +178,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Enriquecemos el user con datos frescos del backend (p. ej. location_name,
           // que sesiones anteriores a este fix podían no tener guardado).
           const u = await api.users.getMe();
-          if (u.location_name && u.location_name !== storedUser.location_name) {
+          const needsEnrich =
+            (u.location_name && u.location_name !== storedUser.location_name) ||
+            ((u.photo_url ?? null) !== (storedUser.photo_url ?? null));
+          if (needsEnrich) {
             const enriched: AuthUser = {
               ...storedUser,
               location_id: u.location_id ?? storedUser.location_id ?? null,
-              location_name: u.location_name,
+              location_name: u.location_name ?? storedUser.location_name ?? null,
+              photo_url: u.photo_url ?? null,
             };
             setUser(enriched);
             saveUserToStorage(enriched);
@@ -245,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user_code: res.user.user_code,
           location_id: res.user.location_id,
           location_name: res.user.location_name ?? null,
+          photo_url: res.user.photo_url ?? null,
         };
         setUser(authUser);
         saveUserToStorage(authUser);
@@ -358,6 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user_code: u.user_code,
           location_id: u.location_id,
           location_name: u.location_name ?? null,
+          photo_url: u.photo_url ?? null,
         };
         setUser(updated);
         saveUserToStorage(updated);
@@ -366,6 +376,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Si falla, posiblemente el token expiró → el interceptor lo maneja
     }
   }, [user]);
+
+  // Aplica un parche al user actual (memoria + storage). Lo usa el modal de
+  // perfil para reflejar nombre/acceso/foto sin recargar.
+  const applyUserPatch = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      saveUserToStorage(updated);
+      return updated;
+    });
+  }, []);
 
   const hasRole = useCallback(
     (...roles: Role[]) => {
@@ -394,6 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     hasRole,
     refreshUser,
+    applyUserPatch,
     getInitial,
   };
 

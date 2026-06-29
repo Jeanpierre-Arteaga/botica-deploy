@@ -20,6 +20,7 @@ import type {
   User,
   UserCreatePayload,
   UserUpdatePayload,
+  ProfileUpdatePayload,
   Customer,
   CustomerCreatePayload,
   CustomerCheckResponse,
@@ -468,9 +469,36 @@ const users = {
     });
   },
 
+  /** PATCH /api/users/:id/password — restablece la contraseña (admin). El
+   *  backend la guarda hasheada con bcrypt y limpia el bloqueo del usuario. */
+  updatePassword(user_id: number, user_password: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/users/${user_id}/password`, {
+      method: 'PATCH',
+      body: { user_password },
+    });
+  },
+
   /** DELETE /api/users/:id (admin) */
   delete(user_id: number): Promise<void> {
     return request<void>(`/users/${user_id}`, { method: 'DELETE' });
+  },
+
+  /** PUT /api/users/me — actualizar el PERFIL PROPIO (nombre, acceso, foto y,
+   *  opcional, contraseña). El backend hashea la contraseña con bcrypt. */
+  updateMe(payload: ProfileUpdatePayload): Promise<User> {
+    return request<User>('/users/me', { method: 'PUT', body: payload });
+  },
+
+  /** POST /api/users/me/photo — sube la foto de perfil propia a S3/CloudFront. */
+  uploadMyPhoto(file: File): Promise<{ photo_url: string }> {
+    const form = new FormData();
+    form.append('image', file);
+    return uploadRequest<{ photo_url: string }>('/users/me/photo', form);
+  },
+
+  /** PATCH /api/users/me/deactivate — desactiva la PROPIA cuenta (is_active=false). */
+  deactivateMe(): Promise<{ message: string }> {
+    return request<{ message: string }>('/users/me/deactivate', { method: 'PATCH' });
   },
 };
 
@@ -1006,6 +1034,48 @@ const reports = {
     location_id?: number;
   }): Promise<SalesReport> {
     return request<SalesReport>('/reports/sales', { query: params });
+  },
+
+  /**
+   * GET /api/reports/export — descarga el .xlsx del reporte (admin). Devuelve
+   * el Blob binario (no pasa por el parser JSON) y, si el backend incluye
+   * Content-Disposition, el nombre de archivo sugerido.
+   */
+  async exportExcel(params: {
+    date_from: string;
+    date_to: string;
+    location_id?: number;
+  }): Promise<{ blob: Blob; filename: string }> {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') search.append(k, String(v));
+    });
+    const token = tokenStorage.get();
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/reports/export?${search.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch (err) {
+      throw new ApiError(0, 'Sin conexión con el servidor.', err);
+    }
+    if (!response.ok) {
+      let message = `Error ${response.status}`;
+      try {
+        const data = await response.json();
+        message = (data as { message?: string })?.message || message;
+      } catch {
+        /* respuesta sin JSON */
+      }
+      if (response.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('api-unauthorized', { detail: { status: 401 } }));
+      }
+      throw new ApiError(response.status, message);
+    }
+    const disposition = response.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match ? match[1] : `reporte_ventas_${params.date_from}_a_${params.date_to}.xlsx`;
+    return { blob: await response.blob(), filename };
   },
 };
 

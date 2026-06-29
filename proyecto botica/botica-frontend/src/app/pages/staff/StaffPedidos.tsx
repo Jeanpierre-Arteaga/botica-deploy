@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useLocation as useRouteLocation, useNavigate } from 'react-router';
 import {
   Search, Clock, CheckCircle2, XCircle, Truck, Store, Inbox, Download, Loader2,
-  ChevronDown, ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, MapPin,
 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/AuthContext';
-import { useLocations } from '../../lib/LocationContext';
+import { useAdminScopeOptional } from '../../lib/AdminScopeContext';
 import { Segmented } from '../../components/Segmented';
 import { toast } from 'sonner';
 import type { Order, OrderState } from '../../lib/types';
@@ -43,7 +43,6 @@ const deliveryLabel = (t: Order['delivery_type']) =>
 export default function StaffPedidos() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const { locations } = useLocations();
   const { pathname } = useRouteLocation();
   const isAdmin = user?.role === 'admin';
   // /admin/pedidos y /staff/pedidos comparten esta página; los enlaces de
@@ -53,8 +52,11 @@ export default function StaffPedidos() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState('');
-  // Solo admin puede filtrar por sede; emp queda fijado a la suya por el backend.
-  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+  // El filtro de sede del admin lo MANDA el selector global del topbar
+  // (useAdminScopeOptional); al cambiarlo arriba, la tabla se actualiza. El emp
+  // queda fijado a su sede por el backend (no filtra aquí).
+  const adminScope = useAdminScopeOptional();
+  const selectedLocationId = isAdmin ? (adminScope?.selectedLocationId ?? null) : null;
 
   const stateFilter = (searchParams.get('state') as Filter) || 'all';
   // El periodo por defecto es "Últimos 7 días" (vista inicial acotada).
@@ -128,47 +130,37 @@ export default function StaffPedidos() {
   const periodLabel = PERIODS.find((p) => p.value === period)?.label.toLowerCase();
 
   return (
-    <div>
+    // En /admin la página no tiene wrapper de layout (a diferencia de /staff),
+    // así que aporta su propio padding para igualar a las demás secciones admin.
+    <div className={pathname.startsWith('/admin') ? 'p-4 lg:p-6' : ''}>
       <div className="mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-text">Pedidos</h1>
         <p className="text-sm text-muted">
-          {isAdmin ? 'Gestiona los pedidos de todas las sedes' : 'Gestiona los pedidos de tu sede'}
+          {isAdmin ? (
+            <span className="inline-flex items-center gap-1">
+              Gestiona los pedidos ·
+              <span className="inline-flex items-center gap-1 font-medium text-text">
+                <MapPin size={13} className="text-brand" />
+                {adminScope?.scopeLabel ?? 'Todas las sedes'}
+              </span>
+            </span>
+          ) : (
+            'Gestiona los pedidos de tu sede'
+          )}
         </p>
       </div>
 
       <div className="bg-surface rounded-2xl border border-line shadow-soft p-3 sm:p-4 mb-4">
-        {/* Buscador (superficie blanca) + sede (solo admin) en una barra */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          <div className="relative flex-1 min-w-0">
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por # de pedido o nombre del cliente"
-              className="w-full h-11 pl-11 pr-3 bg-surface border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
-            />
-          </div>
-          {isAdmin && (
-            <div className="relative lg:w-56 shrink-0">
-              <select
-                value={selectedLocationId ?? 'all'}
-                onChange={(e) =>
-                  setSelectedLocationId(e.target.value === 'all' ? null : parseInt(e.target.value, 10))
-                }
-                aria-label="Filtrar por sede"
-                className="w-full h-11 pl-3 pr-9 bg-surface border border-line rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
-              >
-                <option value="all">Todas las sedes</option>
-                {locations.map((l) => (
-                  <option key={l.location_id} value={l.location_id}>
-                    {l.location_name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-faint" />
-            </div>
-          )}
+        {/* Buscador (la sede del admin la fija el selector global del topbar) */}
+        <div className="relative">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por # de pedido o nombre del cliente"
+            className="w-full h-11 pl-11 pr-3 bg-surface border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
+          />
         </div>
 
         {/* Filtros compactos en UNA fila: periodo + estado (segmented controls).
@@ -256,7 +248,7 @@ function OrdersView({ orders, basePath }: { orders: Order[]; basePath: string })
             <tr className="bg-surface-2 text-center text-[11px] font-semibold uppercase tracking-wider text-faint border-b border-line">
               <th className="px-4 py-3 font-semibold whitespace-nowrap">N°</th>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Estado</th>
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">Cliente</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap text-left">Cliente</th>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Entrega</th>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Fecha</th>
               <th className="px-4 py-3 font-semibold whitespace-nowrap">Total</th>
@@ -281,6 +273,10 @@ function OrdersView({ orders, basePath }: { orders: Order[]; basePath: string })
   );
 }
 
+// Recorta el nombre del cliente a ~30 caracteres (con elipsis) para que no
+// rompa la maqueta de la tabla. El nombre completo va en el `title`.
+const clipName = (s: string, n = 30) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+
 function OrderTableRow({ order, basePath }: { order: Order; basePath: string }) {
   const navigate = useNavigate();
   const go = () => navigate(`${basePath}/${order.order_id}`);
@@ -302,10 +298,10 @@ function OrderTableRow({ order, basePath }: { order: Order; basePath: string }) 
       <td className="px-4 py-3 font-bold text-text tabular-nums whitespace-nowrap text-center">#{order.order_id}</td>
       <td className="px-4 py-3 whitespace-nowrap text-center"><StatusBadge state={order.order_state} /></td>
       <td
-        className="px-4 py-3 text-text font-medium truncate"
+        className="px-4 py-3 text-text font-medium truncate text-left"
         title={order.customer_name || 'Cliente sin nombre'}
       >
-        {order.customer_name || 'Cliente sin nombre'}
+        {clipName(order.customer_name || 'Cliente sin nombre')}
       </td>
       <td className="px-4 py-3 text-muted whitespace-nowrap text-center">
         <span className="inline-flex items-center gap-1.5">
@@ -357,8 +353,8 @@ function OrderCard({ order, basePath }: { order: Order; basePath: string }) {
           <span className="font-bold text-text">#{order.order_id}</span>
           <StatusBadge state={order.order_state} />
         </div>
-        <p className="text-sm font-medium text-text truncate">
-          {order.customer_name || 'Cliente sin nombre'}
+        <p className="text-sm font-medium text-text truncate" title={order.customer_name || 'Cliente sin nombre'}>
+          {clipName(order.customer_name || 'Cliente sin nombre')}
         </p>
         <p className="text-xs text-muted">
           {fmtDateTime(order.order_date)} · {deliveryLabel(order.delivery_type)}

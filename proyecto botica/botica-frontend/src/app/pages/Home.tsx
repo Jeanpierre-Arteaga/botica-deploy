@@ -6,7 +6,8 @@ import {
   Truck,
   Shield,
   ArrowRight,
-  CheckCircle2,
+  BadgeCheck,
+  TrendingDown,
   Package2,
   Pill,
   Baby,
@@ -33,6 +34,7 @@ import {
   Search,
 } from "lucide-react";
 import { ProductCarousel } from "../components/ProductCarousel";
+import { ProductStrip } from "../components/ProductStrip";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { Container } from "../components/Container";
 import { HeroBanner } from "../components/HeroBanner";
@@ -82,6 +84,50 @@ const BENEFITS: Array<{
   },
 ];
 
+/* ============================================================
+   Franjas de productos ligadas a sus banners (selección editorial).
+   Buscamos los productos por NOMBRE EXACTO dentro del catálogo de la
+   sede (no hardcodeamos ids ni precios: precios/ofertas salen de la BD).
+   ============================================================ */
+
+// Nombres exactos (tal cual en la BD) — el orden define el orden de la franja.
+const DERMA_STRIP_NAMES = [
+  "Gel Limpiador Concentrado Eucerin Dermopure para Piel Grasa",
+  "Sérum Anti-manchas Eucerin DermoPure Triple Effect para Piel Grasa",
+  "Exfoliante Eucerin DermoPURE Oil Control para piel grasa 100 ml",
+  "Fluido Facial Hidratante Matificante Eucerin DermoPure para Piel Grasa",
+];
+
+const VITAMINAS_STRIP_NAMES = [
+  "Nature's Bounty Biotina 5000 mcg 72 cápsulas blandas de liberación rápida",
+  "Sunvit B-12 1000mcg Tableta",
+  "Solgar Concentrado de aceite de pescado con omega-3 con 120 cápsulas blandas",
+  "Centrum Suplemento multivitamínico para mujeres con 200 comprimidos",
+];
+
+// Normaliza para comparar nombres de forma robusta: sin tildes, minúsculas y
+// espacios colapsados (tolera diferencias menores de capitalización/acentos).
+const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
+// Comillas/apóstrofos rectos y tipográficos → fuera (p. ej. "Nature's").
+const APOSTROPHES = new RegExp("['\\u2018\\u2019]", "g");
+const normalizeName = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(DIACRITICS, "")
+    .replace(APOSTROPHES, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Selecciona los productos cuyos nombres coinciden con `names`, preservando ese
+// orden. Solo incluye los encontrados (si falta alguno, no se inventa).
+function pickByNames(all: Product[], names: string[]): Product[] {
+  const byName = new Map(all.map((p) => [normalizeName(p.product_name), p]));
+  return names
+    .map((n) => byName.get(normalizeName(n)))
+    .filter((p): p is Product => Boolean(p));
+}
+
 export function Home() {
   /* Imágenes del home — auto-detectadas desde src/assets/home/ (ver homeImages.ts).
      Si el archivo no existe aún, el valor es undefined y se muestra un fallback. */
@@ -93,6 +139,8 @@ export function Home() {
 
   const [ofertas, setOfertas] = useState<Product[]>([]);
   const [destacados, setDestacados] = useState<Product[]>([]);
+  // Catálogo completo de la sede (sirve para armar las franjas por nombre).
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
 
@@ -181,6 +229,9 @@ export function Home() {
         ]);
         if (cancelled) return;
 
+        // Catálogo completo de la sede → fuente de las franjas (por nombre).
+        setAllProducts(destacadosData);
+
         // Defensivo: si el backend aún no filtra por is_offer, lo aplicamos en cliente.
         const ofertasFiltered = ofertasData.filter((p) => p.is_offer);
         setOfertas(ofertasFiltered);
@@ -207,6 +258,17 @@ export function Home() {
 
   const showOfertasSection =
     isLoadingProducts || (!productsError && ofertas.length > 0);
+
+  // Franjas editoriales (4 productos en oferta) buscadas por nombre exacto en el
+  // catálogo de la sede. Precios/ofertas/stock vienen de la BD vía ProductCard.
+  const dermaStrip = useMemo(
+    () => pickByNames(allProducts, DERMA_STRIP_NAMES),
+    [allProducts],
+  );
+  const vitaminasStrip = useMemo(
+    () => pickByNames(allProducts, VITAMINAS_STRIP_NAMES),
+    [allProducts],
+  );
 
   /* ====== IntersectionObserver para reveal al scroll ====== */
   const mainRef = useRef<HTMLDivElement>(null);
@@ -490,6 +552,19 @@ export function Home() {
             />
           </Link>
 
+          {/* ===== Franja Dermatología — continuación del banner Eucerin =====
+              Panel conectado (poca separación + acento naranja) con 4 productos
+              en oferta de la categoría, usando las mismas tarjetas de Destacados. */}
+          {(isLoadingProducts || dermaStrip.length > 0) && (
+            <ProductStrip
+              title="Dermatología"
+              subtitle="Rutina Eucerin DermoPure para piel grasa, con precios de oferta"
+              action={{ to: bannerCategoryHref, label: "Ver todos los productos" }}
+              products={dermaStrip}
+              loading={isLoadingProducts}
+            />
+          )}
+
           {/* ===== Fila promocional (mismo ancho del banner) =====
                 · promo-wide   (izq, ~60%, apaisada) → categoría Vitaminas
                 · tarjeta promo (der, ~40%) → countdown + CTA a Mamá & Bebé
@@ -513,6 +588,19 @@ export function Home() {
               }}
             />
           </div>
+
+          {/* ===== Franja Vitaminas — continuación del banner de bienestar =====
+              Mismo patrón que Dermatología: 4 productos en oferta de la categoría
+              Vitaminas, ligados visualmente al banner "Bienestar diario". */}
+          {(isLoadingProducts || vitaminasStrip.length > 0) && (
+            <ProductStrip
+              title="Vitaminas"
+              subtitle="Suplementos y multivitamínicos para tu bienestar diario, en oferta"
+              action={{ to: vitaminasHref, label: "Ver todos los productos" }}
+              products={vitaminasStrip}
+              loading={isLoadingProducts}
+            />
+          )}
         </Container>
       </section>
 
@@ -578,107 +666,193 @@ export function Home() {
             />
           )}
           <SectionHeader
-            className="mb-8"
+            className="mb-10"
             align="center"
             title="¿Por qué elegir genéricos?"
-            subtitle="Mismo principio activo que los de marca, certificados por DIGEMID y hasta 50% más económicos."
+            subtitle="Mismo principio activo y la misma eficacia que los de marca, certificados por DIGEMID y hasta 50% más económicos."
           />
-          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {/* Card marca */}
+
+          {/* Comparación marca vs genérico — bloques de precio alineados al
+              mismo nivel (mt-auto) para que el ahorro se lea de un vistazo.
+              Marca: atenuada/neutra. Genérico: destacada con acento verde. */}
+          <div className="relative grid md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto items-stretch">
+            {/* ----- Medicamento de marca (neutro) ----- */}
             <div
-              className="rounded-2xl p-8 border transition-all duration-200 hover:shadow-md"
+              className="rounded-2xl p-6 md:p-8 border flex flex-col"
               style={{
-                backgroundColor: "var(--c-surface)",
+                backgroundColor: "var(--c-bg)",
                 borderColor: "var(--c-line)",
-                boxShadow: "var(--elev-soft)",
               }}
             >
-              <div
-                className="text-xs font-semibold mb-2 uppercase tracking-wide"
+              <span
+                className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--c-faint)" }}
               >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--c-faint)" }}
+                  aria-hidden="true"
+                />
                 Medicamento de marca
-              </div>
+              </span>
               <h3
-                className="text-2xl font-bold mb-4"
+                className="mt-3 text-lg md:text-xl font-bold leading-snug"
                 style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
               >
                 Paracetamol Marca X
               </h3>
-              <p className="mb-6 text-sm" style={{ color: "var(--c-muted)" }}>
-                Paracetamol 500mg x 20 tabletas
+              <p className="mt-1 text-sm" style={{ color: "var(--c-muted)" }}>
+                Paracetamol 500 mg · 20 tabletas
               </p>
-              <div
-                className="text-4xl font-bold"
-                style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
-              >
-                S/ 25.00
+              <div className="mt-auto pt-8">
+                <div
+                  className="text-3xl md:text-[34px] font-bold leading-none"
+                  style={{
+                    color: "var(--c-text)",
+                    fontFamily: "var(--font-display)",
+                  }}
+                >
+                  S/ 25.00
+                </div>
+                <p className="mt-2 text-xs" style={{ color: "var(--c-faint)" }}>
+                  Precio de referencia de marca
+                </p>
               </div>
             </div>
-            {/* Card genérico */}
+
+            {/* ----- Medicamento genérico (recomendado, acento verde) ----- */}
             <div
-              className="rounded-2xl p-8 pt-9 relative transition-all duration-200 hover:shadow-lg"
+              className="relative rounded-2xl p-6 md:p-8 flex flex-col"
               style={{
-                background:
-                  "linear-gradient(135deg, var(--c-surface) 0%, var(--c-success-soft) 100%)",
-                border: "2px solid var(--c-success)",
+                backgroundColor: "var(--c-surface)",
+                border: "1.5px solid var(--c-success)",
                 boxShadow: "var(--elev-card)",
               }}
             >
-              <div
-                className="absolute -top-3.5 left-6 px-4 py-1.5 rounded-full text-[11px] font-bold shadow-md tracking-wider text-white"
+              {/* Badge RECOMENDADO — elegante, con check */}
+              <span
+                className="absolute -top-3 right-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-bold uppercase tracking-wider text-white shadow-sm"
                 style={{ backgroundColor: "var(--c-success)" }}
               >
-                RECOMENDADO
-              </div>
-              <div
-                className="text-xs font-semibold mb-2 uppercase tracking-wide"
+                <BadgeCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                Recomendado
+              </span>
+              <span
+                className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider"
                 style={{ color: "var(--c-success)" }}
               >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--c-success)" }}
+                  aria-hidden="true"
+                />
                 Medicamento genérico
-              </div>
+              </span>
               <h3
-                className="text-2xl font-bold mb-4"
+                className="mt-3 text-lg md:text-xl font-bold leading-snug"
                 style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}
               >
                 Paracetamol Genérico
               </h3>
-              <p className="mb-6 text-sm" style={{ color: "var(--c-muted)" }}>
-                Paracetamol 500mg x 20 tabletas
+              <p className="mt-1 text-sm" style={{ color: "var(--c-muted)" }}>
+                Paracetamol 500 mg · 20 tabletas
               </p>
-              <div className="flex items-baseline gap-3 mb-4 flex-wrap">
-                <div
-                  className="text-4xl font-bold"
-                  style={{ color: "var(--c-success)", fontFamily: "var(--font-display)" }}
-                >
-                  S/ 12.50
+              <div className="mt-auto pt-8">
+                <div className="flex items-end gap-2.5 flex-wrap">
+                  <span
+                    className="text-3xl md:text-[34px] font-bold leading-none"
+                    style={{
+                      color: "var(--c-success)",
+                      fontFamily: "var(--font-display)",
+                    }}
+                  >
+                    S/ 12.50
+                  </span>
+                  <span
+                    className="text-base line-through leading-none mb-0.5"
+                    style={{ color: "var(--c-faint)" }}
+                  >
+                    S/ 25.00
+                  </span>
+                  <span
+                    className="mb-0.5 px-2 py-0.5 rounded-full text-[11px] font-bold"
+                    style={{
+                      backgroundColor: "var(--c-success-soft)",
+                      color: "var(--c-success)",
+                    }}
+                  >
+                    -50%
+                  </span>
                 </div>
-                <div
-                  className="px-3 py-1 rounded-full text-xs font-bold"
-                  style={{
-                    backgroundColor: "var(--c-success-soft)",
-                    color: "var(--c-success)",
-                  }}
+                <p
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold"
+                  style={{ color: "var(--c-success)" }}
                 >
-                  50% OFF
-                </div>
-              </div>
-              <div
-                className="flex items-start gap-2 text-sm"
-                style={{ color: "var(--c-success)" }}
-              >
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span className="font-medium">
-                  Mismo principio activo, certificado DIGEMID
-                </span>
+                  <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
+                  Ahorras S/ 12.50 en esta compra
+                </p>
               </div>
             </div>
+
+            {/* Conector central (solo md+): liga ambas tarjetas mostrando que el
+                precio "baja" al pasar de marca a genérico. */}
+            <div
+              className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full items-center justify-center"
+              style={{
+                backgroundColor: "var(--c-surface)",
+                border: "1.5px solid var(--c-success)",
+                boxShadow: "var(--elev-soft)",
+              }}
+              aria-hidden="true"
+            >
+              <TrendingDown
+                className="w-5 h-5"
+                style={{ color: "var(--c-success)" }}
+              />
+            </div>
           </div>
+
+          {/* Sello de confianza DIGEMID — limpio, ancho completo bajo la comparación */}
+          <div
+            className="mt-4 md:mt-6 max-w-5xl mx-auto rounded-2xl border px-5 py-4 flex items-center justify-center gap-3 text-center"
+            style={{
+              backgroundColor: "var(--c-surface)",
+              borderColor: "var(--c-line)",
+              boxShadow: "var(--elev-xs)",
+            }}
+          >
+            <span
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: "var(--c-success-soft)" }}
+            >
+              <ShieldCheck
+                className="w-5 h-5"
+                style={{ color: "var(--c-success)" }}
+                aria-hidden="true"
+              />
+            </span>
+            <p
+              className="text-sm md:text-[15px] leading-snug"
+              style={{ color: "var(--c-text)" }}
+            >
+              <strong style={{ color: "var(--c-success)" }}>
+                Mismo principio activo
+              </strong>{" "}
+              y la misma eficacia, <strong>certificado por DIGEMID</strong>.
+            </p>
+          </div>
+
           <div className="text-center mt-8">
             <Link
               to="/catalogo"
-              className="inline-flex items-center gap-2 text-white px-10 py-4 rounded-xl font-bold text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
+              className="inline-flex items-center gap-2 text-white px-9 py-3.5 rounded-xl font-bold text-base transition-all duration-200 shadow-md hover:shadow-lg active:scale-[0.98]"
               style={{ backgroundColor: "var(--c-success)" }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#15803D")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "var(--c-success)")
+              }
             >
               Explorar genéricos
               <ArrowRight className="w-5 h-5" />

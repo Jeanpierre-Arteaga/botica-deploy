@@ -1,14 +1,14 @@
 import {
   Package, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowRightLeft,
   AlertTriangle, AlertCircle, Search, ChevronLeft, ChevronRight, Pill, ImageOff,
-  X, Check, Loader2, CalendarDays, PackageX, MapPin, LayoutGrid,
+  X, Check, Loader2, CalendarDays, PackageX, MapPin,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "../../lib/api";
 import { useAdminScope } from "../../lib/AdminScopeContext";
 import { formatLimaDate } from "../../lib/dates";
-import { CategoryChip } from "../../components/CategoryChip";
+import { CategoryChipsBar } from "../../components/CategoryChipsBar";
 import { Segmented } from "../../components/Segmented";
 import { ProductSearchAutocomplete } from "../../components/ProductSearchAutocomplete";
 import type { InventoryItem, Location, Category } from "../../lib/types";
@@ -71,6 +71,7 @@ export function ControlStock() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>(""); // category_id (string); "" = todas
   const [statusFilter, setStatusFilter] = useState<"all" | "critical" | "low" | "normal">("all");
+  const [sortMode, setSortMode] = useState<"recent" | "az">("recent"); // default: recientes primero
   const [page, setPage] = useState(0);
 
   const [transferOpen, setTransferOpen] = useState(false);
@@ -131,9 +132,11 @@ export function ControlStock() {
       }
       return true;
     });
-    // Orden por defecto: recientes primero (product_id desc → último registrado arriba).
-    return list.sort((a, b) => b.product_id - a.product_id);
-  }, [sedeRows, search, categoryFilter, categories, statusFilter]);
+    // Orden: por defecto recientes primero (product_id desc); A–Z opcional.
+    return sortMode === "az"
+      ? list.sort((a, b) => (a.product_name ?? "").localeCompare(b.product_name ?? "", "es"))
+      : list.sort((a, b) => b.product_id - a.product_id);
+  }, [sedeRows, search, categoryFilter, categories, statusFilter, sortMode]);
 
   const counts = useMemo(() => {
     let critical = 0, low = 0, normal = 0;
@@ -144,7 +147,7 @@ export function ControlStock() {
     return { total: sedeRows.length, critical, low, normal };
   }, [sedeRows]);
 
-  useEffect(() => { setPage(0); }, [viewSede, search, categoryFilter, statusFilter]);
+  useEffect(() => { setPage(0); }, [viewSede, search, categoryFilter, statusFilter, sortMode]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, pageCount - 1);
   const pageItems = filtered.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
@@ -227,6 +230,7 @@ export function ControlStock() {
 
       {/* Filtros estilo staff: búsqueda + chips de categoría + estado de stock */}
       <div className="bg-surface rounded-2xl shadow-soft border border-line p-3 sm:p-4 mb-4">
+        {/* Búsqueda (ancho completo) */}
         <div className="relative">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
           <input
@@ -236,30 +240,13 @@ export function ControlStock() {
           />
         </div>
 
-        {/* Chips de categoría con scroll horizontal */}
-        {categories.length > 0 && (
-          <div className="mt-3 -mb-1 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <CategoryChip
-              label="Todas"
-              icon={LayoutGrid}
-              active={categoryFilter === ""}
-              onClick={() => setCategoryFilter("")}
-            />
-            {categories.map((c) => (
-              <CategoryChip
-                key={c.category_id}
-                label={c.category_name}
-                iconName={c.icon_name}
-                colorHex={c.color_hex}
-                active={categoryFilter === String(c.category_id)}
-                onClick={() => setCategoryFilter(String(c.category_id))}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Estado de stock (útil en esta tabla) */}
+        {/* Chips de categoría DEBAJO de la barra, alineados al borde izquierdo */}
         <div className="mt-3">
+          <CategoryChipsBar categories={categories} selected={categoryFilter} onSelect={setCategoryFilter} />
+        </div>
+
+        {/* Estado de stock + orden alfabético */}
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
           <Segmented
             ariaLabel="Estado de stock"
             value={statusFilter}
@@ -269,6 +256,16 @@ export function ControlStock() {
               { value: "critical", label: "Crítico" },
               { value: "low", label: "Bajo" },
               { value: "normal", label: "Normal" },
+            ]}
+          />
+          <span className="hidden sm:block w-px h-6 bg-line" />
+          <Segmented
+            ariaLabel="Orden"
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              { value: "recent", label: "Recientes" },
+              { value: "az", label: "A–Z" },
             ]}
           />
         </div>
@@ -337,7 +334,7 @@ function StockTable({ items, sedeName, onRestock }: { items: InventoryItem[]; se
           </colgroup>
           <thead>
             <tr className="bg-surface-2 text-center text-[11px] font-semibold uppercase tracking-wider text-faint border-b border-line">
-              <th className="px-4 py-3 text-left">Producto</th>
+              <th className="px-4 py-3">Producto</th>
               <th className="px-4 py-3">Categoría</th>
               <th className="px-4 py-3">Stock actual</th>
               <th className="px-4 py-3">Stock mínimo</th>
@@ -365,9 +362,10 @@ function StockTable({ items, sedeName, onRestock }: { items: InventoryItem[]; se
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center text-muted truncate">{it.category_name || "—"}</td>
-                  {/* Stock actual: cifra grande y SOBRIA (la severidad la lleva el badge Estado) */}
+                  {/* Stock actual: cifra en negrita pero más contenida y SOBRIA
+                      (la severidad la lleva el badge Estado). */}
                   <td className="px-4 py-3 text-center">
-                    <span className="text-2xl font-bold text-text tabular-nums">{it.current_stock}</span>
+                    <span className="text-lg font-bold text-text tabular-nums">{it.current_stock}</span>
                   </td>
                   <td className="px-4 py-3 text-center text-muted tabular-nums">{it.min_stock}</td>
                   <td className="px-4 py-3 text-center">
@@ -604,6 +602,7 @@ function TransferModal({ products, productSedeMap, sedes, defaultFrom, onClose, 
 }) {
   const other = (id: number) => sedes.find((s) => s.location_id !== id)?.location_id ?? id;
   const [productId, setProductId] = useState<string>("");
+  const [selectedName, setSelectedName] = useState<string>("");
   const [fromSede, setFromSede] = useState<number>(defaultFrom);
   const [toSede, setToSede] = useState<number>(other(defaultFrom));
   const [amount, setAmount] = useState("");
@@ -613,7 +612,7 @@ function TransferModal({ products, productSedeMap, sedes, defaultFrom, onClose, 
   const touch = (k: string) => setTouched((t) => new Set(t).add(k));
 
   const nameOf = (id: number) => sedes.find((s) => s.location_id === id)?.location_name ?? "—";
-  const productName = products.find((p) => p.product_id === Number(productId))?.product_name ?? "";
+  const productName = selectedName || products.find((p) => p.product_id === Number(productId))?.product_name || "";
   const available = productId ? productSedeMap.get(Number(productId))?.get(fromSede)?.current_stock ?? 0 : 0;
   const amt = Number(amount);
 
@@ -655,11 +654,15 @@ function TransferModal({ products, productSedeMap, sedes, defaultFrom, onClose, 
       {phase === "form" ? (
         <div className="space-y-4">
           <div>
-            <label className={LABEL} htmlFor="tf-prod">Producto</label>
-            <select id="tf-prod" value={productId} onChange={(e) => setProductId(e.target.value)} onBlur={() => touch("product")} className={field(!!showErr("product"))}>
-              <option value="">Seleccionar producto…</option>
-              {products.map((p) => <option key={p.product_id} value={p.product_id}>{p.product_name}</option>)}
-            </select>
+            <label className={LABEL}>Producto</label>
+            <ProductSearchAutocomplete
+              placeholder="Buscar producto por nombre…"
+              clearOnSelect={false}
+              limit={6}
+              inputClassName={`w-full h-11 pl-11 pr-4 rounded-xl border bg-page text-sm focus:outline-none focus:ring-2 transition-colors ${showErr("product") ? "border-error focus:ring-error/30 focus:border-error" : "border-line focus:ring-brand/30 focus:border-brand"}`}
+              onSelect={(p) => { setProductId(String(p.product_id)); setSelectedName(p.product_name); touch("product"); }}
+              onQueryChange={() => { if (productId) { setProductId(""); setSelectedName(""); } }}
+            />
             <ErrText msg={showErr("product")} />
           </div>
 

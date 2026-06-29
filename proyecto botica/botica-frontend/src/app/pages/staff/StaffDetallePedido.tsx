@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useLocation } from 'react-router';
 import {
   ArrowLeft, User, MapPin, Package, CreditCard, AlertCircle,
   Copy, ExternalLink, CheckCircle2, X, ShieldCheck, XCircle, RotateCcw,
@@ -17,6 +17,10 @@ type ActionType = null | 'validate' | 'deliver' | 'cancel' | 'cancel-refund';
 export default function StaffDetallePedido() {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
+  // /admin/pedidos/:id y /staff/pedidos/:id comparten esta página: el padding y
+  // el enlace "Volver" siguen la sección actual de la URL.
+  const inAdmin = useLocation().pathname.startsWith('/admin');
+  const pedidosPath = inAdmin ? '/admin/pedidos' : '/staff/pedidos';
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -124,9 +128,9 @@ export default function StaffDetallePedido() {
   const hasActions = canValidatePayment || canMarkDelivered || canStaffCancel || canCancelWithRefund;
 
   return (
-    <div>
+    <div className={inAdmin ? 'p-4 lg:p-6' : ''}>
       <Link
-        to="/staff/pedidos"
+        to={pedidosPath}
         className="inline-flex items-center gap-1 text-sm text-muted hover:text-brand mb-4 transition-colors"
       >
         <ArrowLeft size={16} /> Volver a pedidos

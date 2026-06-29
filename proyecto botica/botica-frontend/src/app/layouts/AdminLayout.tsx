@@ -13,11 +13,13 @@ import {
   X,
   CalendarDays,
   MapPin,
+  Pencil,
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { useAdminScope } from '../lib/AdminScopeContext';
 import { AccessibilityMenu } from '../components/AccessibilityMenu';
 import { AdminNotificationsBell } from '../components/AdminNotificationsBell';
+import { ProfileModal } from '../components/ProfileModal';
 import { formatLimaDate } from '../lib/dates';
 
 /**
@@ -48,7 +50,7 @@ const menuSections: { label: string; items: NavItem[] }[] = [
   {
     label: 'OPERACIONES',
     items: [
-      { to: '/admin/pedidos', label: 'Pedidos Web', icon: ShoppingBag },
+      { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
       { to: '/admin/usuarios', label: 'Gestión de Usuarios', icon: Users },
     ],
   },
@@ -66,6 +68,7 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Reloj/fecha en hora de Perú (refresca cada minuto).
   const [now, setNow] = useState(() => new Date());
@@ -93,10 +96,10 @@ export function AdminLayout() {
           ============================================================ */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-ink text-white h-screen sticky top-0">
         {/* Logo sobre chip blanco ajustado (mismo patrón que staff) */}
-        <div className="px-3 py-2.5 border-b border-white/10">
+        <div className="px-3 py-2 border-b border-white/10">
           <Link
             to="/admin/dashboard"
-            className="flex items-center justify-center h-16 rounded-xl bg-white shadow-sm overflow-hidden transition-transform hover:scale-[1.02]"
+            className="flex items-center justify-center h-14 rounded-xl bg-white shadow-sm overflow-hidden transition-transform hover:scale-[1.02]"
             aria-label="Ir al inicio del panel"
           >
             <img
@@ -107,32 +110,46 @@ export function AdminLayout() {
           </Link>
         </div>
 
-        {/* Identidad del admin: nombre, rol y alcance "Ambas sedes" */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-brand text-white flex items-center justify-center font-bold">
-              {getInitial()}
-            </div>
+        {/* Identidad del admin: nombre, rol y alcance "Ambas sedes". El lápiz
+            (editar perfil) queda justificado a la derecha (space-between). */}
+        <div className="px-3 py-3 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="" className="w-9 h-9 shrink-0 rounded-full object-cover border border-white/20" />
+            ) : (
+              <div className="w-9 h-9 shrink-0 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold">
+                {getInitial()}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold text-sm truncate">
+              <p className="text-white font-semibold text-sm truncate leading-tight">
                 {user?.full_name ?? '—'}
               </p>
               <p className="text-slate-400 text-xs">Administrador</p>
             </div>
+            <button
+              onClick={() => setProfileOpen(true)}
+              aria-label="Editar mi perfil"
+              title="Editar mi perfil"
+              className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              <Pencil size={15} />
+            </button>
           </div>
-          <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
-            <MapPin size={14} className="shrink-0 text-brand" />
+          <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1">
+            <MapPin size={13} className="shrink-0 text-brand" />
             <span className="text-[11px] font-medium text-slate-200 truncate">
               {scopeLabel}
             </span>
           </div>
         </div>
 
-        {/* Navegación agrupada (scrollea independiente) */}
-        <nav className="flex-1 overflow-y-auto scroll-navy p-4 space-y-5">
+        {/* Navegación agrupada. flex-1 + min-h-0 para que el pie quede abajo sin
+            scrollbar en pantallas normales; en pantallas muy bajas, scrollea. */}
+        <nav className="flex-1 min-h-0 overflow-y-auto scroll-navy px-3 py-3 space-y-3.5">
           {menuSections.map((section) => (
             <div key={section.label}>
-              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                 {section.label}
               </p>
               <div className="space-y-1">
@@ -143,7 +160,7 @@ export function AdminLayout() {
                       key={item.to}
                       to={item.to}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                           isActive
                             ? 'bg-brand text-white font-medium'
                             : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -161,11 +178,11 @@ export function AdminLayout() {
         </nav>
 
         {/* Pie fijo: ir a la web + cerrar sesión (idéntico a staff) */}
-        <div className="p-3 border-t border-white/10 space-y-1">
+        <div className="px-3 py-2.5 border-t border-white/10 space-y-1">
           <Link
             to="/"
             aria-label="Ir a la tienda (web pública)"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             <Store size={18} className="shrink-0" />
             Ir a la web
@@ -173,7 +190,7 @@ export function AdminLayout() {
           <button
             onClick={handleLogout}
             aria-label="Cerrar sesión"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-error/15 hover:text-[#FCA5A5] transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-error/15 hover:text-[#FCA5A5] transition-colors focus-visible:ring-2 focus-visible:ring-error focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
           >
             <LogOut size={18} className="shrink-0" />
             Cerrar sesión
@@ -196,12 +213,9 @@ export function AdminLayout() {
           }}
         >
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-faint leading-none">
+            <p className="text-base font-bold uppercase tracking-[0.12em] text-muted leading-none">
               Panel administrativo
             </p>
-            <div className="text-lg font-bold text-text leading-tight truncate">
-              {sectionTitle}
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -274,10 +288,27 @@ export function AdminLayout() {
 
             {/* Identidad */}
             <div className="p-4 border-b border-white/10">
-              <p className="text-white font-semibold text-sm truncate">
-                {user?.full_name ?? '—'}
-              </p>
-              <p className="text-slate-400 text-xs">Administrador</p>
+              <div className="flex items-center gap-2.5">
+                {user?.photo_url ? (
+                  <img src={user.photo_url} alt="" className="w-9 h-9 shrink-0 rounded-full object-cover border border-white/20" />
+                ) : (
+                  <div className="w-9 h-9 shrink-0 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold">
+                    {getInitial()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">{user?.full_name ?? '—'}</p>
+                  <p className="text-slate-400 text-xs">Administrador</p>
+                </div>
+                <button
+                  onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
+                  aria-label="Editar mi perfil"
+                  title="Editar mi perfil"
+                  className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Pencil size={15} />
+                </button>
+              </div>
               <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-2.5 py-1.5">
                 <MapPin size={14} className="shrink-0 text-brand" />
                 <span className="text-[11px] font-medium text-slate-200 truncate">
@@ -343,6 +374,9 @@ export function AdminLayout() {
           </aside>
         </div>
       )}
+
+      {/* Modal de perfil propio (editar datos / foto / contraseña / desactivar) */}
+      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }

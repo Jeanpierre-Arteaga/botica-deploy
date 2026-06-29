@@ -45,7 +45,6 @@ const BOTTOM_LINKS = [
 const PAYMENTS: { src: string; alt: string; bg: string }[] = [
   { src: "/payments/visa.svg", alt: "Visa", bg: "#FFFFFF" },
   { src: "/payments/mastercard.svg", alt: "Mastercard", bg: "#FFFFFF" },
-  { src: "/payments/amex.svg", alt: "American Express", bg: "#FFFFFF" },
   { src: "/payments/yape.png", alt: "Yape", bg: "var(--c-pay-yape)" },
   { src: "/payments/plin.png", alt: "Plin", bg: "#FFFFFF" },
 ];
@@ -73,36 +72,14 @@ export function Footer() {
     <footer style={{ backgroundColor: "var(--c-ink)" }}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* ============================================================
-            Franja del Libro de Reclamaciones — slim (acceso secundario;
-            el principal vive en la 4ª columna)
+            3 columnas de contenido (Enlaces · Legal · Sedes) del MISMO ancho
+            + 1 columna utilitaria (Libro de Reclamaciones + Medios de pago).
+            grid de 4 columnas iguales en lg, 2 en sm/md → quedan parejas y sin
+            celdas huérfanas (antes "Legal" se veía corrida a la derecha).
             ============================================================ */}
-        <div
-          className="mb-7 rounded-xl border px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:justify-between"
-          style={{ backgroundColor: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.10)" }}
-        >
-          <p className="text-[12.5px] leading-snug" style={{ color: "rgba(226,232,240,0.78)" }}>
-            <span style={{ color: "var(--c-brand)" }} className="font-semibold">
-              Conforme a la Ley N° 29571
-            </span>
-            {" · "}
-            Tienes un <strong className="text-white">Libro de Reclamaciones</strong> virtual a tu disposición.
-          </p>
-          <Link
-            to="/libro-reclamaciones"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold text-[12.5px] text-white transition-all shadow-sm hover:shadow-md flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            style={{ backgroundColor: "var(--c-brand)", outlineColor: "#fff" }}
-          >
-            Ábrelo aquí
-            <ChevronRight className="w-4 h-4" aria-hidden="true" />
-          </Link>
-        </div>
-
-        {/* ============================================================
-            3 columnas de contenido + 1 columna utilitaria a la derecha
-            ============================================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
           {/* Col 1 · Enlaces */}
-          <nav className="lg:col-span-3" aria-label="Enlaces de navegación">
+          <nav aria-label="Enlaces de navegación">
             <FooterHeading>Enlaces</FooterHeading>
             <ul className="space-y-2 text-[13px]">
               {NAV_LINKS.map((link) => (
@@ -122,7 +99,7 @@ export function Footer() {
           </nav>
 
           {/* Col 2 · Legal */}
-          <nav className="lg:col-span-3" aria-label="Información legal">
+          <nav aria-label="Información legal">
             <FooterHeading>Legal</FooterHeading>
             <ul className="space-y-2 text-[13px]">
               {LEGAL_LINKS.map((link) => (
@@ -154,7 +131,7 @@ export function Footer() {
           </nav>
 
           {/* Col 3 · Sedes / Contacto (ambas, compactas) */}
-          <div className="lg:col-span-3">
+          <div>
             <FooterHeading>Sedes y contacto</FooterHeading>
             <div className="space-y-4">
               {locations.map((store) => {
@@ -219,7 +196,7 @@ export function Footer() {
           </div>
 
           {/* Col 4 · Utilitaria — Libro de Reclamaciones + Medios de pago */}
-          <div className="sm:col-span-2 lg:col-span-3 space-y-6">
+          <div className="space-y-6">
             {/* Libro de Reclamaciones (acceso principal: imagen oficial clicable) */}
             <div>
               <FooterHeading>Libro de Reclamaciones</FooterHeading>
@@ -232,7 +209,7 @@ export function Footer() {
                 <img
                   src="/libro-reclamaciones.svg"
                   alt="Libro de Reclamaciones — Ley N° 29571"
-                  className="h-14 w-auto rounded-lg shadow-sm transition-transform hover:scale-[1.02]"
+                  className="h-auto w-full max-w-[248px] rounded-lg shadow-sm transition-transform hover:scale-[1.02]"
                 />
               </Link>
             </div>

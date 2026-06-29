@@ -13,6 +13,7 @@ const UserModel = {
   findById: async (id) => {
     const result = await pool.query(
       `SELECT u.user_id, u.user_code, u.full_name, u.role, u.is_active,
+              u.location_id, u.last_login, u.photo_url,
               l.location_name
        FROM users u
        LEFT JOIN location l ON u.location_id = l.location_id
@@ -25,6 +26,7 @@ const UserModel = {
   findAll: async () => {
     const result = await pool.query(
       `SELECT u.user_id, u.user_code, u.full_name, u.role, u.is_active,
+              u.location_id, u.last_login, u.photo_url,
               l.location_name
        FROM users u
        LEFT JOIN location l ON u.location_id = l.location_id
@@ -45,13 +47,14 @@ const UserModel = {
 
   // Allowlist defensiva: role y user_password NO son actualizables vía update.
   // role solo se cambia por PATCH /:id/role (admin); password requiere endpoint dedicado.
+  // photo_url SÍ es actualizable (perfil propio o admin).
   update: async (id, data) => {
-    const ALLOWED_UPDATE_FIELDS = ['user_code', 'full_name', 'location_id', 'is_active'];
+    const ALLOWED_UPDATE_FIELDS = ['user_code', 'full_name', 'location_id', 'is_active', 'photo_url'];
     const fields = Object.keys(data || {}).filter(k => ALLOWED_UPDATE_FIELDS.includes(k));
 
     if (fields.length === 0) {
       const current = await pool.query(
-        `SELECT user_id, user_code, full_name, role, location_id, is_active
+        `SELECT user_id, user_code, full_name, role, location_id, is_active, photo_url
          FROM users WHERE user_id = $1`,
         [id]
       );
@@ -64,10 +67,16 @@ const UserModel = {
     const result = await pool.query(
       `UPDATE users SET ${setClause}
        WHERE user_id = $${fields.length + 1}
-       RETURNING user_id, user_code, full_name, role, location_id, is_active`,
+       RETURNING user_id, user_code, full_name, role, location_id, is_active, photo_url`,
       [...values, id]
     );
     return result.rows[0];
+  },
+
+  // Devuelve la URL de foto actual (para limpiar la anterior de S3 al reemplazar).
+  getPhotoUrl: async (id) => {
+    const result = await pool.query(`SELECT photo_url FROM users WHERE user_id = $1`, [id]);
+    return result.rows[0] ? result.rows[0].photo_url : null;
   },
 
   updateRole: async (id, role) => {
@@ -75,6 +84,20 @@ const UserModel = {
       `UPDATE users SET role = $1 WHERE user_id = $2
        RETURNING user_id, full_name, role`,
       [role, id]
+    );
+    return result.rows[0];
+  },
+
+  // Restablece la contraseña (ya hasheada por el controller). Limpia el bloqueo
+  // y los intentos fallidos: si el admin regenera la clave, el usuario recupera
+  // el acceso de inmediato.
+  updatePassword: async (id, hashedPassword) => {
+    const result = await pool.query(
+      `UPDATE users
+         SET user_password = $1, failed_attempts = 0, locked_until = NULL
+       WHERE user_id = $2
+       RETURNING user_id`,
+      [hashedPassword, id]
     );
     return result.rows[0];
   },

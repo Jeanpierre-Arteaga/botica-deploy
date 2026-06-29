@@ -1,5 +1,6 @@
 const ProductModel = require('../models/productModel');
 const ImageModel = require('../models/imageModel');
+const LaboratoryModel = require('../models/laboratoryModel');
 const { uploadBuffer, deleteByUrl } = require('../config/s3');
 
 // Normaliza el campo image_url del body: string no vacío → trim, si no null.
@@ -7,6 +8,16 @@ function cleanImageUrl(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+// El admin escribe el laboratorio como TEXTO LIBRE. Si el body trae
+// laboratory_name, lo convertimos a laboratory_id (reutiliza o crea) y lo
+// dejamos listo para el modelo, preservando el resto de campos.
+async function resolveLaboratory(body) {
+  if (!body || typeof body.laboratory_name !== 'string') return body;
+  const laboratory_id = await LaboratoryModel.findOrCreateByName(body.laboratory_name);
+  const { laboratory_name, ...rest } = body;
+  return { ...rest, laboratory_id };
 }
 
 const productController = {
@@ -79,7 +90,8 @@ const productController = {
 
   create: async (req, res) => {
     try {
-      const producto = await ProductModel.create(req.body);
+      const data = await resolveLaboratory(req.body);
+      const producto = await ProductModel.create(data);
 
       // Modo "pegar URL": si llega image_url en el body, la guardamos como
       // imagen principal sin pasar por S3.
@@ -108,7 +120,8 @@ const productController = {
 
   update: async (req, res) => {
     try {
-      const producto = await ProductModel.update(req.params.id, req.body);
+      const data = await resolveLaboratory(req.body);
+      const producto = await ProductModel.update(req.params.id, data);
       if (!producto) return res.status(404).json({ message: 'Producto no encontrado.' });
 
       // Modo "pegar URL" al editar.

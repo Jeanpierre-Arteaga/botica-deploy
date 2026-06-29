@@ -30,7 +30,7 @@ import type {
   PaymentMethod, VoucherType,
 } from '../../lib/types';
 import { Button } from '../../components/ui/Button';
-import { CategoryChip } from '../../components/CategoryChip';
+import { CategoryChipsBar } from '../../components/CategoryChipsBar';
 
 interface CartItem {
   product_id: number;
@@ -312,7 +312,7 @@ export default function StaffNuevaVenta() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* IZQUIERDA: productos */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Buscador (superficie blanca) + chips de categoría */}
+          {/* Buscador (ancho completo) + chips de categoría DEBAJO (flush izq.) */}
           <div className="bg-surface rounded-2xl border border-line shadow-soft p-4">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" size={18} />
@@ -324,30 +324,13 @@ export default function StaffNuevaVenta() {
                 className="w-full h-11 pl-11 pr-3 bg-surface border border-line rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
               />
             </div>
-
-            {/* Barra de categorías con scroll horizontal. El icono toma el color
-                de la categoría (color_hex) de forma sutil; el chip activo se
-                resalta en naranja de marca. */}
-            {categories.length > 0 && (
-              <div className="mt-3 -mb-1 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                <CategoryChip
-                  label="Todas"
-                  icon={LayoutGrid}
-                  active={selectedCategory === null}
-                  onClick={() => setSelectedCategory(null)}
-                />
-                {categories.map((c) => (
-                  <CategoryChip
-                    key={c.category_id}
-                    label={c.category_name}
-                    iconName={c.icon_name}
-                    colorHex={c.color_hex}
-                    active={selectedCategory === c.category_id}
-                    onClick={() => setSelectedCategory(c.category_id)}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="mt-3">
+              <CategoryChipsBar
+                categories={categories}
+                selected={selectedCategory == null ? "" : String(selectedCategory)}
+                onSelect={(v) => setSelectedCategory(v === "" ? null : Number(v))}
+              />
+            </div>
           </div>
 
           {/* Grilla paginada */}

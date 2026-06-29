@@ -52,3 +52,18 @@ export function formatLimaDate(date: Date = new Date()): string {
 export function formatLimaTime(date: Date = new Date()): string {
   return _timeLima.format(date);
 }
+
+/** Suma n días a un 'YYYY-MM-DD' y devuelve 'YYYY-MM-DD'. Aritmética en UTC
+ *  sobre la fecha-calendario (sin desfases de zona). */
+export function addDaysISO(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Días (inclusive) entre dos 'YYYY-MM-DD'. */
+export function daysInclusive(from: string, to: string): number {
+  const a = new Date(`${from}T00:00:00Z`).getTime();
+  const b = new Date(`${to}T00:00:00Z`).getTime();
+  return Math.floor((b - a) / 86_400_000) + 1;
+}
