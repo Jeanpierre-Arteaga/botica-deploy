@@ -13,7 +13,7 @@ import { api } from "../../lib/api";
 import { useAdminScope } from "../../lib/AdminScopeContext";
 import { formatLimaDate } from "../../lib/dates";
 import type {
-  DashboardSummary, SalesSeriesPoint, Order, InventoryItem, PaymentMethod,
+  DashboardSummary, SalesSeriesPoint, Order, InventoryItem, PaymentMethod, OrderState,
 } from "../../lib/types";
 
 // Paleta de series del gráfico (Ate primero → naranja; Santa Anita → azul).
@@ -557,8 +557,9 @@ function RecentSalesCard({ orders, className = "" }: { orders: Order[]; classNam
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-[11%]" /><col className="w-[17%]" /><col className="w-[22%]" />
-                <col className="w-[10%]" /><col className="w-[18%]" /><col className="w-[22%]" />
+                <col className="w-[10%]" /><col className="w-[14%]" /><col className="w-[18%]" />
+                <col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[18%]" />
+                <col className="w-[18%]" />
               </colgroup>
               <thead>
                 <tr className="bg-surface-2 text-center text-[11px] font-semibold uppercase tracking-wider text-faint border-b border-line">
@@ -568,6 +569,7 @@ function RecentSalesCard({ orders, className = "" }: { orders: Order[]; classNam
                   <th className="px-4 py-3">Prod.</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Método</th>
+                  <th className="px-4 py-3">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -583,6 +585,7 @@ function RecentSalesCard({ orders, className = "" }: { orders: Order[]; classNam
                     <td className="px-4 py-3 text-center text-muted tabular-nums">{o.detail_count ?? o.details?.length ?? 0}</td>
                     <td className="px-4 py-3 text-center font-bold text-text tabular-nums whitespace-nowrap">S/ {Number(o.total_price).toFixed(2)}</td>
                     <td className="px-4 py-3 text-center"><PaymentBadge method={o.payment?.payment_method ?? null} /></td>
+                    <td className="px-4 py-3 text-center"><StatusBadge state={o.order_state} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -607,7 +610,10 @@ function RecentSalesCard({ orders, className = "" }: { orders: Order[]; classNam
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span className="font-bold text-text tabular-nums">S/ {Number(o.total_price).toFixed(2)}</span>
-                  <PaymentBadge method={o.payment?.payment_method ?? null} />
+                  <div className="flex items-center gap-1.5">
+                    <PaymentBadge method={o.payment?.payment_method ?? null} />
+                    <StatusBadge state={o.order_state} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -668,6 +674,26 @@ function PaymentBadge({ method }: { method: PaymentMethod | null }) {
       ) : Icon ? (
         <Icon size={12} />
       ) : null}
+      {m.label}
+    </span>
+  );
+}
+
+// Badge de estado del pedido. Mismos colores que la leyenda de la dona
+// "Pedidos por estado" (STATE_META): pendiente=ámbar, en proceso=azul,
+// entregado=verde, cancelado=rojo. Deja ver de un vistazo si el pedido ya
+// cuenta como venta ('en proceso'/'entregado') o todavía no ('pendiente').
+const STATUS_META: Record<OrderState, { label: string; cls: string }> = {
+  pendiente: { label: "Pendiente", cls: "bg-warning-soft text-warning" },
+  "en proceso": { label: "En proceso", cls: "bg-info-soft text-info" },
+  entregado: { label: "Entregado", cls: "bg-success-soft text-success" },
+  cancelado: { label: "Cancelado", cls: "bg-error-soft text-error" },
+};
+
+function StatusBadge({ state }: { state: OrderState }) {
+  const m = STATUS_META[state] ?? { label: state, cls: "bg-surface-2 text-muted" };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${m.cls}`}>
       {m.label}
     </span>
   );

@@ -22,12 +22,17 @@ const dashboardController = {
       const params = [date, locId];
 
       // 1. KPIs del día de referencia
+      // Las métricas de VENTA (monto, transacciones, ticket) cuentan SOLO ventas
+      // realizadas: order_state IN ('en proceso','entregado'), igual que la
+      // gráfica y orderController.getStats. El conteo de PENDIENTES va aparte
+      // (FILTER propio) para no perderse al restringir las ventas; las canceladas
+      // quedan fuera de todo.
       const qHoy = pool.query(
         `SELECT
-           COALESCE(SUM(total_price), 0) AS ventas,
-           COUNT(*)::int                  AS pedidos,
-           COUNT(*) FILTER (WHERE order_state = 'pendiente')::int AS pendientes,
-           COALESCE(AVG(total_price), 0)  AS ticket_promedio
+           COALESCE(SUM(total_price) FILTER (WHERE order_state IN ('en proceso','entregado')), 0)  AS ventas,
+           COUNT(*) FILTER (WHERE order_state IN ('en proceso','entregado'))::int                  AS pedidos,
+           COUNT(*) FILTER (WHERE order_state = 'pendiente')::int                                  AS pendientes,
+           COALESCE(AVG(total_price) FILTER (WHERE order_state IN ('en proceso','entregado')), 0)  AS ticket_promedio
          FROM orders
          WHERE DATE(order_date) = $1::date
            AND order_state != 'cancelado'
@@ -42,7 +47,7 @@ const dashboardController = {
            COUNT(*)::int                  AS pedidos
          FROM orders
          WHERE DATE(order_date) = ($1::date - INTERVAL '1 day')
-           AND order_state != 'cancelado'
+           AND order_state IN ('en proceso','entregado')
            AND ($2::int IS NULL OR location_id = $2::int)`,
         params
       );
@@ -54,7 +59,7 @@ const dashboardController = {
            COUNT(*)::int                  AS pedidos
          FROM orders
          WHERE DATE_TRUNC('month', order_date) = DATE_TRUNC('month', $1::date)
-           AND order_state != 'cancelado'
+           AND order_state IN ('en proceso','entregado')
            AND ($2::int IS NULL OR location_id = $2::int)`,
         params
       );
@@ -67,7 +72,7 @@ const dashboardController = {
          FROM orders
          WHERE DATE_TRUNC('month', order_date)
                = DATE_TRUNC('month', $1::date - INTERVAL '1 month')
-           AND order_state != 'cancelado'
+           AND order_state IN ('en proceso','entregado')
            AND ($2::int IS NULL OR location_id = $2::int)`,
         params
       );
@@ -85,7 +90,7 @@ const dashboardController = {
               ) d
          LEFT JOIN orders o
            ON DATE(o.order_date) = d::date
-          AND o.order_state != 'cancelado'
+          AND o.order_state IN ('en proceso','entregado')
           AND ($2::int IS NULL OR o.location_id = $2::int)
          GROUP BY d
          ORDER BY d ASC`,
@@ -115,7 +120,7 @@ const dashboardController = {
          LEFT JOIN product p ON od.product_id = p.product_id
          WHERE o.order_date >= $1::date - INTERVAL '6 day'
            AND o.order_date <  $1::date + INTERVAL '1 day'
-           AND o.order_state != 'cancelado'
+           AND o.order_state IN ('en proceso','entregado')
            AND ($2::int IS NULL OR o.location_id = $2::int)
          GROUP BY COALESCE(p.product_id, od.product_id),
                   COALESCE(p.product_name, '(producto eliminado)')

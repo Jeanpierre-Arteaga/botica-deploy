@@ -6,6 +6,10 @@ const { buildSalesReportWorkbook } = require('../services/reportExcelService');
 // Cálculo del reporte de ventas (compartido por /sales y /export)
 // ============================================================
 // date_from / date_to: 'YYYY-MM-DD'. locId: number | null (null = todas las sedes).
+// Regla de VENTA REALIZADA: solo cuentan los pedidos en estado 'en proceso' o
+// 'entregado' (misma definición que el Dashboard y orderController.getStats). Los
+// 'pendiente' (pago manual sin validar) y los 'cancelado' NO suman a ninguna
+// métrica ni gráfica.
 async function computeSalesReport(date_from, date_to, locId) {
   const params = [date_from, date_to, locId];
 
@@ -16,7 +20,7 @@ async function computeSalesReport(date_from, date_to, locId) {
        COALESCE(AVG(total_price), 0)  AS average_ticket
      FROM orders
      WHERE order_date::date BETWEEN $1::date AND $2::date
-       AND order_state != 'cancelado'
+       AND order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR location_id = $3::int)`,
     params
   );
@@ -27,7 +31,7 @@ async function computeSalesReport(date_from, date_to, locId) {
        FROM order_detail od
        JOIN orders o ON od.order_id = o.order_id
       WHERE o.order_date::date BETWEEN $1::date AND $2::date
-        AND o.order_state != 'cancelado'
+        AND o.order_state IN ('en proceso','entregado')
         AND ($3::int IS NULL OR o.location_id = $3::int)`,
     params
   );
@@ -39,7 +43,7 @@ async function computeSalesReport(date_from, date_to, locId) {
        COUNT(*)::int                            AS count
      FROM orders
      WHERE order_date::date BETWEEN $1::date AND $2::date
-       AND order_state != 'cancelado'
+       AND order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR location_id = $3::int)
      GROUP BY DATE(order_date)
      ORDER BY DATE(order_date) ASC`,
@@ -57,7 +61,7 @@ async function computeSalesReport(date_from, date_to, locId) {
      LEFT JOIN product  p ON od.product_id = p.product_id
      LEFT JOIN category c ON p.category_id = c.category_id
      WHERE o.order_date::date BETWEEN $1::date AND $2::date
-       AND o.order_state != 'cancelado'
+       AND o.order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR o.location_id = $3::int)
      GROUP BY c.category_id, c.category_name
      ORDER BY total DESC`,
@@ -76,7 +80,7 @@ async function computeSalesReport(date_from, date_to, locId) {
      LEFT JOIN product  p ON od.product_id = p.product_id
      LEFT JOIN category c ON p.category_id = c.category_id
      WHERE o.order_date::date BETWEEN $1::date AND $2::date
-       AND o.order_state != 'cancelado'
+       AND o.order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR o.location_id = $3::int)
      GROUP BY DATE(o.order_date), c.category_id, c.category_name
      ORDER BY DATE(o.order_date) ASC`,
@@ -91,7 +95,7 @@ async function computeSalesReport(date_from, date_to, locId) {
      FROM orders o
      LEFT JOIN payment pay ON pay.order_id = o.order_id
      WHERE o.order_date::date BETWEEN $1::date AND $2::date
-       AND o.order_state != 'cancelado'
+       AND o.order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR o.location_id = $3::int)
      GROUP BY COALESCE(pay.payment_method, 'sin_pago')
      ORDER BY total DESC`,
@@ -113,7 +117,7 @@ async function computeSalesReport(date_from, date_to, locId) {
      LEFT JOIN category c ON p.category_id = c.category_id
      LEFT JOIN image   img ON img.product_id = p.product_id AND img.type = 'main'
      WHERE o.order_date::date BETWEEN $1::date AND $2::date
-       AND o.order_state != 'cancelado'
+       AND o.order_state IN ('en proceso','entregado')
        AND ($3::int IS NULL OR o.location_id = $3::int)
      GROUP BY COALESCE(p.product_id, od.product_id),
               COALESCE(p.product_name, '(producto eliminado)'),
@@ -174,6 +178,8 @@ async function computeSalesReport(date_from, date_to, locId) {
 }
 
 // Detalle de pedidos del período (nivel transacción) — solo para el Excel.
+// Aplica la MISMA regla de venta realizada ('en proceso'/'entregado') que los
+// agregados, para que la suma de las filas del detalle cuadre con los KPIs.
 async function getOrdersDetail(date_from, date_to, locId) {
   const result = await pool.query(
     `SELECT o.order_id,
@@ -189,7 +195,7 @@ async function getOrdersDetail(date_from, date_to, locId) {
        LEFT JOIN customer c ON o.customer_id = c.customer_id
        LEFT JOIN payment  pay ON pay.order_id = o.order_id
       WHERE o.order_date::date BETWEEN $1::date AND $2::date
-        AND o.order_state != 'cancelado'
+        AND o.order_state IN ('en proceso','entregado')
         AND ($3::int IS NULL OR o.location_id = $3::int)
       ORDER BY o.order_date DESC`,
     [date_from, date_to, locId]
