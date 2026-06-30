@@ -21,6 +21,7 @@ import { AuthField, AuthSubmit, authInputClass } from './AuthLayout';
 import { PasswordInput } from './PasswordInput';
 import { LockoutNotice } from './LockoutNotice';
 import { ForgotPasswordNotice } from './ForgotPasswordNotice';
+import { TwoFactorForm } from './TwoFactorForm';
 
 interface StaffLoginFormProps {
   role: 'admin' | 'emp';
@@ -28,8 +29,15 @@ interface StaffLoginFormProps {
   codePlaceholder: string;
 }
 
+interface TwofaState {
+  challenge: string;
+  emailMasked: string;
+  resendAvailableIn: number;
+  devDelivery?: boolean;
+}
+
 export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLoginFormProps) {
-  const { loginStaff, isLoading } = useAuth();
+  const { loginStaff, verifyStaff2fa, resendStaff2fa, isLoading } = useAuth();
   const navigate = useNavigate();
   // El administrador NO tiene bloqueo ni contador ni contacto: él restablece las
   // contraseñas. Puede reintentar las veces que quiera.
@@ -40,6 +48,8 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
   const [locked, setLocked] = useState(false);
   const [retrySeconds, setRetrySeconds] = useState<number | undefined>(undefined);
   const [showForgot, setShowForgot] = useState(false);
+  // Paso de verificación en dos pasos (2FA). null = aún en credenciales.
+  const [twofa, setTwofa] = useState<TwofaState | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,7 +62,16 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
     }
 
     try {
-      await loginStaff(userCode.trim().toUpperCase(), password, role);
+      const outcome = await loginStaff(userCode.trim().toUpperCase(), password, role);
+      if (outcome.twofaRequired) {
+        setTwofa({
+          challenge: outcome.challenge!,
+          emailMasked: outcome.emailMasked || '',
+          resendAvailableIn: outcome.resendAvailableIn ?? 60,
+          devDelivery: false,
+        });
+        return;
+      }
       toast.success('¡Bienvenido!');
       navigate(redirectTo, { replace: true });
     } catch (err) {
@@ -81,6 +100,35 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
       }
     }
   };
+
+  // ── Paso 2: verificación del código 2FA ──
+  if (twofa) {
+    return (
+      <TwoFactorForm
+        challenge={twofa.challenge}
+        emailMasked={twofa.emailMasked}
+        resendAvailableIn={twofa.resendAvailableIn}
+        devDelivery={twofa.devDelivery}
+        onVerify={async (challenge, code, rememberDevice) => {
+          await verifyStaff2fa({
+            challenge,
+            code,
+            rememberDevice,
+            userCode: userCode.trim().toUpperCase(),
+            requiredRole: role,
+          });
+          toast.success('¡Bienvenido!');
+          navigate(redirectTo, { replace: true });
+        }}
+        onResend={(challenge) => resendStaff2fa(challenge)}
+        onBack={() => {
+          setTwofa(null);
+          setError(null);
+          setPassword('');
+        }}
+      />
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">

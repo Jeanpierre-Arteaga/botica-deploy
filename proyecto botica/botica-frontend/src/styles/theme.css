@@ -570,6 +570,11 @@ html[data-theme="dark"] p { color: var(--c-muted); }
     transition: opacity 0.22s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
     transform-origin: bottom right;
   }
+  /* Variante espejo (FAB de WhatsApp, abajo-izquierda): el menú nace desde
+     la esquina inferior IZQUIERDA. */
+  .qa-menu-left {
+    transform-origin: bottom left;
+  }
   .qa-menu[data-open="false"] {
     opacity: 0;
     transform: translateY(12px) scale(0.96);

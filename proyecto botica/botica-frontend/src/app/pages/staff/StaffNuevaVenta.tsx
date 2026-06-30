@@ -31,6 +31,8 @@ import type {
 } from '../../lib/types';
 import { Button } from '../../components/ui/Button';
 import { CategoryChipsBar } from '../../components/CategoryChipsBar';
+import { BillingFields } from '../../components/checkout/BillingFields';
+import { isBillingValid, sanitizeRuc } from '../../lib/billing';
 
 interface CartItem {
   product_id: number;
@@ -79,8 +81,22 @@ export default function StaffNuevaVenta() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('efectivo');
   const [voucherType, setVoucherType] = useState<VoucherType>('boleta');
+  // Datos fiscales (solo aplican a "factura"). Se limpian al cambiar de tipo.
+  const [billingRuc, setBillingRuc] = useState('');
+  const [billingName, setBillingName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Al salir de "factura" se ocultan y limpian los datos fiscales (igual que el
+  // checkout del cliente). Misma validación reutilizada de lib/billing.
+  function handleVoucherChange(v: VoucherType) {
+    setVoucherType(v);
+    if (v !== 'factura') {
+      setBillingRuc('');
+      setBillingName('');
+    }
+  }
+  const billingValid = voucherType !== 'factura' || isBillingValid(billingRuc, billingName);
 
   // Modal de éxito (temporal, autocierra)
   const [successOrder, setSuccessOrder] = useState<Order | null>(null);
@@ -257,6 +273,10 @@ export default function StaffNuevaVenta() {
       toast.warning('Identifica al cliente primero (DNI)');
       return;
     }
+    if (voucherType === 'factura' && !billingValid) {
+      toast.warning('Completa los datos de facturación (RUC y razón social).');
+      return;
+    }
     setShowConfirm(true);
   }
 
@@ -280,6 +300,10 @@ export default function StaffNuevaVenta() {
         payment: {
           payment_method: paymentMethod,
           voucher_type: voucherType,
+          // Datos fiscales SOLO en factura (en boleta/ticket van ausentes).
+          ...(voucherType === 'factura'
+            ? { billing_ruc: sanitizeRuc(billingRuc), billing_name: billingName.trim() }
+            : {}),
         },
       });
 
@@ -287,6 +311,10 @@ export default function StaffNuevaVenta() {
       setSuccessOrder(order);
       setCart([]);
       clearCustomer();
+      // Restablece el comprobante y limpia los datos fiscales para la próxima venta.
+      setVoucherType('boleta');
+      setBillingRuc('');
+      setBillingName('');
       // Recargar productos para reflejar el stock actualizado
       await loadProducts();
     } catch (err) {
@@ -422,7 +450,12 @@ export default function StaffNuevaVenta() {
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
             voucherType={voucherType}
-            setVoucherType={setVoucherType}
+            setVoucherType={handleVoucherChange}
+            billingRuc={billingRuc}
+            setBillingRuc={setBillingRuc}
+            billingName={billingName}
+            setBillingName={setBillingName}
+            billingValid={billingValid}
             hasCustomer={!!customer}
             isProcessing={isProcessing}
             onInc={(id) => updateAmount(id, 1)}
@@ -440,6 +473,8 @@ export default function StaffNuevaVenta() {
           itemCount={cart.length}
           paymentMethod={paymentMethod}
           voucherType={voucherType}
+          billingRuc={billingRuc}
+          billingName={billingName}
           total={subtotal}
           isProcessing={isProcessing}
           onConfirm={handleConfirmSale}
@@ -702,6 +737,7 @@ function CustomerPanel({
 
 function CartPanel({
   cart, subtotal, paymentMethod, setPaymentMethod, voucherType, setVoucherType,
+  billingRuc, setBillingRuc, billingName, setBillingName, billingValid,
   hasCustomer, isProcessing, onInc, onDec, onRemove, onConfirm,
 }: {
   cart: CartItem[];
@@ -710,6 +746,11 @@ function CartPanel({
   setPaymentMethod: (m: PaymentMethod) => void;
   voucherType: VoucherType;
   setVoucherType: (v: VoucherType) => void;
+  billingRuc: string;
+  setBillingRuc: (v: string) => void;
+  billingName: string;
+  setBillingName: (v: string) => void;
+  billingValid: boolean;
   hasCustomer: boolean;
   isProcessing: boolean;
   onInc: (id: number) => void;
@@ -829,6 +870,18 @@ function CartPanel({
                   );
                 })}
               </div>
+
+              {/* Datos fiscales: aparecen solo con "Factura" (mismo componente y
+                  validación que el checkout del cliente). */}
+              {voucherType === 'factura' && (
+                <BillingFields
+                  idPrefix="pos-billing"
+                  ruc={billingRuc}
+                  setRuc={setBillingRuc}
+                  name={billingName}
+                  setName={setBillingName}
+                />
+              )}
             </div>
 
             {/* Total */}
@@ -842,18 +895,23 @@ function CartPanel({
               size="lg"
               fullWidth
               loading={isProcessing}
-              disabled={cart.length === 0 || !hasCustomer}
+              disabled={cart.length === 0 || !hasCustomer || !billingValid}
               onClick={onConfirm}
             >
               Confirmar venta
             </Button>
 
-            {!hasCustomer && (
+            {!hasCustomer ? (
               <p className="text-xs text-error text-center flex items-center justify-center gap-1">
                 <AlertCircle size={12} />
                 Identifica al cliente primero
               </p>
-            )}
+            ) : voucherType === 'factura' && !billingValid ? (
+              <p className="text-xs text-error text-center flex items-center justify-center gap-1">
+                <AlertCircle size={12} />
+                Completa los datos de facturación (RUC y razón social)
+              </p>
+            ) : null}
           </div>
         </>
       )}
@@ -866,12 +924,14 @@ function CartPanel({
 // ============================================================
 
 function ConfirmSaleModal({
-  customer, itemCount, paymentMethod, voucherType, total, isProcessing, onConfirm, onClose,
+  customer, itemCount, paymentMethod, voucherType, billingRuc, billingName, total, isProcessing, onConfirm, onClose,
 }: {
   customer: Customer;
   itemCount: number;
   paymentMethod: PaymentMethod;
   voucherType: VoucherType;
+  billingRuc: string;
+  billingName: string;
   total: number;
   isProcessing: boolean;
   onConfirm: () => void;
@@ -884,6 +944,12 @@ function ConfirmSaleModal({
         <SummaryRow label="Productos" value={`${itemCount} ${itemCount === 1 ? 'ítem' : 'ítems'}`} />
         <SummaryRow label="Método de pago" value={paymentMethod} capitalize />
         <SummaryRow label="Comprobante" value={voucherType} capitalize />
+        {voucherType === 'factura' && (
+          <>
+            <SummaryRow label="RUC" value={billingRuc} />
+            <SummaryRow label="Razón social" value={billingName} />
+          </>
+        )}
       </div>
       <div className="flex items-center justify-between rounded-xl bg-brand-soft px-4 py-3 mb-5">
         <span className="font-semibold text-text">Total a cobrar</span>

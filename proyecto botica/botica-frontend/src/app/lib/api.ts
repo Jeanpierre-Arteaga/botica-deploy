@@ -13,6 +13,9 @@
 
 import type {
   StaffLoginResponse,
+  StaffLoginRawResponse,
+  TwofaVerifyResponse,
+  ResendTwofaResponse,
   CustomerAuthResponse,
   CustomerRegisterPayload,
   ForgotPasswordResponse,
@@ -181,6 +184,50 @@ export const tokenStorage = {
 };
 
 // ============================================================
+// TRUSTED DEVICE TOKEN ("recordar este dispositivo" — 2FA)
+// ============================================================
+// Token opaco por (dispositivo, usuario) para omitir el código en este equipo
+// durante 30 días. Se guarda en localStorage (alternativa documentada a la
+// cookie httpOnly). El backend solo guarda su HASH; el token en claro vive aquí
+// y se envía en el paso 1 del login. Si fuera robado, no basta: las credenciales
+// (código + contraseña) siguen siendo necesarias. Se indexa por user_code para
+// soportar varias cuentas recordadas en el mismo equipo (admin + staff).
+// ============================================================
+
+const TRUSTED_DEVICES_KEY = 'botica_trusted_devices';
+
+export const trustedDeviceStorage = {
+  _read(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+    try {
+      return JSON.parse(localStorage.getItem(TRUSTED_DEVICES_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  },
+  _write(map: Record<string, string>): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(TRUSTED_DEVICES_KEY, JSON.stringify(map));
+  },
+  get(userCode: string): string | null {
+    if (!userCode) return null;
+    return this._read()[userCode.trim().toUpperCase()] || null;
+  },
+  set(userCode: string, token: string): void {
+    if (!userCode || !token) return;
+    const map = this._read();
+    map[userCode.trim().toUpperCase()] = token;
+    this._write(map);
+  },
+  remove(userCode: string): void {
+    if (!userCode) return;
+    const map = this._read();
+    delete map[userCode.trim().toUpperCase()];
+    this._write(map);
+  },
+};
+
+// ============================================================
 // ERROR HANDLING
 // ============================================================
 
@@ -344,15 +391,56 @@ async function uploadRequest<T>(
 // ============================================================
 
 const auth = {
-  /** Login para staff y admin con user_code + password */
-  async loginStaff(user_code: string, user_password: string): Promise<StaffLoginResponse> {
-    const res = await request<StaffLoginResponse>('/auth/login', {
+  /**
+   * Login para staff y admin con user_code + password.
+   * Adjunta el token de dispositivo recordado (si existe) para poder omitir el
+   * 2FA. Devuelve la respuesta CRUDA: puede ser login directo (token) o pedir
+   * verificación en dos pasos (twofa_required). Solo guarda el token cuando el
+   * login se completó (no hay 2FA pendiente).
+   */
+  async loginStaff(user_code: string, user_password: string): Promise<StaffLoginRawResponse> {
+    const device_token = trustedDeviceStorage.get(user_code) || undefined;
+    const res = await request<StaffLoginRawResponse>('/auth/login', {
       method: 'POST',
-      body: { user_code, user_password },
+      body: { user_code, user_password, device_token },
+      skipAuth: true,
+    });
+    if ('twofa_required' in res && res.twofa_required) {
+      return res; // NO se guarda token: falta el código
+    }
+    tokenStorage.set((res as StaffLoginResponse).token);
+    return res;
+  },
+
+  /**
+   * Verifica el código 2FA. En éxito guarda el token de sesión y, si se pidió
+   * recordar el dispositivo, persiste el device_token bajo el user_code.
+   */
+  async verifyTwofa(
+    challenge: string,
+    code: string,
+    remember_device: boolean,
+    user_code: string
+  ): Promise<TwofaVerifyResponse> {
+    const res = await request<TwofaVerifyResponse>('/auth/verify-2fa', {
+      method: 'POST',
+      body: { challenge, code, remember_device },
       skipAuth: true,
     });
     tokenStorage.set(res.token);
+    if (remember_device && res.device_token && user_code) {
+      trustedDeviceStorage.set(user_code, res.device_token);
+    }
     return res;
+  },
+
+  /** Reenvía el código 2FA (respeta el cooldown del backend). */
+  resendTwofa(challenge: string): Promise<ResendTwofaResponse> {
+    return request<ResendTwofaResponse>('/auth/resend-2fa', {
+      method: 'POST',
+      body: { challenge },
+      skipAuth: true,
+    });
   },
 
   /**
@@ -815,6 +903,42 @@ const orders = {
   /** GET /api/orders/shift-summary?date= — cierre de caja del trabajador */
   getShiftSummary(date?: string): Promise<ShiftSummary> {
     return request<ShiftSummary>('/orders/shift-summary', { query: { date } });
+  },
+
+  /**
+   * GET /api/orders/shift-summary/pdf?date= — PDF del cierre de turno.
+   * Devuelve el Blob binario (no pasa por el parser JSON) y, si el backend
+   * incluye Content-Disposition, el nombre de archivo sugerido. Para descarga
+   * directa (sin diálogo de impresión).
+   */
+  async downloadShiftSummaryPdf(date?: string): Promise<{ blob: Blob; filename: string }> {
+    const token = tokenStorage.get();
+    const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/orders/shift-summary/pdf${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch (err) {
+      throw new ApiError(0, 'Sin conexión con el servidor.', err);
+    }
+    if (!response.ok) {
+      let message = `Error ${response.status}`;
+      try {
+        const data = await response.json();
+        message = (data as { message?: string })?.message || message;
+      } catch {
+        /* respuesta sin JSON */
+      }
+      if (response.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('api-unauthorized', { detail: { status: 401 } }));
+      }
+      throw new ApiError(response.status, message);
+    }
+    const disposition = response.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match ? match[1] : `cierre_turno_${date || 'hoy'}.pdf`;
+    return { blob: await response.blob(), filename };
   },
 
   /**

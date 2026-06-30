@@ -50,7 +50,7 @@ export interface CustomerJwtPayload {
 
 export type JwtPayload = StaffJwtPayload | CustomerJwtPayload;
 
-// Lo que devuelve POST /api/auth/login (staff/admin)
+// Lo que devuelve POST /api/auth/login (staff/admin) cuando NO hay 2FA pendiente
 export interface StaffLoginResponse {
   token: string;
   user: {
@@ -62,7 +62,45 @@ export interface StaffLoginResponse {
     location_name?: string | null;
     is_active: boolean;
     photo_url?: string | null;
+    email?: string | null;
   };
+  /** Presente cuando el login se completó sin pedir código. */
+  twofa?: false;
+  trusted_device?: boolean;
+}
+
+// POST /api/auth/login cuando hace falta verificación en dos pasos (2FA).
+export interface TwofaRequiredResponse {
+  twofa_required: true;
+  /** Token corto que liga el paso de verificación con el usuario. */
+  challenge: string;
+  /** Correo enmascarado para mostrar ("je****@gmail.com"). */
+  email_masked: string;
+  /** Segundos hasta poder reenviar el código. */
+  resend_available_in: number;
+  /** Segundos de vida del código. */
+  expires_in: number;
+  /** En dev sin SMTP: 'console' (el código se logueó en el servidor). */
+  dev_delivery?: string;
+}
+
+// POST /api/auth/login puede devolver login directo o "se requiere 2FA".
+export type StaffLoginRawResponse = StaffLoginResponse | TwofaRequiredResponse;
+
+// POST /api/auth/verify-2fa — login completo + (opcional) token de dispositivo.
+export interface TwofaVerifyResponse extends StaffLoginResponse {
+  device_token?: string;
+  trusted_device?: boolean;
+}
+
+// POST /api/auth/resend-2fa
+export interface ResendTwofaResponse {
+  message: string;
+  challenge: string;
+  email_masked: string;
+  resend_available_in: number;
+  expires_in: number;
+  dev_delivery?: string;
 }
 
 // Lo que devuelve POST /api/auth/customer-login, customer-register y google
@@ -113,6 +151,8 @@ export interface User {
   last_login?: string | null;
   /** URL pública (CloudFront) de la foto de perfil. NULL = avatar de iniciales. */
   photo_url?: string | null;
+  /** Correo al que llega el código de verificación (2FA). NULL = no configurado. */
+  email?: string | null;
   // user_password nunca viene en respuestas (sanitizado en backend)
 }
 
@@ -132,6 +172,8 @@ export interface UserCreatePayload {
   full_name: string;
   role: 'admin' | 'emp';
   location_id?: number | null;
+  /** Correo para el código de verificación (2FA). Si el acceso ya es un correo, se usa ese. */
+  email?: string | null;
 }
 
 export interface UserUpdatePayload {
@@ -139,6 +181,8 @@ export interface UserUpdatePayload {
   full_name?: string;
   location_id?: number | null;
   is_active?: boolean;
+  /** Correo para el código de verificación (2FA). "" lo limpia. */
+  email?: string | null;
   // role NO se cambia por aquí. Usar updateRole con admin.
 }
 
@@ -409,6 +453,9 @@ export interface OrderWalkInPayload {
     voucher_type?: VoucherType;
     email_pay?: string;
     phone_pay?: string;
+    /** Datos fiscales: solo se envían cuando voucher_type === 'factura'. */
+    billing_ruc?: string;
+    billing_name?: string;
   };
 }
 

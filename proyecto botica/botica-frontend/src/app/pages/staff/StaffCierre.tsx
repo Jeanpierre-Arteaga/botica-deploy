@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  TrendingUp, ShoppingBag, CreditCard, Award, Printer, RefreshCw, PieChart as PieIcon,
+  TrendingUp, ShoppingBag, CreditCard, Award, Download, RefreshCw, PieChart as PieIcon,
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -44,6 +44,7 @@ export default function StaffCierre() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<ShiftSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     loadSummary();
@@ -60,6 +61,29 @@ export default function StaffCierre() {
       toast.error('Error al cargar el resumen del turno');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // Descarga el PDF del cierre (sin diálogo de impresión): pide el archivo al
+  // backend y dispara la descarga del .pdf con el nombre sugerido.
+  async function handleDownloadPdf() {
+    setIsDownloading(true);
+    try {
+      const { blob, filename } = await api.orders.downloadShiftSummaryPdf();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Reporte de cierre descargado.');
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo descargar el PDF del cierre.');
+    } finally {
+      setIsDownloading(false);
     }
   }
 
@@ -90,7 +114,7 @@ export default function StaffCierre() {
   const sede = user?.location_name?.trim() || null;
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-5xl">
       <PageHeader
         title="Cierre de turno"
         subtitle={
@@ -99,14 +123,13 @@ export default function StaffCierre() {
             <span className="capitalize">{today}</span>
           </span>
         }
-        className="print:hidden"
         actions={
           <>
             <Button variant="secondary" onClick={loadSummary}>
               <RefreshCw size={14} /> Actualizar
             </Button>
-            <Button variant="dark" onClick={() => window.print()}>
-              <Printer size={14} /> Imprimir
+            <Button variant="dark" onClick={handleDownloadPdf} loading={isDownloading}>
+              <Download size={14} /> {isDownloading ? 'Generando…' : 'Descargar PDF'}
             </Button>
           </>
         }

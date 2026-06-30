@@ -9,7 +9,7 @@ const userController = {
 
   create: async (req, res) => {
     try {
-      const { user_code, user_password, full_name, role, location_id } = req.body;
+      const { user_code, user_password, full_name, role, location_id, email } = req.body;
 
       if (!user_code || !String(user_code).trim()) {
         return res.status(400).json({ message: 'El usuario (acceso) es obligatorio.' });
@@ -26,15 +26,25 @@ const userController = {
         });
       }
 
+      const code = String(user_code).trim();
+      // Correo para el código 2FA: el explícito, o el propio acceso si ya es un
+      // correo. Si se manda un email, debe tener formato válido.
+      let twofaEmail = email != null && String(email).trim() !== '' ? String(email).trim() : null;
+      if (twofaEmail && !EMAIL_RE.test(twofaEmail)) {
+        return res.status(400).json({ message: 'El correo para verificación no es válido.' });
+      }
+      if (!twofaEmail && EMAIL_RE.test(code)) twofaEmail = code;
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(user_password, salt);
 
       const usuario = await UserModel.create({
-        user_code: String(user_code).trim(),
+        user_code: code,
         user_password: hashedPassword,
         full_name: String(full_name).trim(),
         role,
-        location_id: location_id ?? null
+        location_id: location_id ?? null,
+        email: twofaEmail
       });
       res.status(201).json(usuario);
     } catch (err) {
@@ -87,7 +97,19 @@ const userController = {
 
   update: async (req, res) => {
     try {
-      const usuario = await UserModel.update(req.params.id, req.body);
+      // Si llega un correo (para el 2FA), validamos formato. "" lo limpia (null).
+      const data = { ...req.body };
+      if (data.email != null) {
+        const e = String(data.email).trim();
+        if (e === '') {
+          data.email = null;
+        } else if (!EMAIL_RE.test(e)) {
+          return res.status(400).json({ message: 'El correo para verificación no es válido.' });
+        } else {
+          data.email = e;
+        }
+      }
+      const usuario = await UserModel.update(req.params.id, data);
       if (!usuario) return res.status(404).json({ message: 'Usuario no encontrado.' });
       res.json(usuario);
     } catch (err) {

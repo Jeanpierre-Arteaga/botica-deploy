@@ -50,6 +50,7 @@ import {
   mapsQueryOf,
   mapsSearchUrl,
   storePhone,
+  whatsappHref,
 } from "../lib/contact";
 import type { Category, Product } from "../lib/types";
 
@@ -934,7 +935,7 @@ export function Home() {
 
               <div className="flex flex-wrap gap-3">
                 <a
-                  href="https://wa.me/51929255281?text=Hola%2C%20quiero%20una%20consulta."
+                  href={whatsappHref('915252167', 'Hola, quisiera una asesoría farmacéutica 👨‍⚕️')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98]"

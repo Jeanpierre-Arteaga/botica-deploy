@@ -2,14 +2,88 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db'); // ajusta la ruta si es diferente
 
-// Bloqueo por intentos fallidos: a los 3 fallos, se bloquea por 5 minutos.
+const UserModel = require('../models/userModel');
+const TrustedDeviceModel = require('../models/trustedDeviceModel');
+const twofa = require('../utils/twofa');
+const { sendTwofaCodeEmail } = require('../utils/mailer');
+
+// Bloqueo por intentos fallidos de CONTRASEÑA: a los 3 fallos, 5 minutos (staff).
 const MAX_ATTEMPTS = 3;
 const LOCK_MINUTES = 5;
 // Mensaje NEUTRO: no revela si el usuario existe o si la contraseña es la que falla.
 const NEUTRAL = 'Usuario o contraseña incorrectos.';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isDev = () => (process.env.NODE_ENV || 'development') !== 'production';
+
+// Destino del código OTP: la columna users.email, o el user_code si éste ya es
+// un correo (los accesos nuevos usan el correo corporativo como user_code).
+function resolveTwofaEmail(user) {
+  if (user.email && EMAIL_RE.test(String(user.email))) return String(user.email);
+  if (user.user_code && EMAIL_RE.test(String(user.user_code))) return String(user.user_code);
+  return null;
+}
+
+// Firma el JWT de sesión (payload unificado de staff/admin).
+function signSessionToken(user) {
+  return jwt.sign(
+    {
+      user_id: user.user_id,
+      role: user.role,
+      full_name: user.full_name,
+      location_id: user.location_id,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '8h' }
+  );
+}
+
+// Respuesta de login exitoso (misma forma de siempre) + sella last_login.
+// `extra` permite añadir flags (twofa, trusted_device, device_token).
+function issueSession(res, user, extra = {}) {
+  // Fire-and-forget: sella el acceso y limpia el bloqueo de contraseña.
+  UserModel.markLogin(user.user_id).catch((e) =>
+    console.error('[auth] markLogin', e.message)
+  );
+
+  const token = signSessionToken(user);
+  return res.json({
+    token,
+    user: {
+      user_id: user.user_id,
+      user_code: user.user_code,
+      full_name: user.full_name,
+      role: user.role,
+      location_id: user.location_id,
+      location_name: user.location_name || null,
+      is_active: user.is_active,
+      photo_url: user.photo_url || null,
+    },
+    ...extra,
+  });
+}
+
+// Genera, guarda y envía un OTP nuevo al correo del usuario. Devuelve { sent }
+// (false = no había SMTP; el código se logueó en consola en modo dev).
+async function issueOtp(user, email) {
+  const code = twofa.generateCode();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + twofa.CODE_TTL_MINUTES * 60 * 1000);
+
+  await UserModel.setTwofaCode(user.user_id, {
+    code_hash: twofa.hashCode(code),
+    expires_at: expiresAt,
+    sent_at: now,
+  });
+
+  return sendTwofaCodeEmail(email, code, { minutes: twofa.CODE_TTL_MINUTES });
+}
+
+// ============================================================
+// POST /api/auth/login — paso 1: credenciales
+// ============================================================
 const login = async (req, res) => {
-  const { user_code, user_password } = req.body;
+  const { user_code, user_password, device_token } = req.body;
 
   try {
     // Buscar usuario activo (con el nombre de su sede para mostrarlo al ingresar)
@@ -29,8 +103,7 @@ const login = async (req, res) => {
     const user = result.rows[0];
 
     // El bloqueo por intentos aplica SOLO a staff ('emp'). El administrador ES
-    // quien restablece contraseñas: nunca se le cuenta ni se le bloquea, puede
-    // reintentar indefinidamente.
+    // quien restablece contraseñas: nunca se le cuenta ni se le bloquea.
     const enforceLockout = user.role === 'emp';
 
     // ¿Cuenta bloqueada todavía? → 423 con el tiempo restante. (Solo staff.)
@@ -70,45 +143,224 @@ const login = async (req, res) => {
       return res.status(401).json({ message: NEUTRAL, attempts_left: MAX_ATTEMPTS - failed });
     }
 
-    // Éxito → reinicia el contador y el bloqueo, y sella el último acceso
-    // (NOW() = hora de Lima por la sesión de la BD).
-    pool
-      .query(
-        `UPDATE users SET last_login = NOW(), failed_attempts = 0, locked_until = NULL WHERE user_id = $1`,
-        [user.user_id]
-      )
-      .catch((e) => console.error('[auth/login] reset/last_login', e.message));
+    // ── Contraseña correcta ───────────────────────────────────────────────
+    // La clave fue correcta: limpiamos el bloqueo de contraseña ya (aunque el
+    // 2FA quede pendiente, no debe penalizarse por intentos previos).
+    if (enforceLockout) {
+      UserModel.clearPasswordLock(user.user_id).catch((e) =>
+        console.error('[auth] clearPasswordLock', e.message)
+      );
+    }
 
-    // Generar token JWT
-    const token = jwt.sign(
-      {
-        user_id: user.user_id,
-        role: user.role,
-        full_name: user.full_name,
-        location_id: user.location_id
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '8h' }
-    );
+    const twofaEmail = resolveTwofaEmail(user);
 
-    res.json({
-      token,
-      user: {
-        user_id: user.user_id,
-        user_code: user.user_code,
-        full_name: user.full_name,
-        role: user.role,
-        location_id: user.location_id,
-        location_name: user.location_name || null,
-        is_active: user.is_active,
-        photo_url: user.photo_url || null
+    // 2FA desactivado por entorno, o el usuario no tiene correo de destino →
+    // login directo (no se puede/ no se debe pedir el código). NUNCA bloqueamos.
+    if (!twofa.isTwofaEnabled() || !twofaEmail) {
+      if (twofa.isTwofaEnabled() && !twofaEmail) {
+        console.warn(
+          `[auth] 2FA omitido: el usuario #${user.user_id} (${user.user_code}) no tiene correo configurado.`
+        );
       }
-    });
+      return issueSession(res, user, { twofa: false });
+    }
 
+    // ── Dispositivo recordado: si presenta un token vigente, se omite el OTP ──
+    if (device_token) {
+      const td = await TrustedDeviceModel.findValid(
+        user.user_id,
+        twofa.hashDeviceToken(device_token)
+      );
+      if (td) {
+        TrustedDeviceModel.touch(td.device_id).catch(() => {});
+        return issueSession(res, user, { twofa: false, trusted_device: true });
+      }
+    }
+
+    // ── Hace falta el código: generar, guardar y enviar el OTP ──
+    let sent = false;
+    try {
+      const r = await issueOtp(user, twofaEmail);
+      sent = r.sent;
+    } catch (e) {
+      console.error('[auth] envío de OTP falló:', e.message);
+      // Sin SMTP útil y sin código de demo → no hay forma de verificar.
+      if (!twofa.devCode()) {
+        return res.status(502).json({
+          message: 'No pudimos enviar el código de verificación. Intenta de nuevo en unos minutos.',
+        });
+      }
+    }
+
+    const payload = {
+      twofa_required: true,
+      challenge: twofa.signChallenge(user),
+      email_masked: twofa.maskEmail(twofaEmail),
+      resend_available_in: twofa.RESEND_COOLDOWN_SECONDS,
+      expires_in: twofa.CODE_TTL_MINUTES * 60,
+    };
+    // En desarrollo sin SMTP, avisamos que el código se logueó en consola.
+    if (!sent && isDev()) payload.dev_delivery = 'console';
+    return res.json(payload);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
 
-module.exports = { login };
+// ============================================================
+// POST /api/auth/verify-2fa — paso 2: validar el código
+// ============================================================
+const verifyTwofa = async (req, res) => {
+  try {
+    const { challenge, code, remember_device } = req.body || {};
+    if (!challenge || !code) {
+      return res.status(400).json({ message: 'Falta el código de verificación.' });
+    }
+
+    const c = twofa.verifyChallenge(challenge);
+    if (!c) {
+      return res.status(401).json({
+        message: 'La verificación expiró. Vuelve a iniciar sesión.',
+        expired: true,
+      });
+    }
+
+    const user = await UserModel.findAuthById(c.user_id);
+    if (!user) {
+      return res.status(401).json({
+        message: 'La verificación no es válida. Vuelve a iniciar sesión.',
+        expired: true,
+      });
+    }
+
+    const cleanCode = String(code).trim();
+    const isDevCode = twofa.devCode() && cleanCode === twofa.devCode();
+
+    if (!isDevCode) {
+      const hasOtp = user.twofa_code_hash && user.twofa_expires_at;
+      const notExpired = hasOtp && new Date(user.twofa_expires_at).getTime() > Date.now();
+
+      if (!hasOtp || !notExpired) {
+        await UserModel.clearTwofa(user.user_id);
+        return res.status(400).json({
+          message: 'El código expiró. Reenvíalo para continuar.',
+          expired: true,
+        });
+      }
+      if (user.twofa_attempts >= twofa.MAX_ATTEMPTS) {
+        await UserModel.clearTwofa(user.user_id);
+        return res.status(429).json({
+          message: 'Demasiados intentos. Reenvía el código para continuar.',
+          expired: true,
+        });
+      }
+
+      const ok = twofa.hashCode(cleanCode) === user.twofa_code_hash;
+      if (!ok) {
+        const attempts = await UserModel.incrementTwofaAttempts(user.user_id);
+        const left = Math.max(0, twofa.MAX_ATTEMPTS - (attempts || twofa.MAX_ATTEMPTS));
+        if (left <= 0) {
+          await UserModel.clearTwofa(user.user_id);
+          return res.status(429).json({
+            message: 'Demasiados intentos. Reenvía el código para continuar.',
+            expired: true,
+          });
+        }
+        return res.status(401).json({ message: 'Código incorrecto.', attempts_left: left });
+      }
+    }
+
+    // ── Código válido (o código de demo): un solo uso → se invalida ──
+    await UserModel.clearTwofa(user.user_id);
+
+    const extra = {};
+    if (remember_device === true) {
+      const rawToken = twofa.generateDeviceToken();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días
+      const label = String(req.headers['user-agent'] || '').slice(0, 255) || null;
+      await TrustedDeviceModel.create({
+        user_id: user.user_id,
+        token_hash: twofa.hashDeviceToken(rawToken),
+        expires_at: expiresAt,
+        label,
+      });
+      extra.device_token = rawToken;
+      extra.trusted_device = true;
+    }
+
+    return issueSession(res, user, extra);
+  } catch (error) {
+    console.error('[auth] verify-2fa', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+// ============================================================
+// POST /api/auth/resend-2fa — reenviar el código (con cooldown)
+// ============================================================
+const resendTwofa = async (req, res) => {
+  try {
+    const { challenge } = req.body || {};
+    const c = challenge && twofa.verifyChallenge(challenge);
+    if (!c) {
+      return res.status(401).json({
+        message: 'La verificación expiró. Vuelve a iniciar sesión.',
+        expired: true,
+      });
+    }
+
+    const user = await UserModel.findAuthById(c.user_id);
+    if (!user) {
+      return res.status(401).json({
+        message: 'La verificación no es válida. Vuelve a iniciar sesión.',
+        expired: true,
+      });
+    }
+
+    const email = resolveTwofaEmail(user);
+    if (!email) {
+      return res.status(400).json({ message: 'No hay un correo configurado para enviar el código.' });
+    }
+
+    // Cooldown de reenvío.
+    if (user.twofa_sent_at) {
+      const elapsed = (Date.now() - new Date(user.twofa_sent_at).getTime()) / 1000;
+      if (elapsed < twofa.RESEND_COOLDOWN_SECONDS) {
+        const wait = Math.ceil(twofa.RESEND_COOLDOWN_SECONDS - elapsed);
+        return res.status(429).json({
+          message: `Espera ${wait} s para reenviar el código.`,
+          resend_available_in: wait,
+        });
+      }
+    }
+
+    let sent = false;
+    try {
+      const r = await issueOtp(user, email);
+      sent = r.sent;
+    } catch (e) {
+      console.error('[auth] reenvío de OTP falló:', e.message);
+      if (!twofa.devCode()) {
+        return res.status(502).json({ message: 'No pudimos reenviar el código. Intenta más tarde.' });
+      }
+    }
+
+    // Re-emitimos el challenge para que su expiración quede alineada con el
+    // nuevo código (10 min desde ahora).
+    const payload = {
+      message: 'Te enviamos un nuevo código a tu correo.',
+      challenge: twofa.signChallenge(user),
+      email_masked: twofa.maskEmail(email),
+      resend_available_in: twofa.RESEND_COOLDOWN_SECONDS,
+      expires_in: twofa.CODE_TTL_MINUTES * 60,
+    };
+    if (!sent && isDev()) payload.dev_delivery = 'console';
+    return res.json(payload);
+  } catch (error) {
+    console.error('[auth] resend-2fa', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+module.exports = { login, verifyTwofa, resendTwofa };

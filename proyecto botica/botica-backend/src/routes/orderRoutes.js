@@ -8,6 +8,7 @@ router.get('/my-orders', verifyToken, orderController.getMyOrders);
 router.get('/stats', verifyToken, verifyRole('admin', 'emp'), orderController.getStats);
 router.get('/sales-series', verifyToken, verifyRole('admin', 'emp'), orderController.getSalesSeries);
 router.get('/shift-summary', verifyToken, verifyRole('admin', 'emp'), orderController.getShiftSummary);
+router.get('/shift-summary/pdf', verifyToken, verifyRole('admin', 'emp'), orderController.getShiftSummaryPdf);
 router.get('/:id', verifyToken, orderController.getById);
 router.get('/:id/voucher', verifyToken, orderController.getVoucher);
 router.post('/', verifyToken, verifyRole('cust'), orderController.create);

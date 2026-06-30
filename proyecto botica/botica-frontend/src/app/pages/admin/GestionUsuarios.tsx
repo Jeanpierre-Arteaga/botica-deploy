@@ -440,7 +440,7 @@ function ErrText({ msg }: { msg?: string }) {
   return <p className="mt-1 flex items-center gap-1 text-xs font-medium text-error"><AlertCircle className="w-3 h-3 shrink-0" /> {msg}</p>;
 }
 
-type FieldKey = "full_name" | "user_code" | "sede" | "password";
+type FieldKey = "full_name" | "user_code" | "sede" | "password" | "twofa_email";
 
 function UserModal({ user, locations, onClose, onSaved }: { user: User | null; locations: Location[]; onClose: () => void; onSaved: () => void }) {
   const isEdit = !!user;
@@ -449,6 +449,10 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
   const [role, setRole] = useState<User["role"]>(user?.role ?? "emp");
   const [locationId, setLocationId] = useState<number | null>(user?.location_id ?? null);
   const [password, setPassword] = useState("");
+  // Correo para el código de verificación (2FA). Solo se usa/edita cuando el
+  // acceso NO es un correo (accesos heredados tipo ADMIN01); si el acceso ya es
+  // un correo, el backend envía el código a ese mismo correo.
+  const [twofaEmail, setTwofaEmail] = useState(user?.email ?? "");
   const [isActive, setIsActive] = useState(user?.is_active ?? true);
   // Edición: contraseña nueva generada (se persiste al guardar). "" = sin cambio.
   const [genPwd, setGenPwd] = useState("");
@@ -475,6 +479,9 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
   // El acceso (user_code) se valida como email. Excepción: en edición, si NO se
   // cambió respecto al original (códigos heredados tipo ADMIN01), no se exige.
   const codeUnchangedLegacy = isEdit && userCode.trim() === (user?.user_code ?? "");
+  // ¿El acceso ya es un correo? Entonces el código 2FA va a ese correo y no se
+  // muestra el campo aparte. Si no lo es, se ofrece un correo para el código.
+  const accessIsEmail = EMAIL_RE.test(userCode.trim());
 
   const errors = useMemo(() => {
     const e: Partial<Record<FieldKey, string>> = {};
@@ -483,8 +490,11 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
     else if (!codeUnchangedLegacy && !EMAIL_RE.test(userCode.trim())) e.user_code = "Ingresa un email válido (ej. nombre@boticas.pe).";
     if (role === "emp" && locationId == null) e.sede = "Asigna una sede al trabajador.";
     if (!isEdit && password.length < 8) e.password = "Mínimo 8 caracteres.";
+    // Correo de 2FA (opcional): solo se valida formato si hay valor.
+    if (!accessIsEmail && twofaEmail.trim() && !EMAIL_RE.test(twofaEmail.trim()))
+      e.twofa_email = "Ingresa un correo válido (ej. nombre@gmail.com).";
     return e;
-  }, [fullName, userCode, codeUnchangedLegacy, role, locationId, password, isEdit]);
+  }, [fullName, userCode, codeUnchangedLegacy, accessIsEmail, twofaEmail, role, locationId, password, isEdit]);
 
   const isValid = Object.keys(errors).length === 0;
   const showErr = (k: FieldKey) => ((submitAttempted || touched.has(k)) ? errors[k] : undefined);
@@ -500,6 +510,8 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
           full_name: fullName.trim(),
           location_id: locationId,
           is_active: isActive,
+          // Solo gestionamos el correo de 2FA cuando el acceso no es un correo.
+          ...(accessIsEmail ? {} : { email: twofaEmail.trim() || null }),
         });
         if (role !== user.role) await api.users.updateRole(user.user_id, role);
         if (genPwd) await api.users.updatePassword(user.user_id, genPwd);
@@ -511,6 +523,9 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
           full_name: fullName.trim(),
           role,
           location_id: locationId,
+          // Si el acceso ya es un correo, el backend lo usa para el 2FA; si no,
+          // mandamos el correo indicado (puede ir vacío).
+          ...(accessIsEmail ? {} : { email: twofaEmail.trim() || null }),
         });
         toast.success("Usuario creado.");
       }
@@ -543,8 +558,19 @@ function UserModal({ user, locations, onClose, onSaved }: { user: User | null; l
           <div>
             <label className={LABEL} htmlFor="uf-code">Email corporativo (acceso) *</label>
             <input id="uf-code" type="email" value={userCode} onChange={(e) => setUserCode(e.target.value)} onBlur={() => touch("user_code")} className={fieldCls(!!showErr("user_code"))} placeholder="usuario@boticascentral.pe" autoComplete="off" />
-            {showErr("user_code") ? <ErrText msg={showErr("user_code")} /> : <p className="mt-1 text-xs text-muted">Con este correo inicia sesión el usuario.</p>}
+            {showErr("user_code") ? <ErrText msg={showErr("user_code")} /> : <p className="mt-1 text-xs text-muted">Con este correo inicia sesión {accessIsEmail ? "y recibe su código de verificación" : "el usuario"}.</p>}
           </div>
+
+          {/* Correo para el código 2FA — solo si el acceso no es un correo. */}
+          {!accessIsEmail && (
+            <div>
+              <label className={LABEL} htmlFor="uf-2fa-email">Correo para el código de verificación (2FA)</label>
+              <input id="uf-2fa-email" type="email" value={twofaEmail} onChange={(e) => setTwofaEmail(e.target.value)} onBlur={() => touch("twofa_email")} className={fieldCls(!!showErr("twofa_email"))} placeholder="usuario@gmail.com" autoComplete="off" />
+              {showErr("twofa_email")
+                ? <ErrText msg={showErr("twofa_email")} />
+                : <p className="mt-1 text-xs text-muted">A este correo llega el código al iniciar sesión. Sin un correo, el usuario no usará verificación en dos pasos.</p>}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

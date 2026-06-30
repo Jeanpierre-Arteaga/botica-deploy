@@ -13,7 +13,7 @@ const UserModel = {
   findById: async (id) => {
     const result = await pool.query(
       `SELECT u.user_id, u.user_code, u.full_name, u.role, u.is_active,
-              u.location_id, u.last_login, u.photo_url,
+              u.location_id, u.last_login, u.photo_url, u.email,
               l.location_name
        FROM users u
        LEFT JOIN location l ON u.location_id = l.location_id
@@ -23,10 +23,24 @@ const UserModel = {
     return result.rows[0];
   },
 
+  // Fila completa (incluye columnas twofa_* y user_password) + nombre de sede.
+  // Solo para flujos internos de autenticación (login / verificación 2FA);
+  // NO se expone tal cual en respuestas HTTP.
+  findAuthById: async (id) => {
+    const result = await pool.query(
+      `SELECT u.*, l.location_name
+       FROM users u
+       LEFT JOIN location l ON u.location_id = l.location_id
+       WHERE u.user_id = $1 AND u.is_active = true`,
+      [id]
+    );
+    return result.rows[0];
+  },
+
   findAll: async () => {
     const result = await pool.query(
       `SELECT u.user_id, u.user_code, u.full_name, u.role, u.is_active,
-              u.location_id, u.last_login, u.photo_url,
+              u.location_id, u.last_login, u.photo_url, u.email,
               l.location_name
        FROM users u
        LEFT JOIN location l ON u.location_id = l.location_id
@@ -35,12 +49,12 @@ const UserModel = {
     return result.rows;
   },
 
-  create: async ({ user_code, user_password, full_name, role, location_id }) => {
+  create: async ({ user_code, user_password, full_name, role, location_id, email = null }) => {
     const result = await pool.query(
-      `INSERT INTO users (user_code, user_password, full_name, role, location_id, is_active)
-       VALUES ($1, $2, $3, $4, $5, true)
-       RETURNING user_id, user_code, full_name, role, location_id`,
-      [user_code, user_password, full_name, role, location_id]
+      `INSERT INTO users (user_code, user_password, full_name, role, location_id, email, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       RETURNING user_id, user_code, full_name, role, location_id, email`,
+      [user_code, user_password, full_name, role, location_id, email]
     );
     return result.rows[0];
   },
@@ -49,12 +63,12 @@ const UserModel = {
   // role solo se cambia por PATCH /:id/role (admin); password requiere endpoint dedicado.
   // photo_url SÍ es actualizable (perfil propio o admin).
   update: async (id, data) => {
-    const ALLOWED_UPDATE_FIELDS = ['user_code', 'full_name', 'location_id', 'is_active', 'photo_url'];
+    const ALLOWED_UPDATE_FIELDS = ['user_code', 'full_name', 'location_id', 'is_active', 'photo_url', 'email'];
     const fields = Object.keys(data || {}).filter(k => ALLOWED_UPDATE_FIELDS.includes(k));
 
     if (fields.length === 0) {
       const current = await pool.query(
-        `SELECT user_id, user_code, full_name, role, location_id, is_active, photo_url
+        `SELECT user_id, user_code, full_name, role, location_id, is_active, photo_url, email
          FROM users WHERE user_id = $1`,
         [id]
       );
@@ -67,7 +81,7 @@ const UserModel = {
     const result = await pool.query(
       `UPDATE users SET ${setClause}
        WHERE user_id = $${fields.length + 1}
-       RETURNING user_id, user_code, full_name, role, location_id, is_active, photo_url`,
+       RETURNING user_id, user_code, full_name, role, location_id, is_active, photo_url, email`,
       [...values, id]
     );
     return result.rows[0];
@@ -119,6 +133,66 @@ const UserModel = {
       [id]
     );
     return result.rows[0];
+  },
+
+  // ── 2FA: estado del código OTP de verificación en dos pasos ──────────────
+
+  // Guarda (o reemplaza) el OTP vigente del usuario y reinicia los intentos.
+  setTwofaCode: async (id, { code_hash, expires_at, sent_at }) => {
+    await pool.query(
+      `UPDATE users
+          SET twofa_code_hash = $1,
+              twofa_expires_at = $2,
+              twofa_sent_at = $3,
+              twofa_attempts = 0
+        WHERE user_id = $4`,
+      [code_hash, expires_at, sent_at, id]
+    );
+  },
+
+  // Suma 1 a los intentos del código vigente y devuelve el total resultante.
+  incrementTwofaAttempts: async (id) => {
+    const result = await pool.query(
+      `UPDATE users SET twofa_attempts = twofa_attempts + 1
+        WHERE user_id = $1
+        RETURNING twofa_attempts`,
+      [id]
+    );
+    return result.rows[0] ? result.rows[0].twofa_attempts : null;
+  },
+
+  // Limpia el OTP (tras usarlo, agotar intentos o cancelar el flujo).
+  clearTwofa: async (id) => {
+    await pool.query(
+      `UPDATE users
+          SET twofa_code_hash = NULL,
+              twofa_expires_at = NULL,
+              twofa_sent_at = NULL,
+              twofa_attempts = 0
+        WHERE user_id = $1`,
+      [id]
+    );
+  },
+
+  // Limpia el bloqueo por intentos de contraseña SIN tocar last_login. Se usa
+  // cuando la contraseña fue correcta pero el login aún no se completa (queda
+  // pendiente el 2FA): no debe penalizarse al usuario por intentos previos.
+  clearPasswordLock: async (id) => {
+    await pool.query(
+      `UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE user_id = $1`,
+      [id]
+    );
+  },
+
+  // Sella el último acceso (NOW() = hora de Lima por la sesión de BD) y limpia
+  // el bloqueo por intentos de contraseña. Se llama al completar el login.
+  markLogin: async (id) => {
+    await pool.query(
+      `UPDATE users
+          SET last_login = NOW(), failed_attempts = 0, locked_until = NULL
+        WHERE user_id = $1`,
+      [id]
+    );
   }
 };
 

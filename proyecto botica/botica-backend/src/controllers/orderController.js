@@ -5,6 +5,7 @@ const { toFloat, toInt } = require('../utils/casting');
 const { todayInLima } = require('../utils/dates');
 const { processCardPayment } = require('../services/paymentService');
 const { buildVoucherPdf } = require('../services/voucherService');
+const { buildShiftReportPdf } = require('../services/shiftReportService');
 const { uploadBuffer } = require('../config/s3');
 const { rucError, billingNameError, sanitizeRuc } = require('../utils/billing');
 
@@ -12,6 +13,118 @@ const VALID_ORDER_STATES = ['pendiente', 'en proceso', 'entregado', 'cancelado']
 const VALID_DELIVERY_TYPES = ['delivery', 'pickup'];
 const VALID_PAYMENT_METHODS = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia'];
 const VALID_VOUCHER_TYPES = ['boleta', 'factura', 'ticket'];
+
+// Resumen del turno de un trabajador en una fecha. Es la fuente ÚNICA de datos
+// del cierre: la consume tanto el endpoint JSON (pantalla) como el PDF descargable.
+async function fetchShiftSummary(userId, date, fullName) {
+  const params = [date, userId];
+
+  const totalsQ = pool.query(
+    `SELECT
+       COALESCE(SUM(total_price), 0) AS total_sales,
+       COUNT(*)::int                  AS total_transactions,
+       COALESCE(AVG(total_price), 0)  AS average_ticket
+     FROM orders
+     WHERE DATE(order_date) = $1::date
+       AND user_id = $2::int
+       AND order_state = 'entregado'`,
+    params
+  );
+
+  const payQ = pool.query(
+    `SELECT
+       COALESCE(pay.payment_method, 'sin_pago') AS payment_method,
+       COALESCE(SUM(o.total_price), 0)          AS total,
+       COUNT(o.order_id)::int                   AS count
+     FROM orders o
+     LEFT JOIN payment pay ON pay.order_id = o.order_id
+     WHERE DATE(o.order_date) = $1::date
+       AND o.user_id = $2::int
+       AND o.order_state = 'entregado'
+     GROUP BY COALESCE(pay.payment_method, 'sin_pago')
+     ORDER BY total DESC`,
+    params
+  );
+
+  // Las transacciones del turno incluyen canceladas (es histórico completo)
+  const txQ = pool.query(
+    `SELECT
+       o.order_id,
+       o.order_date,
+       o.total_price,
+       o.order_state,
+       o.delivery_type,
+       c.full_name AS customer_name,
+       COALESCE(pay.payment_method, 'sin_pago') AS payment_method
+     FROM orders o
+     LEFT JOIN customer c   ON o.customer_id = c.customer_id
+     LEFT JOIN payment  pay ON pay.order_id  = o.order_id
+     WHERE DATE(o.order_date) = $1::date
+       AND o.user_id = $2::int
+     ORDER BY o.order_date DESC`,
+    params
+  );
+
+  // Top 3 productos vendidos por el trabajador en el turno
+  const topQ = pool.query(
+    `SELECT
+       pr.product_id,
+       pr.product_name,
+       SUM(od.amount)::int          AS total_sold,
+       COALESCE(SUM(od.sub_total_price), 0) AS revenue
+     FROM order_detail od
+     JOIN orders  o  ON o.order_id  = od.order_id
+     JOIN product pr ON pr.product_id = od.product_id
+     WHERE DATE(o.order_date) = $1::date
+       AND o.user_id = $2::int
+       AND o.order_state = 'entregado'
+     GROUP BY pr.product_id, pr.product_name
+     ORDER BY total_sold DESC
+     LIMIT 3`,
+    params
+  );
+
+  const [rTot, rPay, rTx, rTop] = await Promise.all([totalsQ, payQ, txQ, topQ]);
+  const t = rTot.rows[0] || {};
+
+  return {
+    date,
+    user_id: userId,
+    full_name: fullName,
+    total_sales: toFloat(t.total_sales),
+    total_transactions: toInt(t.total_transactions),
+    average_ticket: toFloat(t.average_ticket),
+    by_payment_method: rPay.rows.map(r => ({
+      payment_method: r.payment_method,
+      total: toFloat(r.total),
+      count: toInt(r.count)
+    })),
+    top_products: rTop.rows.map(r => ({
+      product_id: r.product_id,
+      product_name: r.product_name,
+      total_sold: toInt(r.total_sold),
+      revenue: toFloat(r.revenue)
+    })),
+    transactions: rTx.rows.map(r => ({
+      order_id: r.order_id,
+      order_date: r.order_date,
+      total_price: toFloat(r.total_price),
+      order_state: r.order_state,
+      delivery_type: r.delivery_type,
+      customer_name: r.customer_name,
+      payment_method: r.payment_method
+    }))
+  };
+}
+
+// Nombre de archivo seguro a partir del nombre del operador (sin tildes/espacios).
+function slugifyName(name) {
+  return (String(name || 'operador')
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')   // quita tildes
+    .replace(/[^a-zA-Z0-9]+/g, '_')                    // no alfanumérico → _
+    .replace(/^_+|_+$/g, '')                           // recorta _ extremos
+    .toLowerCase()) || 'operador';
+}
 
 const orderController = {
 
@@ -502,6 +615,20 @@ const orderController = {
       });
     }
 
+    // Datos fiscales: SOLO aplican a "factura" y se re-validan en backend (mismo
+    // criterio que el checkout web: prefijo/longitud/dígito + razón social). Para
+    // boleta/ticket quedan en NULL.
+    let billingRuc = null;
+    let billingName = null;
+    if (payment.voucher_type === 'factura') {
+      const rErr = rucError(payment.billing_ruc);
+      if (rErr) return res.status(400).json({ message: rErr });
+      const nErr = billingNameError(payment.billing_name);
+      if (nErr) return res.status(400).json({ message: nErr });
+      billingRuc = sanitizeRuc(payment.billing_ruc);
+      billingName = String(payment.billing_name).trim();
+    }
+
     const delivery_type = order.delivery_type || 'pickup';
     if (!VALID_DELIVERY_TYPES.includes(delivery_type)) {
       return res.status(400).json({
@@ -554,12 +681,12 @@ const orderController = {
         );
       }
 
-      // 3. Pago presencial
+      // 3. Pago presencial (con datos fiscales si es factura)
       await client.query(
         `INSERT INTO payment
-          (payment_method, total_price, voucher_type, order_id)
-         VALUES ($1, $2, $3, $4)`,
-        [payment.payment_method, total, payment.voucher_type || 'ticket', newOrder.order_id]
+          (payment_method, total_price, voucher_type, billing_ruc, billing_name, order_id)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [payment.payment_method, total, payment.voucher_type || 'ticket', billingRuc, billingName, newOrder.order_id]
       );
 
       // 4. POS: la venta YA ocurrió (estado 'entregado') → el pago está
@@ -711,113 +838,57 @@ const orderController = {
       // "Hoy" SIEMPRE en zona de Perú (America/Lima), no en UTC. Ver utils/dates.
       const date = req.query.date || todayInLima();
       const userId = req.user.user_id;
-      const fullName = req.user.full_name;
+      if (!userId) {
+        return res.status(401).json({ message: 'No autenticado.' });
+      }
+      const data = await fetchShiftSummary(userId, date, req.user.full_name);
+      return res.json(data);
+    } catch (err) {
+      console.error('[orders/getShiftSummary]', err);
+      return res.status(500).json({ message: 'Error en el servidor.' });
+    }
+  },
 
+  // GET /api/orders/shift-summary/pdf?date=YYYY-MM-DD
+  // Devuelve el PDF del cierre de turno (descarga directa, sin diálogo de
+  // impresión). Reusa los MISMOS datos que la pantalla (fetchShiftSummary).
+  getShiftSummaryPdf: async (req, res) => {
+    try {
+      const date = req.query.date || todayInLima();
+      const userId = req.user.user_id;
       if (!userId) {
         return res.status(401).json({ message: 'No autenticado.' });
       }
 
-      const params = [date, userId];
+      const data = await fetchShiftSummary(userId, date, req.user.full_name);
 
-      const totalsQ = pool.query(
-        `SELECT
-           COALESCE(SUM(total_price), 0) AS total_sales,
-           COUNT(*)::int                  AS total_transactions,
-           COALESCE(AVG(total_price), 0)  AS average_ticket
-         FROM orders
-         WHERE DATE(order_date) = $1::date
-           AND user_id = $2::int
-           AND order_state = 'entregado'`,
-        params
-      );
+      // Nombre de la sede del operador (si tiene una asignada).
+      let sede = null;
+      if (req.user.location_id) {
+        const r = await pool.query(
+          'SELECT location_name FROM location WHERE location_id = $1',
+          [req.user.location_id]
+        );
+        sede = (r.rows[0] && r.rows[0].location_name) || null;
+      }
 
-      const payQ = pool.query(
-        `SELECT
-           COALESCE(pay.payment_method, 'sin_pago') AS payment_method,
-           COALESCE(SUM(o.total_price), 0)          AS total,
-           COUNT(o.order_id)::int                   AS count
-         FROM orders o
-         LEFT JOIN payment pay ON pay.order_id = o.order_id
-         WHERE DATE(o.order_date) = $1::date
-           AND o.user_id = $2::int
-           AND o.order_state = 'entregado'
-         GROUP BY COALESCE(pay.payment_method, 'sin_pago')
-         ORDER BY total DESC`,
-        params
-      );
-
-      // Las transacciones del turno incluyen canceladas (es histórico completo)
-      const txQ = pool.query(
-        `SELECT
-           o.order_id,
-           o.order_date,
-           o.total_price,
-           o.order_state,
-           o.delivery_type,
-           c.full_name AS customer_name,
-           COALESCE(pay.payment_method, 'sin_pago') AS payment_method
-         FROM orders o
-         LEFT JOIN customer c   ON o.customer_id = c.customer_id
-         LEFT JOIN payment  pay ON pay.order_id  = o.order_id
-         WHERE DATE(o.order_date) = $1::date
-           AND o.user_id = $2::int
-         ORDER BY o.order_date DESC`,
-        params
-      );
-
-      // Top 3 productos vendidos por el trabajador en el turno
-      const topQ = pool.query(
-        `SELECT
-           pr.product_id,
-           pr.product_name,
-           SUM(od.amount)::int          AS total_sold,
-           COALESCE(SUM(od.sub_total_price), 0) AS revenue
-         FROM order_detail od
-         JOIN orders  o  ON o.order_id  = od.order_id
-         JOIN product pr ON pr.product_id = od.product_id
-         WHERE DATE(o.order_date) = $1::date
-           AND o.user_id = $2::int
-           AND o.order_state = 'entregado'
-         GROUP BY pr.product_id, pr.product_name
-         ORDER BY total_sold DESC
-         LIMIT 3`,
-        params
-      );
-
-      const [rTot, rPay, rTx, rTop] = await Promise.all([totalsQ, payQ, txQ, topQ]);
-      const t = rTot.rows[0] || {};
-
-      return res.json({
+      const roleLabel = req.user.role === 'admin' ? 'Administrador' : 'Empleado';
+      const pdfBuffer = await buildShiftReportPdf({
+        operator: data.full_name,
+        role: roleLabel,
+        sede,
         date,
-        user_id: userId,
-        full_name: fullName,
-        total_sales: toFloat(t.total_sales),
-        total_transactions: toInt(t.total_transactions),
-        average_ticket: toFloat(t.average_ticket),
-        by_payment_method: rPay.rows.map(r => ({
-          payment_method: r.payment_method,
-          total: toFloat(r.total),
-          count: toInt(r.count)
-        })),
-        top_products: rTop.rows.map(r => ({
-          product_id: r.product_id,
-          product_name: r.product_name,
-          total_sold: toInt(r.total_sold),
-          revenue: toFloat(r.revenue)
-        })),
-        transactions: rTx.rows.map(r => ({
-          order_id: r.order_id,
-          order_date: r.order_date,
-          total_price: toFloat(r.total_price),
-          order_state: r.order_state,
-          delivery_type: r.delivery_type,
-          customer_name: r.customer_name,
-          payment_method: r.payment_method
-        }))
+        summary: data,
       });
+
+      const filename = `cierre_turno_${slugifyName(data.full_name)}_${date}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      return res.end(pdfBuffer);
     } catch (err) {
-      console.error('[orders/getShiftSummary]', err);
-      return res.status(500).json({ message: 'Error en el servidor.' });
+      console.error('[orders/getShiftSummaryPdf]', err);
+      return res.status(500).json({ message: 'No se pudo generar el PDF del cierre.' });
     }
   },
 

@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { api, tokenStorage, ApiError } from './api';
-import type { Role } from './types';
+import type { Role, StaffLoginResponse, ResendTwofaResponse } from './types';
 
 // ============================================================
 // TIPOS
@@ -43,13 +43,39 @@ export interface AuthUser {
   has_password?: boolean;
 }
 
+/**
+ * Resultado del paso 1 del login de personal. Si twofaRequired es true, el
+ * formulario debe pasar al paso de verificación (código por correo) usando los
+ * datos del challenge; si es false, la sesión ya quedó iniciada.
+ */
+export interface StaffLoginOutcome {
+  twofaRequired: boolean;
+  challenge?: string;
+  emailMasked?: string;
+  resendAvailableIn?: number;
+  expiresIn?: number;
+  userCode?: string;
+}
+
+interface VerifyStaff2faArgs {
+  challenge: string;
+  code: string;
+  rememberDevice: boolean;
+  userCode: string;
+  requiredRole?: 'admin' | 'emp';
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   /** True mientras se valida el token al montar la app */
   isCheckingSession: boolean;
-  loginStaff: (user_code: string, password: string, requiredRole?: 'admin' | 'emp') => Promise<void>;
+  loginStaff: (user_code: string, password: string, requiredRole?: 'admin' | 'emp') => Promise<StaffLoginOutcome>;
+  /** Paso 2 del login de personal: valida el código 2FA y abre la sesión. */
+  verifyStaff2fa: (args: VerifyStaff2faArgs) => Promise<void>;
+  /** Reenvía el código 2FA (respeta cooldown del backend). */
+  resendStaff2fa: (challenge: string) => Promise<ResendTwofaResponse>;
   loginCustomer: (email: string, password: string, remember?: boolean) => Promise<void>;
   loginWithGoogle: (accessToken: string, remember?: boolean) => Promise<void>;
   registerCustomer: (payload: {
@@ -240,42 +266,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('api-unauthorized', handleUnauthorized);
   }, [user, logout, navigate]);
 
-  // Login para staff/admin
+  // Crea el AuthUser de personal y abre la sesión (memoria + storage).
+  const openStaffSession = useCallback(
+    (resUser: StaffLoginResponse['user'], requiredRole?: 'admin' | 'emp') => {
+      if (requiredRole && resUser.role !== requiredRole) {
+        api.auth.logout();
+        throw new ApiError(
+          403,
+          requiredRole === 'admin'
+            ? 'Esta cuenta no tiene permisos de administrador.'
+            : 'Esta cuenta no es de personal de botica.'
+        );
+      }
+      const authUser: AuthUser = {
+        id: resUser.user_id,
+        role: resUser.role,
+        full_name: resUser.full_name,
+        user_code: resUser.user_code,
+        location_id: resUser.location_id,
+        location_name: resUser.location_name ?? null,
+        photo_url: resUser.photo_url ?? null,
+      };
+      setUser(authUser);
+      saveUserToStorage(authUser);
+    },
+    []
+  );
+
+  // Login para staff/admin — paso 1 (credenciales). Puede completar la sesión
+  // directamente (sin 2FA o con dispositivo recordado) o pedir verificación.
   const loginStaff = useCallback(
     async (
       user_code: string,
       password: string,
       requiredRole?: 'admin' | 'emp'
-    ) => {
+    ): Promise<StaffLoginOutcome> => {
       setIsLoading(true);
       try {
         const res = await api.auth.loginStaff(user_code, password);
 
-        if (requiredRole && res.user.role !== requiredRole) {
-          api.auth.logout();
-          throw new ApiError(
-            403,
-            requiredRole === 'admin'
-              ? 'Esta cuenta no tiene permisos de administrador.'
-              : 'Esta cuenta no es de personal de botica.'
-          );
+        if ('twofa_required' in res && res.twofa_required) {
+          return {
+            twofaRequired: true,
+            challenge: res.challenge,
+            emailMasked: res.email_masked,
+            resendAvailableIn: res.resend_available_in,
+            expiresIn: res.expires_in,
+            userCode: user_code,
+          };
         }
 
-        const authUser: AuthUser = {
-          id: res.user.user_id,
-          role: res.user.role,
-          full_name: res.user.full_name,
-          user_code: res.user.user_code,
-          location_id: res.user.location_id,
-          location_name: res.user.location_name ?? null,
-          photo_url: res.user.photo_url ?? null,
-        };
-        setUser(authUser);
-        saveUserToStorage(authUser);
+        openStaffSession((res as StaffLoginResponse).user, requiredRole);
+        return { twofaRequired: false };
       } finally {
         setIsLoading(false);
       }
     },
+    [openStaffSession]
+  );
+
+  // Login para staff/admin — paso 2 (verificación del código 2FA).
+  const verifyStaff2fa = useCallback(
+    async ({ challenge, code, rememberDevice, userCode, requiredRole }: VerifyStaff2faArgs) => {
+      setIsLoading(true);
+      try {
+        const res = await api.auth.verifyTwofa(challenge, code, rememberDevice, userCode);
+        openStaffSession(res.user, requiredRole);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [openStaffSession]
+  );
+
+  // Reenvía el código 2FA. El backend aplica el cooldown.
+  const resendStaff2fa = useCallback(
+    (challenge: string) => api.auth.resendTwofa(challenge),
     []
   );
 
@@ -434,6 +500,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isCheckingSession,
     loginStaff,
+    verifyStaff2fa,
+    resendStaff2fa,
     loginCustomer,
     loginWithGoogle,
     registerCustomer,

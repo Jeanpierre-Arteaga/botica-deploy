@@ -98,4 +98,71 @@ async function sendPasswordResetEmail(to, resetLink) {
   return { sent: true };
 }
 
-module.exports = { sendPasswordResetEmail, hasSmtp };
+/**
+ * Envía el código de verificación en dos pasos (2FA) al iniciar sesión un
+ * usuario de personal/administrador. `code` es el OTP de 6 dígitos.
+ * Devuelve { sent: true } si salió por SMTP, o { sent: false } si NO hay SMTP
+ * configurado (modo desarrollo: el código se loguea en consola).
+ */
+async function sendTwofaCodeEmail(to, code, { minutes = 10 } = {}) {
+  const t = getTransporter();
+
+  if (!t) {
+    // Fallback de desarrollo: sin SMTP, mostramos el código en consola.
+    console.log('\n──────────────────────────────────────────────────────────');
+    console.log('[DEV] SMTP no configurado — código de verificación (2FA):');
+    console.log(`  → ${code}`);
+    console.log(`  (válido ${minutes} min). Configura SMTP_* en .env para enviar correo real.`);
+    console.log('──────────────────────────────────────────────────────────\n');
+    return { sent: false };
+  }
+
+  const from =
+    process.env.SMTP_FROM ||
+    `Boticas Central <${process.env.SMTP_USER}>`;
+
+  // Separa los dígitos para que se lean cómodos en el correo.
+  const spaced = String(code).split('').join('&nbsp;&nbsp;');
+
+  const html = `
+  <div style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+      <div style="background:#F26430;padding:20px 28px;">
+        <span style="color:#ffffff;font-size:18px;font-weight:700;">Boticas Central</span>
+      </div>
+      <div style="padding:28px;">
+        <h1 style="margin:0 0 12px;font-size:20px;color:#1A1F2E;">Verificación en dos pasos</h1>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#4A5260;">
+          Usa este código para completar tu inicio de sesión. Caduca en
+          ${minutes} minutos y es de un solo uso.
+        </p>
+        <div style="margin:0 0 18px;text-align:center;">
+          <div style="display:inline-block;background:#FFF4EE;border:1px solid #F26430;
+                      border-radius:12px;padding:16px 26px;font-size:30px;font-weight:700;
+                      letter-spacing:4px;color:#D94E1F;">
+            ${spaced}
+          </div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.6;color:#9CA3AF;">
+          Si no intentaste iniciar sesión, ignora este correo y considera cambiar tu contraseña.
+          Nunca compartas este código con nadie.
+        </p>
+      </div>
+    </div>
+  </div>`;
+
+  await t.sendMail({
+    from,
+    to,
+    subject: `Tu código de acceso es ${code} — Boticas Central`,
+    text:
+      `Tu código de verificación de Boticas Central es: ${code}\n\n` +
+      `Caduca en ${minutes} minutos y es de un solo uso.\n` +
+      `Si no intentaste iniciar sesión, ignora este correo.`,
+    html,
+  });
+
+  return { sent: true };
+}
+
+module.exports = { sendPasswordResetEmail, sendTwofaCodeEmail, hasSmtp };

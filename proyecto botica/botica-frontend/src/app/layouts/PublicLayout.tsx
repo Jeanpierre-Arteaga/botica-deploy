@@ -4,6 +4,7 @@ import { TopBar } from "../components/TopBar";
 import { SecondaryNav } from "../components/SecondaryNav";
 import { Footer } from "../components/Footer";
 import { QuickActionFab } from "../components/QuickActionFab";
+import { WhatsAppFab } from "../components/WhatsAppFab";
 import { LiveRegion } from "../components/LiveRegion";
 
 /**
@@ -32,8 +33,10 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
-      {/* FAB de acción rápida (asesoría + subir receta) — solo cliente */}
+      {/* FAB de acción rápida (asistente) abajo-derecha — solo cliente */}
       <QuickActionFab />
+      {/* FAB de WhatsApp (espejo) abajo-izquierda con selector de sede */}
+      <WhatsAppFab />
       {/* Regiones aria-live globales (anuncios a lectores de pantalla) */}
       <LiveRegion />
     </div>

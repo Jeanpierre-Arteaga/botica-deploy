@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { CardPayment } from '@mercadopago/sdk-react';
 import { api } from '../lib/api';
 import { ApiError } from '../lib/api';
-import { rucError, billingNameError, sanitizeRuc, isBillingValid } from '../lib/billing';
+import { sanitizeRuc, isBillingValid } from '../lib/billing';
+import { BillingFields } from '../components/checkout/BillingFields';
 import { useCart } from '../lib/CartContext';
 import { useAuth } from '../lib/AuthContext';
 import { useLocations } from '../lib/LocationContext';
@@ -675,124 +676,8 @@ function StepPago(props: StepPagoProps) {
   );
 }
 
-// ============================================================
-// Datos fiscales para "Factura" (RUC + Razón social)
-// ============================================================
-// Validación en vivo (sin servicios externos): el error aparece al salir del
-// campo y se actualiza mientras se corrige. RUC: 11 dígitos + prefijo válido +
-// dígito verificador (módulo 11). Razón social: texto libre que escribe el
-// usuario. Orden pedido: primero RUC, luego Razón social.
-function BillingFields({
-  ruc,
-  setRuc,
-  name,
-  setName,
-}: {
-  ruc: string;
-  setRuc: (v: string) => void;
-  name: string;
-  setName: (v: string) => void;
-}) {
-  const [rucTouched, setRucTouched] = useState(false);
-  const [nameTouched, setNameTouched] = useState(false);
-
-  const rucErr = rucError(ruc);
-  const nameErr = billingNameError(name);
-  const rucOk = rucErr === null;
-
-  const showRucErr = rucTouched && rucErr;
-  const showNameErr = nameTouched && nameErr;
-
-  return (
-    <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4 animate-fade-in-up">
-      <h4 className="font-semibold text-text mb-1 flex items-center gap-2">
-        <Building2 size={16} className="text-secondary-brand" />
-        Datos de facturación
-      </h4>
-      <p className="text-xs text-muted mb-4">
-        Necesarios para emitir la factura a nombre de tu empresa.
-      </p>
-
-      <div className="space-y-4">
-        {/* 1 · RUC */}
-        <div>
-          <label htmlFor="billing-ruc" className="block text-sm font-medium text-text mb-1">
-            RUC <span className="text-error">*</span>
-          </label>
-          <div className="relative">
-            <input
-              id="billing-ruc"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              value={ruc}
-              onChange={(e) => setRuc(sanitizeRuc(e.target.value))}
-              onBlur={() => setRucTouched(true)}
-              maxLength={11}
-              placeholder="20512345678"
-              aria-invalid={!!showRucErr}
-              aria-describedby="billing-ruc-help billing-ruc-error"
-              className={`w-full h-11 px-3 pr-10 border rounded-md tabular-nums tracking-wide focus:outline-none focus:ring-2 ${
-                showRucErr
-                  ? 'border-error focus:ring-error/40'
-                  : 'border-line focus:ring-brand'
-              }`}
-            />
-            {rucOk && ruc.length === 11 && (
-              <CheckCircle2
-                size={20}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-success"
-                aria-hidden="true"
-              />
-            )}
-          </div>
-          {showRucErr ? (
-            <p id="billing-ruc-error" className="mt-1 text-xs text-error" role="alert">
-              {rucErr}
-            </p>
-          ) : (
-            <p id="billing-ruc-help" className="mt-1 text-xs text-muted">
-              Ingresa el RUC de 11 dígitos de la empresa.
-            </p>
-          )}
-        </div>
-
-        {/* 2 · Razón social */}
-        <div>
-          <label htmlFor="billing-name" className="block text-sm font-medium text-text mb-1">
-            Razón social <span className="text-error">*</span>
-          </label>
-          <input
-            id="billing-name"
-            type="text"
-            autoComplete="organization"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => setNameTouched(true)}
-            maxLength={200}
-            placeholder="Mi Empresa S.A.C."
-            aria-invalid={!!showNameErr}
-            aria-describedby="billing-name-help billing-name-error"
-            className={`w-full h-11 px-3 border rounded-md focus:outline-none focus:ring-2 ${
-              showNameErr
-                ? 'border-error focus:ring-error/40'
-                : 'border-line focus:ring-brand'
-            }`}
-          />
-          {showNameErr ? (
-            <p id="billing-name-error" className="mt-1 text-xs text-error" role="alert">
-              {nameErr}
-            </p>
-          ) : (
-            <p id="billing-name-help" className="mt-1 text-xs text-muted">
-              Nombre legal de la empresa, tal como figura en SUNAT.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// El componente BillingFields (RUC + Razón social) ahora es COMPARTIDO con el
+// POS del staff: vive en components/checkout/BillingFields.tsx.
 
 // ============================================================
 // PANELES DE INSTRUCCIONES POR MÉTODO (no-tarjeta)
