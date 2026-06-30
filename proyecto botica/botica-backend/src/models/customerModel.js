@@ -163,6 +163,46 @@ const CustomerModel = {
       [id]
     );
     return result.rows[0];
+  },
+
+  // ── 2FA por correo (verificación en dos pasos del cliente) ───────────────
+  // Equivalentes a las de UserModel pero sobre la tabla customer.
+
+  // Guarda (o reemplaza) el OTP vigente del cliente y reinicia los intentos.
+  setTwofaCode: async (id, { code_hash, expires_at, sent_at }) => {
+    await pool.query(
+      `UPDATE customer
+          SET twofa_code_hash = $1,
+              twofa_expires_at = $2,
+              twofa_sent_at = $3,
+              twofa_attempts = 0
+        WHERE customer_id = $4`,
+      [code_hash, expires_at, sent_at, id]
+    );
+  },
+
+  // Suma 1 a los intentos del código vigente y devuelve el total resultante.
+  incrementTwofaAttempts: async (id) => {
+    const result = await pool.query(
+      `UPDATE customer SET twofa_attempts = twofa_attempts + 1
+        WHERE customer_id = $1
+        RETURNING twofa_attempts`,
+      [id]
+    );
+    return result.rows[0] ? result.rows[0].twofa_attempts : null;
+  },
+
+  // Limpia el OTP (tras usarlo, agotar intentos o cancelar el flujo).
+  clearTwofa: async (id) => {
+    await pool.query(
+      `UPDATE customer
+          SET twofa_code_hash = NULL,
+              twofa_expires_at = NULL,
+              twofa_sent_at = NULL,
+              twofa_attempts = 0
+        WHERE customer_id = $1`,
+      [id]
+    );
   }
 };
 

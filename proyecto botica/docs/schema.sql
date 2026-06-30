@@ -98,7 +98,11 @@ CREATE TABLE public.customer (
     customer_password character varying(255),
     is_active boolean DEFAULT true,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    photo_url character varying(500)
+    photo_url character varying(500),
+    twofa_code_hash character varying(64),
+    twofa_expires_at timestamp without time zone,
+    twofa_attempts integer DEFAULT 0 NOT NULL,
+    twofa_sent_at timestamp without time zone
 );
 
 
@@ -348,13 +352,18 @@ ALTER SEQUENCE public.orders_order_id_seq OWNED BY public.orders.order_id;
 -- Name: password_reset; Type: TABLE; Schema: public; Owner: -
 --
 
+-- Tokens de recuperación de contraseña. Cada token pertenece a EXACTAMENTE uno:
+-- un cliente (customer_id) o un usuario de personal/admin (user_id), nunca ambos
+-- (ver CHECK password_reset_owner_chk más abajo).
 CREATE TABLE public.password_reset (
     reset_id integer NOT NULL,
-    customer_id integer NOT NULL,
+    customer_id integer,
     token_hash character(64) NOT NULL,
     expires_at timestamp without time zone NOT NULL,
     used_at timestamp without time zone,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    user_id integer,
+    CONSTRAINT password_reset_owner_chk CHECK (((customer_id IS NOT NULL) <> (user_id IS NOT NULL)))
 );
 
 
@@ -1965,6 +1974,13 @@ CREATE INDEX idx_password_reset_token_hash ON public.password_reset USING btree 
 
 
 --
+-- Name: idx_password_reset_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_password_reset_user ON public.password_reset USING btree (user_id);
+
+
+--
 -- Name: idx_payment_mp_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2070,6 +2086,14 @@ ALTER TABLE ONLY public.orders
 
 ALTER TABLE ONLY public.password_reset
     ADD CONSTRAINT password_reset_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id) ON DELETE CASCADE;
+
+
+--
+-- Name: password_reset password_reset_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.password_reset
+    ADD CONSTRAINT password_reset_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
 
 
 --

@@ -23,6 +23,19 @@ import { api, ApiError } from "../lib/api";
 import { AuthLayout, AuthSubmit } from "../components/AuthLayout";
 
 type Status = "validating" | "invalid" | "form" | "success";
+type Audience = "customer" | "staff" | "admin";
+
+// A dónde volver según el dueño del token (cliente, personal o admin).
+const LOGIN_PATHS: Record<Audience, string> = {
+  customer: "/login",
+  staff: "/staff",
+  admin: "/admin",
+};
+const RECOVER_PATHS: Record<Audience, string> = {
+  customer: "/recuperar-password",
+  staff: "/staff/recuperar-password",
+  admin: "/admin/recuperar-password",
+};
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -30,11 +43,15 @@ export function ResetPassword() {
   const token = searchParams.get("token") || "";
 
   const [status, setStatus] = useState<Status>("validating");
+  const [audience, setAudience] = useState<Audience>("customer");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loginPath = LOGIN_PATHS[audience];
+  const recoverPath = RECOVER_PATHS[audience];
 
   // Valida el token al montar.
   useEffect(() => {
@@ -47,6 +64,7 @@ export function ResetPassword() {
       .validateResetToken(token)
       .then((res) => {
         if (cancelled) return;
+        if (res.audience) setAudience(res.audience);
         setStatus(res.valid ? "form" : "invalid");
       })
       .catch(() => {
@@ -75,8 +93,8 @@ export function ResetPassword() {
       await api.auth.resetPassword(token, password);
       setStatus("success");
       toast.success("Contraseña actualizada.");
-      // Redirige al login tras un breve momento.
-      setTimeout(() => navigate("/login", { replace: true }), 2200);
+      // Redirige al login correspondiente (cliente / personal / admin).
+      setTimeout(() => navigate(loginPath, { replace: true }), 2200);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
         // Token expiró/usado entre la validación y el submit.
@@ -128,7 +146,7 @@ export function ResetPassword() {
         subtitle="El enlace ha expirado o ya fue utilizado."
         footer={
           <Link
-            to="/login"
+            to={loginPath}
             className="flex items-center justify-center gap-1.5 text-sm font-medium hover:underline"
             style={{ color: "var(--c-muted)" }}
           >
@@ -152,7 +170,7 @@ export function ResetPassword() {
               Solicita uno nuevo para continuar.
             </p>
           </div>
-          <Link to="/recuperar-password" className="block">
+          <Link to={recoverPath} className="block">
             <span
               className="flex w-full h-11 items-center justify-center rounded-xl font-semibold text-white text-[15px] shadow-md transition-all duration-200 hover:shadow-lg"
               style={{ backgroundColor: "var(--c-brand)" }}
@@ -183,7 +201,7 @@ export function ResetPassword() {
               Te llevamos al inicio de sesión...
             </p>
           </div>
-          <Link to="/login" className="block">
+          <Link to={loginPath} className="block">
             <span
               className="flex w-full h-11 items-center justify-center rounded-xl font-semibold text-white text-[15px] shadow-md transition-all duration-200 hover:shadow-lg"
               style={{ backgroundColor: "var(--c-brand)" }}
@@ -206,7 +224,7 @@ export function ResetPassword() {
       subtitle="Elige una contraseña segura para tu cuenta."
       footer={
         <Link
-          to="/login"
+          to={loginPath}
           className="flex items-center justify-center gap-1.5 text-sm font-medium hover:underline"
           style={{ color: "var(--c-muted)" }}
         >

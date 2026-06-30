@@ -51,6 +51,32 @@ const PasswordResetModel = {
       [customer_id]
     );
   },
+
+  // ── Variantes para USERS (personal/admin) ──────────────────────────────
+  // Mismo patrón que las de customer, pero el token pertenece a un user_id.
+  // findValidByHash, markUsed y el resto se comparten (operan por reset_id /
+  // token_hash, da igual el dueño).
+
+  createForUser: async ({ user_id, token_hash, expires_at }) => {
+    const result = await pool.query(
+      `INSERT INTO password_reset (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)
+       RETURNING reset_id, user_id, expires_at, created_at`,
+      [user_id, token_hash, expires_at]
+    );
+    return result.rows[0];
+  },
+
+  // Invalida cualquier token pendiente del usuario (al pedir uno nuevo
+  // o tras un reseteo exitoso).
+  invalidateForUser: async (user_id) => {
+    await pool.query(
+      `UPDATE password_reset
+       SET used_at = NOW()
+       WHERE user_id = $1 AND used_at IS NULL`,
+      [user_id]
+    );
+  },
 };
 
 module.exports = PasswordResetModel;

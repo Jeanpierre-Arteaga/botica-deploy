@@ -42,10 +42,23 @@ services:
       - key: GEMINI_MODEL
       # Google OAuth (login de clientes)
       - key: GOOGLE_CLIENT_ID
-      # SMTP (correos: recuperación y 2FA)
+      # SMTP (correos: recuperación de contraseña y código 2FA)
       - key: SMTP_HOST
       - key: SMTP_PORT
       - key: SMTP_SECURE
       - key: SMTP_USER
       - key: SMTP_PASS
       - key: SMTP_FROM
+      # Timeout del transporte SMTP (ms). Opcional; default 8000. Evita que un
+      # SMTP saliente bloqueado/lento cuelgue el login (el correo va en 2º plano).
+      - key: SMTP_TIMEOUT_MS
+      # Verificación en dos pasos (2FA por correo) — personal/admin.
+      # TWOFA_ENABLED=false omite el 2FA (login directo) si el correo falla en vivo.
+      - key: TWOFA_ENABLED
+      # 2FA del CLIENTE (login correo+contraseña). Sin definir → sigue a
+      # TWOFA_ENABLED. =false desactiva solo el del cliente. Google nunca pide 2FA.
+      - key: TWOFA_CUSTOMER_ENABLED
+      # TWOFA_DEV_CODE: SOLO desarrollo. Déjalo VACÍO/SIN definir en producción.
+      - key: TWOFA_DEV_CODE
+      # Timeout (ms) de la verificación del token de Google. Opcional; default 8000.
+      - key: GOOGLE_TIMEOUT_MS

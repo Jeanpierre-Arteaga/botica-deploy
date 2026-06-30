@@ -25,6 +25,7 @@ import { RecuperarPassword } from "./pages/RecuperarPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { StaffLogin } from "./pages/StaffLogin";
 import { AdminLogin } from "./pages/AdminLogin";
+import { RecuperarPasswordStaff } from "./pages/RecuperarPasswordStaff";
 import { NotFound } from "./pages/NotFound";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffPedidos from "./pages/staff/StaffPedidos";
@@ -154,6 +155,7 @@ export const router = createBrowserRouter([
         path: "/staff",
         children: [
           { index: true, Component: StaffLogin },
+          { path: "recuperar-password", Component: RecuperarPasswordStaff },
           {
             path: "",
             element: (
@@ -175,6 +177,10 @@ export const router = createBrowserRouter([
         path: "/admin",
         children: [
           { index: true, Component: AdminLogin },
+          {
+            path: "recuperar-password",
+            element: <RecuperarPasswordStaff tone="admin" backTo="/admin" />,
+          },
           {
             path: "",
             element: (

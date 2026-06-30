@@ -1,11 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/db'); // ajusta la ruta si es diferente
 
 const UserModel = require('../models/userModel');
 const TrustedDeviceModel = require('../models/trustedDeviceModel');
+const PasswordResetModel = require('../models/passwordResetModel');
 const twofa = require('../utils/twofa');
-const { sendTwofaCodeEmail } = require('../utils/mailer');
+const { sendTwofaCodeEmail, sendPasswordResetEmail, hasSmtp } = require('../utils/mailer');
 
 // Bloqueo por intentos fallidos de CONTRASEÑA: a los 3 fallos, 5 minutos (staff).
 const MAX_ATTEMPTS = 3;
@@ -15,6 +17,9 @@ const NEUTRAL = 'Usuario o contraseña incorrectos.';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isDev = () => (process.env.NODE_ENV || 'development') !== 'production';
+const sha256 = (value) => crypto.createHash('sha256').update(String(value)).digest('hex');
+const frontendUrl = () =>
+  (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
 // Destino del código OTP: la columna users.email, o el user_code si éste ya es
 // un correo (los accesos nuevos usan el correo corporativo como user_code).
@@ -63,20 +68,29 @@ function issueSession(res, user, extra = {}) {
   });
 }
 
-// Genera, guarda y envía un OTP nuevo al correo del usuario. Devuelve { sent }
-// (false = no había SMTP; el código se logueó en consola en modo dev).
+// Genera y GUARDA un OTP nuevo (hash + expiración) y dispara el correo en
+// SEGUNDO PLANO. Devolver no espera al SMTP: el envío del correo NUNCA debe
+// bloquear ni colgar la respuesta HTTP (en Render el SMTP saliente puede estar
+// bloqueado/lentísimo). Si el correo falla o tarda, se registra y se ignora —
+// el código ya quedó guardado y el usuario puede reenviarlo. En desarrollo sin
+// SMTP, el mailer loguea el código en consola (igual que el reset del cliente).
 async function issueOtp(user, email) {
   const code = twofa.generateCode();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + twofa.CODE_TTL_MINUTES * 60 * 1000);
 
+  // Lo único que esperamos es la escritura en BD (rápida): así el código ya
+  // existe cuando respondemos, listo para verificarse o reenviarse.
   await UserModel.setTwofaCode(user.user_id, {
     code_hash: twofa.hashCode(code),
     expires_at: expiresAt,
     sent_at: now,
   });
 
-  return sendTwofaCodeEmail(email, code, { minutes: twofa.CODE_TTL_MINUTES });
+  // Fire-and-forget: el correo viaja por fuera del ciclo request/response.
+  sendTwofaCodeEmail(email, code, { minutes: twofa.CODE_TTL_MINUTES }).catch((e) =>
+    console.error('[auth] envío de OTP (2º plano) falló:', e.message)
+  );
 }
 
 // ============================================================
@@ -177,20 +191,9 @@ const login = async (req, res) => {
       }
     }
 
-    // ── Hace falta el código: generar, guardar y enviar el OTP ──
-    let sent = false;
-    try {
-      const r = await issueOtp(user, twofaEmail);
-      sent = r.sent;
-    } catch (e) {
-      console.error('[auth] envío de OTP falló:', e.message);
-      // Sin SMTP útil y sin código de demo → no hay forma de verificar.
-      if (!twofa.devCode()) {
-        return res.status(502).json({
-          message: 'No pudimos enviar el código de verificación. Intenta de nuevo en unos minutos.',
-        });
-      }
-    }
+    // ── Hace falta el código: generar/guardar el OTP y enviarlo en 2º plano ──
+    // No esperamos al SMTP: respondemos de inmediato pidiendo verificación.
+    await issueOtp(user, twofaEmail);
 
     const payload = {
       twofa_required: true,
@@ -200,7 +203,7 @@ const login = async (req, res) => {
       expires_in: twofa.CODE_TTL_MINUTES * 60,
     };
     // En desarrollo sin SMTP, avisamos que el código se logueó en consola.
-    if (!sent && isDev()) payload.dev_delivery = 'console';
+    if (!hasSmtp() && isDev()) payload.dev_delivery = 'console';
     return res.json(payload);
   } catch (error) {
     console.error(error);
@@ -335,16 +338,8 @@ const resendTwofa = async (req, res) => {
       }
     }
 
-    let sent = false;
-    try {
-      const r = await issueOtp(user, email);
-      sent = r.sent;
-    } catch (e) {
-      console.error('[auth] reenvío de OTP falló:', e.message);
-      if (!twofa.devCode()) {
-        return res.status(502).json({ message: 'No pudimos reenviar el código. Intenta más tarde.' });
-      }
-    }
+    // Genera/guarda el nuevo OTP y lo envía en 2º plano (no bloquea la respuesta).
+    await issueOtp(user, email);
 
     // Re-emitimos el challenge para que su expiración quede alineada con el
     // nuevo código (10 min desde ahora).
@@ -355,7 +350,7 @@ const resendTwofa = async (req, res) => {
       resend_available_in: twofa.RESEND_COOLDOWN_SECONDS,
       expires_in: twofa.CODE_TTL_MINUTES * 60,
     };
-    if (!sent && isDev()) payload.dev_delivery = 'console';
+    if (!hasSmtp() && isDev()) payload.dev_delivery = 'console';
     return res.json(payload);
   } catch (error) {
     console.error('[auth] resend-2fa', error);
@@ -363,4 +358,66 @@ const resendTwofa = async (req, res) => {
   }
 };
 
-module.exports = { login, verifyTwofa, resendTwofa };
+// ============================================================
+// POST /api/auth/staff/forgot-password — recuperación de contraseña (personal)
+// ============================================================
+// Replica el flujo del cliente (forgot → enlace por correo → reset) para los
+// usuarios de la tabla `users`. El personal puede identificarse con su CÓDIGO de
+// usuario (TRAB01) o con su CORREO. Respuesta SIEMPRE genérica (no revela si la
+// cuenta existe). El correo se envía en SEGUNDO PLANO para no colgar la
+// respuesta (mismo criterio que el 2FA). El token y su reseteo reutilizan
+// password_reset y los endpoints compartidos /auth/reset-password(/validate).
+// ============================================================
+const forgotPassword = async (req, res) => {
+  const GENERIC = {
+    message: 'Si la cuenta existe, te enviamos un enlace para restablecer tu contraseña.',
+  };
+  try {
+    const { user_code, email } = req.body || {};
+    const identifier = String(user_code || email || '').trim();
+    if (!identifier) {
+      return res.status(400).json({ message: 'Ingresa tu código de usuario o tu correo.' });
+    }
+
+    // Resolver el usuario: por correo si parece email; si no, por código.
+    const user = EMAIL_RE.test(identifier)
+      ? await UserModel.findByEmail(identifier)
+      : await UserModel.findByCode(identifier.toUpperCase());
+
+    // No revelar existencia: respuesta genérica si no hay usuario activo o no
+    // tiene un correo de destino.
+    const dest = user ? resolveTwofaEmail(user) : null;
+    if (!user || !user.is_active || !dest) {
+      return res.json(GENERIC);
+    }
+
+    // Un token vigente a la vez: invalidar anteriores del mismo usuario.
+    await PasswordResetModel.invalidateForUser(user.user_id);
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    await PasswordResetModel.createForUser({
+      user_id: user.user_id,
+      token_hash: sha256(rawToken),
+      expires_at: expiresAt,
+    });
+
+    const link = `${frontendUrl()}/reset-password?token=${rawToken}`;
+
+    // Fire-and-forget: el correo NUNCA bloquea la respuesta (igual que el 2FA).
+    sendPasswordResetEmail(dest, link).catch((e) =>
+      console.error('[auth] envío de reset staff (2º plano) falló:', e.message)
+    );
+
+    const payload = { ...GENERIC, email_masked: twofa.maskEmail(dest) };
+    // En desarrollo sin SMTP, devolvemos el enlace para poder probar local.
+    if (!hasSmtp() && isDev()) payload.dev_link = link;
+    return res.json(payload);
+  } catch (error) {
+    console.error('[auth] forgot-password (staff)', error);
+    // Aún ante error, respondemos genérico para no filtrar información.
+    return res.json(GENERIC);
+  }
+};
+
+module.exports = { login, verifyTwofa, resendTwofa, forgotPassword };

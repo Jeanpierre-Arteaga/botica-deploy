@@ -23,6 +23,19 @@ const MAX_ATTEMPTS = 5;          // 5 intentos por código
 /** ¿El 2FA está activo? Default true. Solo se desactiva con TWOFA_ENABLED=false. */
 const isTwofaEnabled = () => String(process.env.TWOFA_ENABLED).toLowerCase() !== 'false';
 
+/**
+ * ¿El 2FA del CLIENTE está activo? Flag independiente TWOFA_CUSTOMER_ENABLED:
+ *   - sin definir / vacío → sigue al global TWOFA_ENABLED (default).
+ *   - 'false'            → desactiva SOLO el del cliente (staff intacto).
+ *   - cualquier otro     → activo.
+ * Así se puede apagar el del cliente sin tocar el de staff y viceversa.
+ */
+const isTwofaCustomerEnabled = () => {
+  const v = process.env.TWOFA_CUSTOMER_ENABLED;
+  if (v === undefined || String(v).trim() === '') return isTwofaEnabled();
+  return String(v).toLowerCase() !== 'false';
+};
+
 /** Código de respaldo de demo (si está definido, siempre es válido). Solo local. */
 const devCode = () => {
   const v = (process.env.TWOFA_DEV_CODE || '').trim();
@@ -80,12 +93,37 @@ function verifyChallenge(challenge) {
   }
 }
 
+// ── Challenge del CLIENTE ──────────────────────────────────────────────────
+// Scope DISTINTO ('2fa_cust') para que un challenge de cliente NO pueda usarse
+// en el verify de staff ni viceversa. Lleva customer_id y `remember` (duración
+// de sesión elegida en el paso 1), firmado por nosotros: no es manipulable.
+
+function signCustomerChallenge(customer, remember = false) {
+  return jwt.sign(
+    { scope: '2fa_cust', customer_id: customer.customer_id, role: 'cust', remember: !!remember },
+    process.env.JWT_SECRET,
+    { expiresIn: `${CODE_TTL_MINUTES}m` }
+  );
+}
+
+/** Verifica el challenge de cliente. Devuelve { customer_id, remember } o null. */
+function verifyCustomerChallenge(challenge) {
+  try {
+    const decoded = jwt.verify(String(challenge || ''), process.env.JWT_SECRET);
+    if (decoded.scope !== '2fa_cust' || !decoded.customer_id) return null;
+    return { customer_id: decoded.customer_id, remember: decoded.remember === true };
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   CODE_LENGTH,
   CODE_TTL_MINUTES,
   RESEND_COOLDOWN_SECONDS,
   MAX_ATTEMPTS,
   isTwofaEnabled,
+  isTwofaCustomerEnabled,
   devCode,
   generateCode,
   hashCode,
@@ -94,4 +132,6 @@ module.exports = {
   maskEmail,
   signChallenge,
   verifyChallenge,
+  signCustomerChallenge,
+  verifyCustomerChallenge,
 };

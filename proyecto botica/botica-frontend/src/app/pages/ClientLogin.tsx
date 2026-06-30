@@ -12,9 +12,23 @@ import { useAuth } from "../lib/AuthContext";
 import { ApiError } from "../lib/api";
 import { useGoogleAuth } from "../lib/useGoogleAuth";
 import { AuthLayout, AuthField, AuthSubmit } from "../components/AuthLayout";
+import { TwoFactorForm } from "../components/TwoFactorForm";
+
+interface CustomerTwofaState {
+  challenge: string;
+  emailMasked: string;
+  resendAvailableIn: number;
+  devDelivery?: boolean;
+}
 
 export function ClientLogin() {
-  const { loginCustomer, loginWithGoogle, isLoading } = useAuth();
+  const {
+    loginCustomer,
+    verifyCustomer2fa,
+    resendCustomer2fa,
+    loginWithGoogle,
+    isLoading,
+  } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +36,8 @@ export function ClientLogin() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // Paso de verificación en dos pasos (2FA). null = aún en credenciales.
+  const [twofa, setTwofa] = useState<CustomerTwofaState | null>(null);
 
   // Recibe el access_token del popup de Google y lo canjea en el backend.
   const handleGoogleToken = async (accessToken: string) => {
@@ -75,7 +91,16 @@ export function ClientLogin() {
     }
 
     try {
-      await loginCustomer(email.trim().toLowerCase(), password, remember);
+      const outcome = await loginCustomer(email.trim().toLowerCase(), password, remember);
+      if (outcome.twofaRequired) {
+        setTwofa({
+          challenge: outcome.challenge!,
+          emailMasked: outcome.emailMasked || "",
+          resendAvailableIn: outcome.resendAvailableIn ?? 60,
+          devDelivery: false,
+        });
+        return;
+      }
       toast.success("¡Bienvenido!");
       navigate("/", { replace: true });
     } catch (err) {
@@ -90,6 +115,55 @@ export function ClientLogin() {
       }
     }
   };
+
+  // ── Paso 2: verificación del código 2FA (mismo componente que staff) ──
+  if (twofa) {
+    return (
+      <AuthLayout
+        tone="client"
+        embedded
+        brandLine={
+          <>
+            Tu bienestar,
+            <br />
+            más cerca y seguro.
+          </>
+        }
+        title="Iniciar sesión"
+        footer={
+          <p className="text-center text-sm" style={{ color: "var(--c-muted)" }}>
+            ¿No tienes cuenta?{" "}
+            <Link
+              to="/registro"
+              className="font-semibold hover:underline"
+              style={{ color: "var(--c-brand)" }}
+            >
+              Regístrate aquí
+            </Link>
+          </p>
+        }
+      >
+        <TwoFactorForm
+          challenge={twofa.challenge}
+          emailMasked={twofa.emailMasked}
+          resendAvailableIn={twofa.resendAvailableIn}
+          devDelivery={twofa.devDelivery}
+          showRememberDevice={false}
+          onVerify={async (challenge, code) => {
+            await verifyCustomer2fa({ challenge, code, remember });
+            toast.success("¡Bienvenido!");
+            navigate("/", { replace: true });
+          }}
+          onResend={(challenge) => resendCustomer2fa(challenge)}
+          onBack={() => {
+            setTwofa(null);
+            setError(null);
+            setPassword("");
+          }}
+        />
+      </AuthLayout>
+    );
+  }
 
   const busy = isLoading || googleLoading;
 

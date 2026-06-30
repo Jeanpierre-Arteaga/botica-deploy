@@ -17,6 +17,7 @@ import type {
   TwofaVerifyResponse,
   ResendTwofaResponse,
   CustomerAuthResponse,
+  CustomerLoginRawResponse,
   CustomerRegisterPayload,
   ForgotPasswordResponse,
   ValidateResetResponse,
@@ -447,19 +448,52 @@ const auth = {
    * Login para customer con email + password.
    * remember=true → sesión persistente (localStorage + JWT largo).
    * remember=false → sesión de pestaña (sessionStorage + JWT corto).
+   * Devuelve la respuesta CRUDA: puede ser login directo (token) o pedir
+   * verificación en dos pasos (twofa_required). Solo guarda el token cuando el
+   * login se completó (no hay 2FA pendiente).
    */
   async loginCustomer(
     email: string,
     customer_password: string,
     remember = false
-  ): Promise<CustomerAuthResponse> {
-    const res = await request<CustomerAuthResponse>('/auth/customer-login', {
+  ): Promise<CustomerLoginRawResponse> {
+    const res = await request<CustomerLoginRawResponse>('/auth/customer-login', {
       method: 'POST',
       body: { email, customer_password, remember },
       skipAuth: true,
     });
+    if ('twofa_required' in res && res.twofa_required) {
+      return res; // NO se guarda token: falta el código
+    }
+    tokenStorage.set((res as CustomerAuthResponse).token, remember);
+    return res;
+  },
+
+  /**
+   * Verifica el código 2FA del cliente. En éxito guarda el token de sesión con
+   * la persistencia elegida (remember, capturada en el paso 1).
+   */
+  async verifyCustomerTwofa(
+    challenge: string,
+    code: string,
+    remember = false
+  ): Promise<CustomerAuthResponse> {
+    const res = await request<CustomerAuthResponse>('/auth/customer-verify-2fa', {
+      method: 'POST',
+      body: { challenge, code },
+      skipAuth: true,
+    });
     tokenStorage.set(res.token, remember);
     return res;
+  },
+
+  /** Reenvía el código 2FA del cliente (respeta el cooldown del backend). */
+  resendCustomerTwofa(challenge: string): Promise<ResendTwofaResponse> {
+    return request<ResendTwofaResponse>('/auth/customer-resend-2fa', {
+      method: 'POST',
+      body: { challenge },
+      skipAuth: true,
+    });
   },
 
   /** Login / alta con Google (el front envía el access_token de GIS) */
@@ -481,6 +515,20 @@ const auth = {
     return request<ForgotPasswordResponse>('/auth/forgot-password', {
       method: 'POST',
       body: { email },
+      skipAuth: true,
+    });
+  },
+
+  /**
+   * Recuperación de contraseña del PERSONAL/ADMIN. El identificador puede ser el
+   * código de usuario (TRAB01) o el correo. Respuesta genérica por seguridad;
+   * la validación y el reseteo reutilizan validateResetToken/resetPassword.
+   */
+  staffForgotPassword(identifier: string): Promise<ForgotPasswordResponse> {
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    return request<ForgotPasswordResponse>('/auth/staff/forgot-password', {
+      method: 'POST',
+      body: isEmail ? { email: identifier } : { user_code: identifier },
       skipAuth: true,
     });
   },

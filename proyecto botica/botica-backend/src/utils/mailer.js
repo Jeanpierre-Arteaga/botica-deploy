@@ -13,6 +13,30 @@
 
 const nodemailer = require('nodemailer');
 
+// Timeout corto del transporte SMTP. CLAVE para no colgar la respuesta HTTP:
+// en Render (y otras PaaS) el SMTP saliente puede estar bloqueado o lentísimo;
+// sin estos límites, sendMail se queda esperando minutos. 8s por defecto;
+// ajustable con SMTP_TIMEOUT_MS.
+const SMTP_TIMEOUT_MS = Number(process.env.SMTP_TIMEOUT_MS) || 8000;
+
+/**
+ * Carrera entre una promesa y un timeout. Garantiza que el envío de correo
+ * SIEMPRE se resuelve (o rechaza) en un tiempo acotado, aunque el transporte
+ * se quede colgado por debajo de los timeouts de nodemailer (p. ej. DNS).
+ */
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label}: tiempo de espera agotado (${ms}ms)`)),
+      ms
+    );
+    // No mantener vivo el proceso solo por este temporizador.
+    if (typeof timer.unref === 'function') timer.unref();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 /** ¿Hay credenciales SMTP suficientes para enviar de verdad? */
 const hasSmtp = () =>
   Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
@@ -30,6 +54,11 @@ function getTransporter() {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Timeouts del socket SMTP: conectar, saludo del servidor e inactividad.
+      // Si cualquiera se excede, sendMail rechaza en vez de quedarse colgado.
+      connectionTimeout: SMTP_TIMEOUT_MS,
+      greetingTimeout: SMTP_TIMEOUT_MS,
+      socketTimeout: SMTP_TIMEOUT_MS,
     });
   }
   return transporter;
@@ -84,16 +113,20 @@ async function sendPasswordResetEmail(to, resetLink) {
     </div>
   </div>`;
 
-  await t.sendMail({
-    from,
-    to,
-    subject: 'Restablece tu contraseña — Boticas Central',
-    text:
-      `Recibimos una solicitud para restablecer tu contraseña.\n\n` +
-      `Abre este enlace (válido 1 hora):\n${resetLink}\n\n` +
-      `Si no fuiste tú, ignora este correo.`,
-    html,
-  });
+  await withTimeout(
+    t.sendMail({
+      from,
+      to,
+      subject: 'Restablece tu contraseña — Boticas Central',
+      text:
+        `Recibimos una solicitud para restablecer tu contraseña.\n\n` +
+        `Abre este enlace (válido 1 hora):\n${resetLink}\n\n` +
+        `Si no fuiste tú, ignora este correo.`,
+      html,
+    }),
+    SMTP_TIMEOUT_MS,
+    'sendPasswordResetEmail'
+  );
 
   return { sent: true };
 }
@@ -151,16 +184,20 @@ async function sendTwofaCodeEmail(to, code, { minutes = 10 } = {}) {
     </div>
   </div>`;
 
-  await t.sendMail({
-    from,
-    to,
-    subject: `Tu código de acceso es ${code} — Boticas Central`,
-    text:
-      `Tu código de verificación de Boticas Central es: ${code}\n\n` +
-      `Caduca en ${minutes} minutos y es de un solo uso.\n` +
-      `Si no intentaste iniciar sesión, ignora este correo.`,
-    html,
-  });
+  await withTimeout(
+    t.sendMail({
+      from,
+      to,
+      subject: `Tu código de acceso es ${code} — Boticas Central`,
+      text:
+        `Tu código de verificación de Boticas Central es: ${code}\n\n` +
+        `Caduca en ${minutes} minutos y es de un solo uso.\n` +
+        `Si no intentaste iniciar sesión, ignora este correo.`,
+      html,
+    }),
+    SMTP_TIMEOUT_MS,
+    'sendTwofaCodeEmail'
+  );
 
   return { sent: true };
 }

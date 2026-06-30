@@ -12,7 +12,7 @@
 // ============================================================
 
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
@@ -20,7 +20,6 @@ import { ApiError } from '../lib/api';
 import { AuthField, AuthSubmit, authInputClass } from './AuthLayout';
 import { PasswordInput } from './PasswordInput';
 import { LockoutNotice } from './LockoutNotice';
-import { ForgotPasswordNotice } from './ForgotPasswordNotice';
 import { TwoFactorForm } from './TwoFactorForm';
 
 interface StaffLoginFormProps {
@@ -47,7 +46,6 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
   const [retrySeconds, setRetrySeconds] = useState<number | undefined>(undefined);
-  const [showForgot, setShowForgot] = useState(false);
   // Paso de verificación en dos pasos (2FA). null = aún en credenciales.
   const [twofa, setTwofa] = useState<TwofaState | null>(null);
 
@@ -155,19 +153,16 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
             autoComplete="current-password"
           />
         </AuthField>
-        {/* El admin no contacta a nadie (él restablece): sin enlace de olvido. */}
-        {!isAdmin && (
-          <div className="mt-1.5 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowForgot((v) => !v)}
-              aria-expanded={showForgot}
-              className="text-xs font-semibold text-muted transition-colors hover:text-brand focus-visible:outline-none focus-visible:text-brand"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
-        )}
+        {/* El admin restablece su propia clave por correo igual que el personal,
+            pero su pantalla de acceso vive en /admin; el personal en /staff. */}
+        <div className="mt-1.5 flex justify-end">
+          <Link
+            to={isAdmin ? '/admin/recuperar-password' : '/staff/recuperar-password'}
+            className="text-xs font-semibold text-muted transition-colors hover:text-brand focus-visible:outline-none focus-visible:text-brand"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
       </div>
 
       {/* Área de avisos: región estable (aria-live). Solo crece el recuadro. */}
@@ -189,8 +184,6 @@ export function StaffLoginForm({ role, redirectTo, codePlaceholder }: StaffLogin
             </div>
           )
         )}
-
-        {showForgot && !locked && !isAdmin && <ForgotPasswordNotice />}
       </div>
 
       <AuthSubmit disabled={isLoading} loading={isLoading}>

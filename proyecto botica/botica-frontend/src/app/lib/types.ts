@@ -120,17 +120,35 @@ export interface CustomerAuthResponse {
   };
 }
 
-// POST /api/auth/forgot-password — respuesta SIEMPRE genérica.
-// dev_link solo aparece en desarrollo cuando no hay SMTP configurado.
+// POST /api/auth/customer-login cuando hace falta verificación en dos pasos.
+// Mismo contrato que el de staff (TwofaRequiredResponse), pero del cliente.
+export interface CustomerTwofaRequiredResponse {
+  twofa_required: true;
+  challenge: string;
+  email_masked: string;
+  resend_available_in: number;
+  expires_in: number;
+  dev_delivery?: string;
+}
+
+// POST /api/auth/customer-login puede devolver login directo o "se requiere 2FA".
+export type CustomerLoginRawResponse = CustomerAuthResponse | CustomerTwofaRequiredResponse;
+
+// POST /api/auth/forgot-password y /auth/staff/forgot-password — respuesta
+// SIEMPRE genérica. dev_link solo aparece en desarrollo sin SMTP. email_masked
+// (solo en el flujo de personal) muestra a qué correo se envió el enlace.
 export interface ForgotPasswordResponse {
   message: string;
   dev_link?: string;
+  email_masked?: string;
 }
 
 // POST /api/auth/reset-password/validate
+// audience indica a quién pertenece el token (para el redirect post-reseteo).
 export interface ValidateResetResponse {
   valid: boolean;
   message?: string;
+  audience?: 'customer' | 'staff' | 'admin';
 }
 
 

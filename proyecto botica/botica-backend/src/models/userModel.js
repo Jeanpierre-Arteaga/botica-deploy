@@ -10,6 +10,23 @@ const UserModel = {
     return result.rows[0];
   },
 
+  // Busca un usuario ACTIVO por correo (case-insensitive). Fila completa +
+  // nombre de sede. Se usa en la recuperación de contraseña del personal
+  // (el usuario provee su correo). Devuelve el de menor user_id si hubiera
+  // colisión de correo (no debería).
+  findByEmail: async (email) => {
+    const result = await pool.query(
+      `SELECT u.*, l.location_name
+       FROM users u
+       LEFT JOIN location l ON u.location_id = l.location_id
+       WHERE lower(u.email) = lower($1) AND u.is_active = true
+       ORDER BY u.user_id
+       LIMIT 1`,
+      [email]
+    );
+    return result.rows[0];
+  },
+
   findById: async (id) => {
     const result = await pool.query(
       `SELECT u.user_id, u.user_code, u.full_name, u.role, u.is_active,

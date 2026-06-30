@@ -33,6 +33,12 @@ interface TwoFactorFormProps {
   onResend: (challenge: string) => Promise<ResendTwofaResponse>;
   /** Volver al paso de credenciales. */
   onBack: () => void;
+  /**
+   * Muestra "Recordar este dispositivo 30 días" (concepto de STAFF: trusted
+   * device). El cliente no tiene dispositivos de confianza → se oculta.
+   * Default true para no alterar el login de personal/admin.
+   */
+  showRememberDevice?: boolean;
 }
 
 function OtpSlot({ slot }: { slot: SlotProps }) {
@@ -61,6 +67,7 @@ export function TwoFactorForm({
   onVerify,
   onResend,
   onBack,
+  showRememberDevice = true,
 }: TwoFactorFormProps) {
   const [challenge, setChallenge] = useState(initialChallenge);
   const [code, setCode] = useState('');
@@ -211,21 +218,23 @@ export function TwoFactorForm({
         )}
       </div>
 
-      {/* Recordar este dispositivo */}
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3 transition-colors hover:border-line-2">
-        <input
-          type="checkbox"
-          checked={remember}
-          onChange={(e) => setRemember(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--c-brand)]"
-        />
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-text">Recordar este dispositivo por 30 días</span>
-          <span className="block text-xs text-muted">
-            No te pediremos el código en este equipo durante ese tiempo.
+      {/* Recordar este dispositivo (solo staff: trusted device) */}
+      {showRememberDevice && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3 transition-colors hover:border-line-2">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--c-brand)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-text">Recordar este dispositivo por 30 días</span>
+            <span className="block text-xs text-muted">
+              No te pediremos el código en este equipo durante ese tiempo.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
 
       <AuthSubmit disabled={submitting || code.length !== 6} loading={submitting}>
         {submitting ? 'Verificando...' : 'Verificar'}

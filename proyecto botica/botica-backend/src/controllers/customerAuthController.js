@@ -4,12 +4,23 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 const CustomerModel = require('../models/customerModel');
+const UserModel = require('../models/userModel');
 const PasswordResetModel = require('../models/passwordResetModel');
-const { sendPasswordResetEmail } = require('../utils/mailer');
+const twofa = require('../utils/twofa');
+const { sendPasswordResetEmail, sendTwofaCodeEmail, hasSmtp } = require('../utils/mailer');
 
+// Quita del objeto cliente lo que NUNCA debe salir al frontend: el hash de la
+// contraseña y el estado interno del OTP (hash/expiración/intentos del 2FA).
 const sanitize = (customer) => {
   if (!customer) return null;
-  const { customer_password, ...rest } = customer;
+  const {
+    customer_password,
+    twofa_code_hash,
+    twofa_expires_at,
+    twofa_attempts,
+    twofa_sent_at,
+    ...rest
+  } = customer;
   return rest;
 };
 
@@ -17,6 +28,19 @@ const sha256 = (value) => crypto.createHash('sha256').update(String(value)).dige
 const isDev = () => (process.env.NODE_ENV || 'development') !== 'production';
 const frontendUrl = () =>
   (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
+// fetch con timeout (AbortController). Evita que una llamada lenta a Google
+// (verificación del token) cuelgue la respuesta del login con Google.
+const GOOGLE_TIMEOUT_MS = Number(process.env.GOOGLE_TIMEOUT_MS) || 8000;
+async function fetchWithTimeout(url, options = {}, ms = GOOGLE_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // remember = true → sesión larga (30 días, "recordarme en este dispositivo")
 // remember = false → sesión corta (8h)
@@ -33,8 +57,34 @@ const signCustomerToken = (customer, remember = false) => {
   );
 };
 
+// Genera y GUARDA un OTP nuevo para el cliente y dispara el correo en SEGUNDO
+// PLANO (mismo criterio que staff: el envío NUNCA bloquea la respuesta HTTP).
+async function issueCustomerOtp(customer) {
+  const code = twofa.generateCode();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + twofa.CODE_TTL_MINUTES * 60 * 1000);
+
+  await CustomerModel.setTwofaCode(customer.customer_id, {
+    code_hash: twofa.hashCode(code),
+    expires_at: expiresAt,
+    sent_at: now,
+  });
+
+  // Fire-and-forget: el correo viaja por fuera del ciclo request/response.
+  sendTwofaCodeEmail(customer.email, code, { minutes: twofa.CODE_TTL_MINUTES }).catch((e) =>
+    console.error('[customer-auth] envío de OTP (2º plano) falló:', e.message)
+  );
+}
+
 const customerAuthController = {
 
+  // ============================================================
+  // POST /api/auth/customer-login — paso 1: credenciales
+  // ============================================================
+  // Tras validar correo+contraseña NO se entrega el JWT directo: se exige un
+  // código de 6 dígitos enviado al correo (evita el acceso con un correo ajeno).
+  // Si el 2FA de cliente está desactivado (TWOFA_CUSTOMER_ENABLED=false), entra
+  // directo. El login con Google es aparte y NUNCA pasa por aquí.
   login: async (req, res) => {
     try {
       const { email, customer_password, remember } = req.body || {};
@@ -53,10 +103,151 @@ const customerAuthController = {
         return res.status(401).json({ message: 'Contraseña incorrecta.' });
       }
 
-      const token = signCustomerToken(customer, remember === true);
-      return res.json({ token, customer: sanitize(customer) });
+      // 2FA desactivado para cliente, o sin correo de destino → login directo.
+      if (!twofa.isTwofaCustomerEnabled() || !customer.email) {
+        const token = signCustomerToken(customer, remember === true);
+        return res.json({ token, customer: sanitize(customer) });
+      }
+
+      // ── Hace falta el código: generar/guardar el OTP y enviarlo en 2º plano ──
+      await issueCustomerOtp(customer);
+
+      const payload = {
+        twofa_required: true,
+        challenge: twofa.signCustomerChallenge(customer, remember === true),
+        email_masked: twofa.maskEmail(customer.email),
+        resend_available_in: twofa.RESEND_COOLDOWN_SECONDS,
+        expires_in: twofa.CODE_TTL_MINUTES * 60,
+      };
+      if (!hasSmtp() && isDev()) payload.dev_delivery = 'console';
+      return res.json(payload);
     } catch (err) {
       console.error('Error en customer login:', err);
+      return res.status(500).json({ message: 'Error del servidor.' });
+    }
+  },
+
+  // ============================================================
+  // POST /api/auth/customer-verify-2fa — paso 2: validar el código
+  // ============================================================
+  verifyTwofa: async (req, res) => {
+    try {
+      const { challenge, code } = req.body || {};
+      if (!challenge || !code) {
+        return res.status(400).json({ message: 'Falta el código de verificación.' });
+      }
+
+      const c = twofa.verifyCustomerChallenge(challenge);
+      if (!c) {
+        return res.status(401).json({
+          message: 'La verificación expiró. Vuelve a iniciar sesión.',
+          expired: true,
+        });
+      }
+
+      const customer = await CustomerModel.findById(c.customer_id);
+      if (!customer || customer.is_active === false) {
+        return res.status(401).json({
+          message: 'La verificación no es válida. Vuelve a iniciar sesión.',
+          expired: true,
+        });
+      }
+
+      const cleanCode = String(code).trim();
+      const isDevCode = twofa.devCode() && cleanCode === twofa.devCode();
+
+      if (!isDevCode) {
+        const hasOtp = customer.twofa_code_hash && customer.twofa_expires_at;
+        const notExpired = hasOtp && new Date(customer.twofa_expires_at).getTime() > Date.now();
+
+        if (!hasOtp || !notExpired) {
+          await CustomerModel.clearTwofa(customer.customer_id);
+          return res.status(400).json({
+            message: 'El código expiró. Reenvíalo para continuar.',
+            expired: true,
+          });
+        }
+        if (customer.twofa_attempts >= twofa.MAX_ATTEMPTS) {
+          await CustomerModel.clearTwofa(customer.customer_id);
+          return res.status(429).json({
+            message: 'Demasiados intentos. Reenvía el código para continuar.',
+            expired: true,
+          });
+        }
+
+        const ok = twofa.hashCode(cleanCode) === customer.twofa_code_hash;
+        if (!ok) {
+          const attempts = await CustomerModel.incrementTwofaAttempts(customer.customer_id);
+          const left = Math.max(0, twofa.MAX_ATTEMPTS - (attempts || twofa.MAX_ATTEMPTS));
+          if (left <= 0) {
+            await CustomerModel.clearTwofa(customer.customer_id);
+            return res.status(429).json({
+              message: 'Demasiados intentos. Reenvía el código para continuar.',
+              expired: true,
+            });
+          }
+          return res.status(401).json({ message: 'Código incorrecto.', attempts_left: left });
+        }
+      }
+
+      // ── Código válido (o código de demo): un solo uso → se invalida ──
+      await CustomerModel.clearTwofa(customer.customer_id);
+
+      const token = signCustomerToken(customer, c.remember === true);
+      return res.json({ token, customer: sanitize(customer) });
+    } catch (err) {
+      console.error('[customer-auth] verify-2fa', err);
+      return res.status(500).json({ message: 'Error del servidor.' });
+    }
+  },
+
+  // ============================================================
+  // POST /api/auth/customer-resend-2fa — reenviar el código (con cooldown)
+  // ============================================================
+  resendTwofa: async (req, res) => {
+    try {
+      const { challenge } = req.body || {};
+      const c = challenge && twofa.verifyCustomerChallenge(challenge);
+      if (!c) {
+        return res.status(401).json({
+          message: 'La verificación expiró. Vuelve a iniciar sesión.',
+          expired: true,
+        });
+      }
+
+      const customer = await CustomerModel.findById(c.customer_id);
+      if (!customer || customer.is_active === false || !customer.email) {
+        return res.status(401).json({
+          message: 'La verificación no es válida. Vuelve a iniciar sesión.',
+          expired: true,
+        });
+      }
+
+      // Cooldown de reenvío.
+      if (customer.twofa_sent_at) {
+        const elapsed = (Date.now() - new Date(customer.twofa_sent_at).getTime()) / 1000;
+        if (elapsed < twofa.RESEND_COOLDOWN_SECONDS) {
+          const wait = Math.ceil(twofa.RESEND_COOLDOWN_SECONDS - elapsed);
+          return res.status(429).json({
+            message: `Espera ${wait} s para reenviar el código.`,
+            resend_available_in: wait,
+          });
+        }
+      }
+
+      await issueCustomerOtp(customer);
+
+      const payload = {
+        message: 'Te enviamos un nuevo código a tu correo.',
+        challenge: twofa.signCustomerChallenge(customer, c.remember === true),
+        email_masked: twofa.maskEmail(customer.email),
+        resend_available_in: twofa.RESEND_COOLDOWN_SECONDS,
+        expires_in: twofa.CODE_TTL_MINUTES * 60,
+      };
+      if (!hasSmtp() && isDev()) payload.dev_delivery = 'console';
+      return res.json(payload);
+    } catch (err) {
+      console.error('[customer-auth] resend-2fa', err);
       return res.status(500).json({ message: 'Error del servidor.' });
     }
   },
@@ -167,7 +358,7 @@ const customerAuthController = {
       // 1) Verificar que el token es válido y emitido para NUESTRA app.
       let tokenInfo;
       try {
-        const tokenInfoRes = await fetch(
+        const tokenInfoRes = await fetchWithTimeout(
           `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(access_token)}`
         );
         if (!tokenInfoRes.ok) {
@@ -185,7 +376,7 @@ const customerAuthController = {
       // 2) Leer el perfil (nombre + email).
       let profile;
       try {
-        const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        const profileRes = await fetchWithTimeout('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${access_token}` }
         });
         if (!profileRes.ok) {
@@ -266,12 +457,17 @@ const customerAuthController = {
       });
 
       const link = `${frontendUrl()}/reset-password?token=${rawToken}`;
-      const { sent } = await sendPasswordResetEmail(customer.email, link);
+
+      // Fire-and-forget: el correo NUNCA bloquea la respuesta (igual que staff/2FA).
+      // Antes hacía `await sendPasswordResetEmail(...)`, lo que con un SMTP lento/
+      // caído dejaba la pantalla "cargando" hasta el timeout. Ahora responde ya.
+      sendPasswordResetEmail(customer.email, link).catch((e) =>
+        console.error('[customer-auth] envío de reset (2º plano) falló:', e.message)
+      );
 
       const payload = { ...GENERIC };
-      // Solo en dev y solo si NO se envió por SMTP, exponemos el enlace
-      // para poder probar local sin configurar email.
-      if (!sent && isDev()) {
+      // Solo en dev y sin SMTP configurado, exponemos el enlace para probar local.
+      if (!hasSmtp() && isDev()) {
         payload.dev_link = link;
       }
       return res.json(payload);
@@ -285,6 +481,9 @@ const customerAuthController = {
   // ============================================================
   // POST /api/auth/reset-password/validate — validar token (pantalla B)
   // ============================================================
+  // COMPARTIDO cliente + personal: el token puede pertenecer a un customer o a
+  // un user (personal/admin). Devolvemos `audience` para que el frontend ajuste
+  // el "volver" y el redirect ('customer' | 'staff' | 'admin').
   validateResetToken: async (req, res) => {
     try {
       const { token } = req.body || {};
@@ -295,7 +494,12 @@ const customerAuthController = {
       if (!record) {
         return res.status(400).json({ valid: false, message: 'El enlace no es válido o ha expirado.' });
       }
-      return res.json({ valid: true });
+      let audience = 'customer';
+      if (record.user_id) {
+        const u = await UserModel.findById(record.user_id);
+        audience = u && u.role === 'admin' ? 'admin' : 'staff';
+      }
+      return res.json({ valid: true, audience });
     } catch (err) {
       console.error('Error en validate reset token:', err);
       return res.status(500).json({ valid: false, message: 'Error del servidor.' });
@@ -305,6 +509,9 @@ const customerAuthController = {
   // ============================================================
   // POST /api/auth/reset-password — fijar nueva contraseña
   // ============================================================
+  // COMPARTIDO cliente + personal: según el dueño del token (user_id o
+  // customer_id) actualiza la tabla correspondiente. El reseteo de un usuario
+  // limpia además su bloqueo por intentos (UserModel.updatePassword).
   resetPassword: async (req, res) => {
     try {
       const { token, password } = req.body || {};
@@ -321,10 +528,18 @@ const customerAuthController = {
       }
 
       const hashed = await bcrypt.hash(password, 10);
-      await CustomerModel.updatePassword(record.customer_id, hashed);
-      await PasswordResetModel.markUsed(record.reset_id);
-      // Invalida cualquier otro token pendiente del mismo customer.
-      await PasswordResetModel.invalidateForCustomer(record.customer_id);
+
+      if (record.user_id) {
+        // Token de personal/admin → actualizar tabla users.
+        await UserModel.updatePassword(record.user_id, hashed);
+        await PasswordResetModel.markUsed(record.reset_id);
+        await PasswordResetModel.invalidateForUser(record.user_id);
+      } else {
+        // Token de cliente → actualizar tabla customer.
+        await CustomerModel.updatePassword(record.customer_id, hashed);
+        await PasswordResetModel.markUsed(record.reset_id);
+        await PasswordResetModel.invalidateForCustomer(record.customer_id);
+      }
 
       return res.json({ message: 'Contraseña actualizada correctamente.' });
     } catch (err) {

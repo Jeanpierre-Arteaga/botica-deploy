@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { api, tokenStorage, ApiError } from './api';
-import type { Role, StaffLoginResponse, ResendTwofaResponse } from './types';
+import type { Role, StaffLoginResponse, ResendTwofaResponse, CustomerAuthResponse } from './types';
 
 // ============================================================
 // TIPOS
@@ -65,6 +65,26 @@ interface VerifyStaff2faArgs {
   requiredRole?: 'admin' | 'emp';
 }
 
+/**
+ * Resultado del paso 1 del login de cliente. Si twofaRequired es true, el
+ * formulario pasa al paso de verificación (código por correo); si es false, la
+ * sesión ya quedó iniciada.
+ */
+export interface CustomerLoginOutcome {
+  twofaRequired: boolean;
+  challenge?: string;
+  emailMasked?: string;
+  resendAvailableIn?: number;
+  expiresIn?: number;
+}
+
+interface VerifyCustomer2faArgs {
+  challenge: string;
+  code: string;
+  /** Persistencia elegida en el paso 1 (sesión larga vs. de pestaña). */
+  remember: boolean;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -76,7 +96,12 @@ interface AuthContextValue {
   verifyStaff2fa: (args: VerifyStaff2faArgs) => Promise<void>;
   /** Reenvía el código 2FA (respeta cooldown del backend). */
   resendStaff2fa: (challenge: string) => Promise<ResendTwofaResponse>;
-  loginCustomer: (email: string, password: string, remember?: boolean) => Promise<void>;
+  /** Login de cliente con correo+contraseña. Puede pedir verificación 2FA. */
+  loginCustomer: (email: string, password: string, remember?: boolean) => Promise<CustomerLoginOutcome>;
+  /** Paso 2 del login de cliente: valida el código 2FA y abre la sesión. */
+  verifyCustomer2fa: (args: VerifyCustomer2faArgs) => Promise<void>;
+  /** Reenvía el código 2FA del cliente (respeta cooldown del backend). */
+  resendCustomer2fa: (challenge: string) => Promise<ResendTwofaResponse>;
   loginWithGoogle: (accessToken: string, remember?: boolean) => Promise<void>;
   registerCustomer: (payload: {
     full_name: string;
@@ -345,29 +370,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Login para customer. remember controla la persistencia de la sesión.
+  // Crea el AuthUser de cliente y abre la sesión (memoria + storage). remember
+  // controla la persistencia (localStorage vs sessionStorage).
+  const openCustomerSession = useCallback(
+    (resCustomer: CustomerAuthResponse['customer'], remember: boolean) => {
+      const authUser: AuthUser = {
+        id: resCustomer.customer_id,
+        role: 'cust',
+        full_name: resCustomer.full_name,
+        email: resCustomer.email,
+        dni: resCustomer.dni,
+        phone: resCustomer.phone,
+        address: resCustomer.address,
+        photo_url: resCustomer.photo_url ?? null,
+        has_password: true, // entró con email + contraseña
+      };
+      setUser(authUser);
+      saveUserToStorage(authUser, remember);
+    },
+    []
+  );
+
+  // Login de cliente — paso 1 (credenciales). Puede completar la sesión o pedir
+  // verificación 2FA (código por correo). remember controla la persistencia.
   const loginCustomer = useCallback(
-    async (email: string, password: string, remember = false) => {
+    async (email: string, password: string, remember = false): Promise<CustomerLoginOutcome> => {
       setIsLoading(true);
       try {
         const res = await api.auth.loginCustomer(email, password, remember);
-        const authUser: AuthUser = {
-          id: res.customer.customer_id,
-          role: 'cust',
-          full_name: res.customer.full_name,
-          email: res.customer.email,
-          dni: res.customer.dni,
-          phone: res.customer.phone,
-          address: res.customer.address,
-          photo_url: res.customer.photo_url ?? null,
-          has_password: true, // entró con email + contraseña
-        };
-        setUser(authUser);
-        saveUserToStorage(authUser, remember);
+
+        if ('twofa_required' in res && res.twofa_required) {
+          return {
+            twofaRequired: true,
+            challenge: res.challenge,
+            emailMasked: res.email_masked,
+            resendAvailableIn: res.resend_available_in,
+            expiresIn: res.expires_in,
+          };
+        }
+
+        openCustomerSession((res as CustomerAuthResponse).customer, remember);
+        return { twofaRequired: false };
       } finally {
         setIsLoading(false);
       }
     },
+    [openCustomerSession]
+  );
+
+  // Login de cliente — paso 2 (verificación del código 2FA).
+  const verifyCustomer2fa = useCallback(
+    async ({ challenge, code, remember }: VerifyCustomer2faArgs) => {
+      setIsLoading(true);
+      try {
+        const res = await api.auth.verifyCustomerTwofa(challenge, code, remember);
+        openCustomerSession(res.customer, remember);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [openCustomerSession]
+  );
+
+  // Reenvía el código 2FA del cliente. El backend aplica el cooldown.
+  const resendCustomer2fa = useCallback(
+    (challenge: string) => api.auth.resendCustomerTwofa(challenge),
     []
   );
 
@@ -503,6 +570,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyStaff2fa,
     resendStaff2fa,
     loginCustomer,
+    verifyCustomer2fa,
+    resendCustomer2fa,
     loginWithGoogle,
     registerCustomer,
     logout,
