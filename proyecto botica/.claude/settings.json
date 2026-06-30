@@ -216,7 +216,13 @@
       "Bash(psql -h localhost -U postgres -d botica_db -c 'UPDATE customer SET customer_password='\\\\''__TRACKED_VAR__'\\\\'', twofa_code_hash=NULL, twofa_expires_at=NULL, twofa_sent_at=NULL, twofa_attempts=0 WHERE customer_id=1;')",
       "Bash(node -e 'const{Client}=require\\(\"pg\"\\);\\(async\\(\\)=>{const c=new Client\\({host:\"localhost\",port:5432,database:\"botica_db\",user:\"postgres\",password:\"dayana\",ssl:false}\\);await c.connect\\(\\);const o=require\\(\"fs\"\\).readFileSync\\(\"/tmp/matteo_orig_hash.txt\",\"utf8\"\\).trim\\(\\);const{rows}=await c.query\\(\"SELECT customer_password, twofa_code_hash FROM customer WHERE customer_id=1\"\\);console.log\\(\"hash matches original:\",rows[0].customer_password===o,\"| pending OTP:\",rows[0].twofa_code_hash!==null\\);await c.end\\(\\);}\\)\\(\\);')",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('resend:', p.dependencies.resend||'\\(none\\)'\\); console.log\\('nodemailer:', p.dependencies.nodemailer||'\\(none\\)'\\);\")",
-      "Bash(grep -iE \"RESEND|MAIL_FROM|MAIL_TIMEOUT\" .env)"
+      "Bash(grep -iE \"RESEND|MAIL_FROM|MAIL_TIMEOUT\" .env)",
+      "Bash(ls -la \"c:/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica\" 2>/dev/null; echo \"---SKILLS---\"; ls \"c:/Users/jeana/.claude/skills\" 2>/dev/null; ls -la \"c:/Users/jeana/OneDrive/Escritorio/UNMSM/CICLO VII/DISEÑO WEB/proyecto-web-botica/proyecto botica/.claude/skills\" 2>/dev/null)",
+      "Bash(find \"c:/Users/jeana/.claude\" -iname \"*frontend*\" 2>/dev/null | head -50; echo \"---PLUGINS---\"; find \"c:/Users/jeana/.claude\" -iname \"SKILL.md\" 2>/dev/null | head -50; echo \"---DESIGN---\"; find \"c:/Users/jeana/.claude\" -ipath \"*design*\" -name \"*.md\" 2>/dev/null | head -20)",
+      "Bash(echo \"exit grep: $?\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\); console.log\\('deps:', Object.keys\\(p.dependencies||{}\\).length, 'devDeps:', Object.keys\\(p.devDependencies||{}\\).length\\)\")",
+      "Bash(grep -rn \"w-\\\\[[0-9]\\\\{3,\\\\}px\\\\]\\\\|min-w-\\\\[[0-9]\\\\{3,\\\\}px\\\\]\\\\|min-w-max\\\\|w-screen\\\\|100vw\" components pages/Home.tsx pages/Catalogo.tsx pages/Carrito.tsx pages/ProductoDetalle.tsx pages/ClientLogin.tsx)",
+      "Bash(echo \"exit:$?\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\jeana\\.claude\\projects\\c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica\\memory"

@@ -31,7 +31,7 @@ export function TopBar() {
               <Facebook className="w-4 h-4" />
             </a>
             <a
-              href="https://instagram.com/boticascentral"
+              href="https://www.instagram.com/boticascentral?igsh=ZGZjNjF1bGVjN2xx&utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"

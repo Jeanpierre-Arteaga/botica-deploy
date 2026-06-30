@@ -1,4 +1,5 @@
 import image_botica_icono from '@/imports/botica_icono.jpeg'
+import image_botica_icono_oscuro from '@/imports/botica_icono_oscuro.jpeg'
 import { Link, useNavigate } from "react-router";
 import { Search, MapPin, Package, User, ShoppingCart, Menu, X, LogOut, Check, ChevronDown, UserCog } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -63,12 +64,22 @@ export function Navbar() {
         <div className="flex items-center justify-between gap-6">
           {/* Logo — a color sobre fondo claro. Escala progresiva: en móvil se
               mantiene contenido para no desbordar la fila junto a los iconos;
-              en sm/desktop crece. object-contain para no deformarlo. */}
+              en sm/desktop crece. object-contain para no deformarlo.
+              Versión por tema: el toggle día/noche escribe data-theme en <html>;
+              mostramos vía CSS (.logo-theme-day / .logo-theme-night) la versión
+              que toca. El logo de noche es un JPEG con fondo navy que coincide con
+              la superficie del header en oscuro, por lo que se integra sin recuadro
+              (sin borde/sombra/fondo extra). Mismo tamaño/responsive en ambas. */}
           <Link to="/" className="flex-shrink-0">
             <img
               src={image_botica_icono}
               alt="Boticas Central — Salud y ahorro"
-              className="h-14 sm:h-16 md:h-20 w-auto object-contain"
+              className="logo-theme-day h-14 sm:h-16 md:h-20 w-auto object-contain"
+            />
+            <img
+              src={image_botica_icono_oscuro}
+              alt="Boticas Central — Salud y ahorro"
+              className="logo-theme-night h-14 sm:h-16 md:h-20 w-auto object-contain"
             />
           </Link>
 

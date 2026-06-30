@@ -1,13 +1,7 @@
 import { Link } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TouchEvent as ReactTouchEvent } from "react";
-import {
-  ArrowRight,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Play,
-} from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { homeImage } from "../lib/homeImages";
 
 /**
@@ -204,7 +198,7 @@ export function HeroBanner() {
 
   return (
     <section
-      className="relative w-full min-h-[460px] h-[72vh] sm:h-[80vh] md:h-[86vh] max-h-[900px] overflow-hidden bg-ink text-white"
+      className="relative w-full min-h-[400px] h-[66vh] sm:h-[76vh] md:h-[86vh] max-h-[900px] overflow-hidden bg-ink text-white"
       aria-roledescription="carousel"
       aria-label="Destacados de Botica Central"
       onMouseEnter={() => setPaused(true)}
@@ -350,7 +344,7 @@ export function HeroBanner() {
         type="button"
         onClick={() => go(-1)}
         aria-label="Slide anterior"
-        className="absolute left-3 sm:left-4 md:left-6 top-1/2 -translate-y-1/2 z-40 pointer-events-auto flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center text-white bg-ink/35 hover:bg-ink/60 ring-1 ring-white/25 backdrop-blur-md shadow-lg transition-colors active:scale-95"
+        className="absolute left-3 sm:left-4 md:left-6 top-1/2 -translate-y-1/2 z-40 pointer-events-auto flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center text-white bg-ink/50 hover:bg-ink/70 ring-1 ring-white/30 backdrop-blur-md shadow-lg transition-colors active:scale-95"
       >
         <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
       </button>
@@ -358,13 +352,18 @@ export function HeroBanner() {
         type="button"
         onClick={() => go(1)}
         aria-label="Slide siguiente"
-        className="absolute right-3 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 z-40 pointer-events-auto flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center text-white bg-ink/35 hover:bg-ink/60 ring-1 ring-white/25 backdrop-blur-md shadow-lg transition-colors active:scale-95"
+        className="absolute right-3 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 z-40 pointer-events-auto flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center text-white bg-ink/50 hover:bg-ink/70 ring-1 ring-white/30 backdrop-blur-md shadow-lg transition-colors active:scale-95"
       >
         <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
       </button>
 
-      {/* ===== Indicador "Desliza" — abajo y centrado (único indicador) ===== */}
-      <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 z-[5] h-28 w-56">
+      {/* ===== Paginación (dots) — refleja el slide activo y permite saltar =====
+          Control manual adicional (junto a flechas y swipe). Mismo patrón de dots
+          del sistema (ProductCarousel): activo = píldora naranja ancha; inactivos =
+          puntos translúcidos. El backdrop radial mejora la legibilidad sobre
+          imágenes claras. Saltar a un dot es un salto puro de estado (setActive),
+          igual que las flechas: reinicia el auto-avance, nunca lo pisa. */}
+      <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 z-[5] h-24 w-64">
         <div
           className="absolute inset-0"
           style={{
@@ -374,11 +373,27 @@ export function HeroBanner() {
         />
       </div>
       <div
-        className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5 text-white/90"
-        style={{ textShadow: "0 2px 10px rgba(8,15,30,0.75)" }}
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5"
+        role="tablist"
+        aria-label="Ir a un slide"
       >
-        <span className="text-[11px] font-medium uppercase tracking-[0.22em]">Desliza</span>
-        <ChevronDown className="w-5 h-5 animate-scroll-hint" />
+        {SLIDES.map((_, i) => {
+          const isActive = i === active;
+          return (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-label={`Ir al slide ${i + 1} de ${total}`}
+              onClick={() => setActive(i)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                isActive ? "w-7 bg-brand" : "w-2.5 bg-white/45 hover:bg-white/75"
+              }`}
+              style={{ boxShadow: "0 1px 6px rgba(8,15,30,0.45)" }}
+            />
+          );
+        })}
       </div>
     </section>
   );
