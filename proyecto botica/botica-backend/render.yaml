@@ -42,15 +42,16 @@ services:
       - key: GEMINI_MODEL
       # Google OAuth (login de clientes)
       - key: GOOGLE_CLIENT_ID
-      # SMTP (correos: recuperación de contraseña y código 2FA)
-      - key: SMTP_HOST
-      - key: SMTP_PORT
-      - key: SMTP_SECURE
-      - key: SMTP_USER
-      - key: SMTP_PASS
-      - key: SMTP_FROM
-      # Timeout del transporte SMTP (ms). Opcional; default 8000. Evita que un
-      # SMTP saliente bloqueado/lento cuelgue el login (el correo va en 2º plano).
+      # Correo vía Resend (HTTP API). Render bloquea SMTP saliente, por eso se
+      # migró de nodemailer/Gmail a Resend. Config en el dashboard de Render.
+      - key: RESEND_API_KEY
+      # Remitente. Empezar con 'onboarding@resend.dev' (prueba, sin verificar
+      # dominio). Para enviar a cualquiera: verificar dominio y cambiar SOLO esto.
+      - key: MAIL_FROM
+      # Timeout del envío (ms). Opcional; default 8000 (cae a SMTP_TIMEOUT_MS).
+      - key: MAIL_TIMEOUT_MS
+      # (Legacy) SMTP_* ya no se usan; SMTP_TIMEOUT_MS solo como fallback de
+      # MAIL_TIMEOUT_MS. Se pueden quitar del dashboard.
       - key: SMTP_TIMEOUT_MS
       # Verificación en dos pasos (2FA por correo) — personal/admin.
       # TWOFA_ENABLED=false omite el 2FA (login directo) si el correo falla en vivo.

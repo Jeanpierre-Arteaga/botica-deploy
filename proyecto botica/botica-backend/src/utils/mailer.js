@@ -1,90 +1,97 @@
 // ============================================================
-// mailer — Envío de correos transaccionales (nodemailer)
+// mailer — Envío de correos transaccionales (Resend HTTP API)
 // ============================================================
-// Solo se usa para el flujo de recuperación de contraseña del
-// CLIENTE. Si las variables SMTP_* NO están configuradas, NO se
-// envía nada: se usa un fallback de desarrollo (loguea el enlace
-// en consola) para poder probar el flujo sin email real.
+// Render BLOQUEA el SMTP saliente, así que nodemailer/Gmail nunca entregaba
+// (timeout). Este módulo envía por la API HTTP de Resend (https://resend.com),
+// que Render sí permite, con un simple fetch a https://api.resend.com/emails.
 //
-// Para activar el correo real, define en backend/.env:
-//   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
-//   (opcional) SMTP_SECURE=true, SMTP_FROM="Boticas Central <no-reply@...>"
+// La INTERFAZ PÚBLICA no cambió (los controladores siguen llamando igual):
+//   · sendTwofaCodeEmail(to, code, { minutes })
+//   · sendPasswordResetEmail(to, resetLink)
+//   · hasSmtp()  → ahora significa "¿hay correo configurado?" (RESEND_API_KEY).
+// Tampoco cambian las plantillas/diseño de los correos.
+//
+// Patrón NO BLOQUEANTE: los controladores llaman estas funciones en 2º plano
+// (fire-and-forget). Aquí el fetch lleva un timeout corto (AbortController) para
+// que un fallo/lentitud de Resend NUNCA cuelgue la respuesta HTTP.
+//
+// Variables de entorno (ver .env.example):
+//   RESEND_API_KEY   → API key de Resend. Sin ella: modo dev (loguea en consola).
+//   MAIL_FROM        → remitente. Default 'onboarding@resend.dev' (prueba).
+//   MAIL_TIMEOUT_MS  → timeout del envío (ms). Default 8000 (cae a SMTP_TIMEOUT_MS).
+//
+// NOTA PRODUCCIÓN: con el remitente de prueba 'onboarding@resend.dev', Resend
+// SOLO entrega al correo de la cuenta Resend. Para enviar a cualquier destinatario
+// hay que verificar un dominio propio en Resend y poner MAIL_FROM con ese dominio
+// (p. ej. 'Boticas Central <no-reply@tudominio.com>'). Solo cambia MAIL_FROM.
 // ============================================================
 
-const nodemailer = require('nodemailer');
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
-// Timeout corto del transporte SMTP. CLAVE para no colgar la respuesta HTTP:
-// en Render (y otras PaaS) el SMTP saliente puede estar bloqueado o lentísimo;
-// sin estos límites, sendMail se queda esperando minutos. 8s por defecto;
-// ajustable con SMTP_TIMEOUT_MS.
-const SMTP_TIMEOUT_MS = Number(process.env.SMTP_TIMEOUT_MS) || 8000;
+/** ¿Hay correo configurado (Resend)? Sin API key → modo dev (consola). */
+const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
+
+/** Remitente. Default al remitente de prueba de Resend (sin verificar dominio). */
+const mailFrom = () => process.env.MAIL_FROM || 'onboarding@resend.dev';
+
+// Timeout del envío. Reusa SMTP_TIMEOUT_MS si existe (compatibilidad), o
+// MAIL_TIMEOUT_MS; 8s por defecto.
+const mailTimeout = () =>
+  Number(process.env.MAIL_TIMEOUT_MS || process.env.SMTP_TIMEOUT_MS) || 8000;
 
 /**
- * Carrera entre una promesa y un timeout. Garantiza que el envío de correo
- * SIEMPRE se resuelve (o rechaza) en un tiempo acotado, aunque el transporte
- * se quede colgado por debajo de los timeouts de nodemailer (p. ej. DNS).
+ * Envía un correo por la API de Resend con timeout (AbortController).
+ * Resuelve con la respuesta de Resend ({ id }) en éxito; LANZA error si Resend
+ * responde no-2xx, si la red falla o si se agota el timeout. NUNCA queda colgado.
  */
-function withTimeout(promise, ms, label) {
-  let timer;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`${label}: tiempo de espera agotado (${ms}ms)`)),
-      ms
-    );
-    // No mantener vivo el proceso solo por este temporizador.
-    if (typeof timer.unref === 'function') timer.unref();
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
+async function resendSend({ to, subject, html, text }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const ms = mailTimeout();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
 
-/** ¿Hay credenciales SMTP suficientes para enviar de verdad? */
-const hasSmtp = () =>
-  Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-
-let transporter = null;
-function getTransporter() {
-  if (!hasSmtp()) return null;
-  if (!transporter) {
-    const port = Number(process.env.SMTP_PORT) || 587;
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-      secure: String(process.env.SMTP_SECURE) === 'true' || port === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      // Timeouts del socket SMTP: conectar, saludo del servidor e inactividad.
-      // Si cualquiera se excede, sendMail rechaza en vez de quedarse colgado.
-      connectionTimeout: SMTP_TIMEOUT_MS,
-      greetingTimeout: SMTP_TIMEOUT_MS,
-      socketTimeout: SMTP_TIMEOUT_MS,
+      body: JSON.stringify({ from: mailFrom(), to, subject, html, text }),
+      signal: controller.signal,
     });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const reason = (data && (data.message || data.name)) || `HTTP ${res.status}`;
+      throw new Error(`Resend ${res.status}: ${reason}`);
+    }
+    return data; // { id: '...' }
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error(`Resend: tiempo de espera agotado (${ms}ms)`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return transporter;
 }
 
 /**
  * Envía el correo de restablecimiento de contraseña.
- * Devuelve { sent: true } si salió por SMTP, o { sent: false } si se
- * usó el fallback de desarrollo (enlace logueado en consola).
+ * Devuelve { sent: true } si salió por Resend, o { sent: false } si se usó el
+ * fallback de desarrollo (sin RESEND_API_KEY: el enlace se loguea en consola).
  */
 async function sendPasswordResetEmail(to, resetLink) {
-  const t = getTransporter();
-
-  if (!t) {
-    // Fallback de desarrollo: sin SMTP configurado, mostramos el enlace.
+  if (!mailConfigured()) {
+    // Fallback de desarrollo: sin RESEND_API_KEY, mostramos el enlace en consola.
     console.log('\n──────────────────────────────────────────────────────────');
-    console.log('[DEV] SMTP no configurado — enlace de recuperación de contraseña:');
+    console.log('[DEV] RESEND_API_KEY no configurada — enlace de recuperación de contraseña:');
     console.log(`  → ${resetLink}`);
-    console.log('  (válido 1 hora). Configura SMTP_* en .env para enviar correo real.');
+    console.log('  (válido 1 hora). Configura RESEND_API_KEY en .env para enviar correo real.');
     console.log('──────────────────────────────────────────────────────────\n');
     return { sent: false };
   }
-
-  const from =
-    process.env.SMTP_FROM ||
-    `Boticas Central <${process.env.SMTP_USER}>`;
 
   const html = `
   <div style="margin:0;padding:24px;background:#f4f6fa;font-family:Arial,Helvetica,sans-serif;">
@@ -113,46 +120,35 @@ async function sendPasswordResetEmail(to, resetLink) {
     </div>
   </div>`;
 
-  await withTimeout(
-    t.sendMail({
-      from,
-      to,
-      subject: 'Restablece tu contraseña — Boticas Central',
-      text:
-        `Recibimos una solicitud para restablecer tu contraseña.\n\n` +
-        `Abre este enlace (válido 1 hora):\n${resetLink}\n\n` +
-        `Si no fuiste tú, ignora este correo.`,
-      html,
-    }),
-    SMTP_TIMEOUT_MS,
-    'sendPasswordResetEmail'
-  );
+  const data = await resendSend({
+    to,
+    subject: 'Restablece tu contraseña — Boticas Central',
+    text:
+      `Recibimos una solicitud para restablecer tu contraseña.\n\n` +
+      `Abre este enlace (válido 1 hora):\n${resetLink}\n\n` +
+      `Si no fuiste tú, ignora este correo.`,
+    html,
+  });
 
+  console.log(`[mailer] enlace de recuperación enviado a ${to} (resend id ${data.id || '?'})`);
   return { sent: true };
 }
 
 /**
- * Envía el código de verificación en dos pasos (2FA) al iniciar sesión un
- * usuario de personal/administrador. `code` es el OTP de 6 dígitos.
- * Devuelve { sent: true } si salió por SMTP, o { sent: false } si NO hay SMTP
- * configurado (modo desarrollo: el código se loguea en consola).
+ * Envía el código de verificación en dos pasos (2FA) al iniciar sesión.
+ * `code` es el OTP de 6 dígitos. Devuelve { sent: true } si salió por Resend, o
+ * { sent: false } si NO hay correo configurado (dev: el código se loguea).
  */
 async function sendTwofaCodeEmail(to, code, { minutes = 10 } = {}) {
-  const t = getTransporter();
-
-  if (!t) {
-    // Fallback de desarrollo: sin SMTP, mostramos el código en consola.
+  if (!mailConfigured()) {
+    // Fallback de desarrollo: sin RESEND_API_KEY, mostramos el código en consola.
     console.log('\n──────────────────────────────────────────────────────────');
-    console.log('[DEV] SMTP no configurado — código de verificación (2FA):');
+    console.log('[DEV] RESEND_API_KEY no configurada — código de verificación (2FA):');
     console.log(`  → ${code}`);
-    console.log(`  (válido ${minutes} min). Configura SMTP_* en .env para enviar correo real.`);
+    console.log(`  (válido ${minutes} min). Configura RESEND_API_KEY en .env para enviar correo real.`);
     console.log('──────────────────────────────────────────────────────────\n');
     return { sent: false };
   }
-
-  const from =
-    process.env.SMTP_FROM ||
-    `Boticas Central <${process.env.SMTP_USER}>`;
 
   // Separa los dígitos para que se lean cómodos en el correo.
   const spaced = String(code).split('').join('&nbsp;&nbsp;');
@@ -184,22 +180,26 @@ async function sendTwofaCodeEmail(to, code, { minutes = 10 } = {}) {
     </div>
   </div>`;
 
-  await withTimeout(
-    t.sendMail({
-      from,
-      to,
-      subject: `Tu código de acceso es ${code} — Boticas Central`,
-      text:
-        `Tu código de verificación de Boticas Central es: ${code}\n\n` +
-        `Caduca en ${minutes} minutos y es de un solo uso.\n` +
-        `Si no intentaste iniciar sesión, ignora este correo.`,
-      html,
-    }),
-    SMTP_TIMEOUT_MS,
-    'sendTwofaCodeEmail'
-  );
+  const data = await resendSend({
+    to,
+    subject: `Tu código de acceso es ${code} — Boticas Central`,
+    text:
+      `Tu código de verificación de Boticas Central es: ${code}\n\n` +
+      `Caduca en ${minutes} minutos y es de un solo uso.\n` +
+      `Si no intentaste iniciar sesión, ignora este correo.`,
+    html,
+  });
 
+  console.log(`[mailer] código 2FA enviado a ${to} (resend id ${data.id || '?'})`);
   return { sent: true };
 }
 
-module.exports = { sendPasswordResetEmail, sendTwofaCodeEmail, hasSmtp };
+// `hasSmtp` se conserva como nombre público (lo usan los controladores para
+// decidir el fallback dev). Ahora refleja si hay correo configurado vía Resend.
+module.exports = {
+  sendPasswordResetEmail,
+  sendTwofaCodeEmail,
+  hasSmtp: mailConfigured,
+  // alias con nombre actual, por si se quiere usar en código nuevo:
+  isMailConfigured: mailConfigured,
+};
