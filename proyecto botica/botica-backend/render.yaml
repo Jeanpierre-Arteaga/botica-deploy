@@ -1,0 +1,51 @@
+# ============================================================
+# BOTICA CENTRAL — Backend (Render — Infraestructura como código)
+# ============================================================
+# Web service Node.js. Render lee este archivo desde la raíz del repo del
+# servicio (botica-backend). Los valores de las variables NO se ponen aquí:
+# se configuran en el dashboard de Render (Environment) o como secretos.
+# ============================================================
+services:
+  - type: web
+    name: botica-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      # Servidor
+      - key: PORT
+      - key: NODE_ENV
+      # PostgreSQL (Supabase)
+      - key: DB_HOST
+      - key: DB_PORT
+      - key: DB_NAME
+      - key: DB_USER
+      - key: DB_PASSWORD
+      - key: DB_SSL
+      # Auth
+      - key: JWT_SECRET
+      # CORS / Frontend
+      - key: CORS_ORIGINS
+      - key: FRONTEND_URL
+      # MercadoPago
+      - key: MP_ACCESS_TOKEN
+      # AWS S3 + CloudFront
+      - key: AWS_REGION
+      - key: S3_BUCKET
+      - key: CLOUDFRONT_DOMAIN
+      - key: AWS_ACCESS_KEY_ID
+      - key: AWS_SECRET_ACCESS_KEY
+      # Google Gemini (lectura de recetas)
+      - key: GEMINI_API_KEY
+      - key: GEMINI_MODEL
+      # Google OAuth (login de clientes)
+      - key: GOOGLE_CLIENT_ID
+      # SMTP (correos: recuperación y 2FA)
+      - key: SMTP_HOST
+      - key: SMTP_PORT
+      - key: SMTP_SECURE
+      - key: SMTP_USER
+      - key: SMTP_PASS
+      - key: SMTP_FROM

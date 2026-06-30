@@ -179,7 +179,14 @@
       "Bash(PGPASSWORD=dayana psql -h localhost -U postgres -d botica_db -c \"SELECT customer_id, full_name FROM customer WHERE is_active=true ORDER BY customer_id LIMIT 1;\")",
       "Bash(PGPASSWORD=dayana psql -h localhost -U postgres -d botica_db -c \"SELECT p.product_id, p.product_name, p.product_price, i.current_stock FROM product p JOIN inventory i ON i.product_id=p.product_id WHERE i.location_id=1 AND i.current_stock>5 ORDER BY p.product_id LIMIT 1;\")",
       "Bash(curl -s -o /dev/null -w \"shift-summary/pdf without token → HTTP %{http_code} \\(401 expected\\)\\\\n\" http://localhost:3000/api/orders/shift-summary/pdf)",
-      "Bash(curl -s -o /dev/null -w \"backend HTTP %{http_code}\\\\n\" http://localhost:3000/)"
+      "Bash(curl -s -o /dev/null -w \"backend HTTP %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(ls -la botica-backend/*.sql)",
+      "Bash(ls -la *.sql)",
+      "Bash(git rm *)",
+      "Bash(mkdir -p docs/design)",
+      "Bash(git mv *)",
+      "Bash(npm run *)",
+      "Bash(node \"C:/Users/jeana/AppData/Local/Temp/claude/c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica-proyecto-botica/484305fa-172f-479d-b662-91e01891303b/scratchpad/verify-boot.js\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\jeana\\.claude\\projects\\c--Users-jeana-OneDrive-Escritorio-UNMSM-CICLO-VII-DISE-O-WEB-proyecto-web-botica\\memory"

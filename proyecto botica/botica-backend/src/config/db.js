@@ -7,6 +7,10 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  // SSL: Supabase (y la mayoría de Postgres gestionados) EXIGE conexión cifrada.
+  // Por defecto activamos SSL aceptando el certificado del proveedor. En local,
+  // pon DB_SSL=false en el .env para desactivarlo (Postgres local sin SSL).
+  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
   // Fija la zona horaria de la sesión a Perú (America/Lima, UTC-5) de forma
   // EXPLÍCITA, sin depender de la zona por defecto del host de la BD. Así
   // CURRENT_TIMESTAMP/NOW() (escritura de order_date) y CURRENT_DATE /
